@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect } from 'react';
@@ -190,14 +191,14 @@ export function BookingDialog({
                     render={({ field }) => (
                     <FormItem>
                         <FormLabel>Assign Driver</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value || ''}>
+                        <Select onValueChange={field.onChange} defaultValue={field.value || undefined}>
                         <FormControl>
                             <SelectTrigger>
                             <SelectValue placeholder="Select a driver" />
                             </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                            <SelectItem value="">Unassigned</SelectItem>
+                            <SelectItem value="unassigned-driver">Unassigned</SelectItem>
                             {drivers.map(driver => (
                                 <SelectItem key={driver.id} value={driver.id}>{driver.name}</SelectItem>
                             ))}
@@ -213,14 +214,14 @@ export function BookingDialog({
                     render={({ field }) => (
                     <FormItem>
                         <FormLabel>Assign Vehicle</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value || ''}>
+                        <Select onValueChange={field.onChange} defaultValue={field.value || undefined}>
                         <FormControl>
                             <SelectTrigger>
                             <SelectValue placeholder="Select a vehicle" />
                             </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                            <SelectItem value="">Unassigned</SelectItem>
+                            <SelectItem value="unassigned-vehicle">Unassigned</SelectItem>
                             {vehicles.map(vehicle => (
                                 <SelectItem key={vehicle.id} value={vehicle.id}>{`${vehicle.make} ${vehicle.model} (${vehicle.licensePlate})`}</SelectItem>
                             ))}
