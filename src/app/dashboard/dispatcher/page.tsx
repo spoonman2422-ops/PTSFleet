@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useMemo } from 'react';
@@ -9,6 +10,9 @@ import { PlusCircle } from 'lucide-react';
 import { BookingDialog } from '@/components/dispatcher/booking-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { MessageBoard } from '@/components/message-board';
+import { useFirestore } from '@/firebase';
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { useUser } from '@/context/user-context';
 
 export default function DispatcherPage() {
   const [bookings, setBookings] = useState<Booking[]>(initialBookings);
@@ -16,6 +20,8 @@ export default function DispatcherPage() {
   const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
   const [filterStatus, setFilterStatus] = useState<BookingStatus | 'All'>('All');
   const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
+  const firestore = useFirestore();
+  const { user } = useUser();
 
   const { toast } = useToast();
 
@@ -54,11 +60,23 @@ export default function DispatcherPage() {
     }
   };
 
-   const handleUpdateStatus = (bookingId: string, status: BookingStatus) => {
+   const handleUpdateStatus = async (bookingId: string, status: BookingStatus) => {
     setBookings(currentBookings =>
       currentBookings.map(b => (b.id === bookingId ? { ...b, status } : b))
     );
      toast({ title: "Status Updated", description: `Booking status changed to ${status}.` });
+
+     if (status === 'Delivered' && user && firestore) {
+        const messagesPath = `bookings/${bookingId}/messages`;
+        const messageData = {
+            text: `Dispatcher ${user.name} has confirmed the delivery for booking #${bookingId.substring(8, 12)}. Great job!`,
+            senderId: 'system',
+            senderName: 'System Bot',
+            bookingId: bookingId,
+            createdAt: serverTimestamp(),
+        };
+        await addDoc(collection(firestore, messagesPath), messageData);
+     }
   };
   
   const filteredBookings = useMemo(() => {
