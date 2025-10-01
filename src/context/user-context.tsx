@@ -21,20 +21,27 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
   useEffect(() => {
-    try {
-      const storedUserId = localStorage.getItem('pts-user-id');
-      if (storedUserId) {
-        const foundUser = users.find(u => u.id === storedUserId);
-        if(foundUser) {
-          setUser(foundUser);
-        } else {
-          localStorage.removeItem('pts-user-id');
+    const checkUser = () => {
+      try {
+        const storedUserId = localStorage.getItem('pts-user-id');
+        if (storedUserId) {
+          const foundUser = users.find(u => u.id === storedUserId);
+          if (foundUser) {
+            setUser(foundUser);
+          } else {
+            localStorage.removeItem('pts-user-id');
+          }
         }
+      } catch (error) {
+        console.error("Could not access localStorage", error);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error("Could not access localStorage", error);
-    } finally {
-      setIsLoading(false);
+    };
+    
+    // Only run this on the client
+    if (typeof window !== 'undefined') {
+        checkUser();
     }
   }, []);
 
