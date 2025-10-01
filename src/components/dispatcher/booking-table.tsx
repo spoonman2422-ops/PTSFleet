@@ -21,7 +21,7 @@ import type { Booking, BookingStatus } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { BookingTableActions } from './booking-table-actions';
-import { Package, Truck, CheckCircle2, XCircle } from 'lucide-react';
+import { Package, Truck, CheckCircle2, XCircle, Clock } from 'lucide-react';
 
 type BookingTableProps = {
   bookings: Booking[];
@@ -36,18 +36,19 @@ type BookingTableProps = {
 const statusConfig: Record<BookingStatus, { variant: 'secondary' | 'default' | 'destructive' | 'outline', icon: React.ElementType, className: string }> = {
   Pending: { variant: 'secondary', icon: Package, className: 'bg-amber-100 text-amber-800 border-amber-200' },
   'En Route': { variant: 'default', icon: Truck, className: 'bg-blue-100 text-blue-800 border-blue-200' },
+  'Pending Verification': { variant: 'outline', icon: Clock, className: 'bg-purple-100 text-purple-800 border-purple-200' },
   Delivered: { variant: 'default', icon: CheckCircle2, className: 'bg-green-100 text-green-800 border-green-200' },
   Cancelled: { variant: 'destructive', icon: XCircle, className: 'bg-red-100 text-red-800 border-red-200' },
 };
 
-const bookingStatuses: (BookingStatus | 'All')[] = ['All', 'Pending', 'En Route', 'Delivered', 'Cancelled'];
+const bookingStatuses: (BookingStatus | 'All')[] = ['All', 'Pending', 'En Route', 'Pending Verification', 'Delivered', 'Cancelled'];
 
 export function BookingTable({ bookings, onEdit, onUpdateStatus, filterStatus, setFilterStatus, onRowClick, selectedBookingId }: BookingTableProps) {
   return (
     <div className="border rounded-lg bg-card text-card-foreground shadow-sm flex-1 flex flex-col">
         <div className="p-4 border-b">
             <Tabs value={filterStatus} onValueChange={(value) => setFilterStatus(value as BookingStatus | 'All')}>
-                <TabsList>
+                <TabsList className="flex flex-wrap h-auto justify-start">
                     {bookingStatuses.map(status => (
                          <TabsTrigger key={status} value={status}>{status}</TabsTrigger>
                     ))}

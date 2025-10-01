@@ -2,7 +2,7 @@ import { Timestamp } from 'firebase/firestore';
 
 export type UserRole = 'Admin' | 'Dispatcher' | 'Driver';
 
-export type BookingStatus = 'Pending' | 'En Route' | 'Delivered' | 'Cancelled';
+export type BookingStatus = 'Pending' | 'En Route' | 'Delivered' | 'Cancelled' | 'Pending Verification';
 
 export interface User {
   id: string;

@@ -12,7 +12,7 @@ import {
   DropdownMenuSubContent
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, Edit, Truck, CheckCircle2, XCircle } from "lucide-react";
+import { MoreHorizontal, Edit, Truck, CheckCircle2, XCircle, Package, Clock } from "lucide-react";
 import type { Booking, BookingStatus } from "@/lib/types";
 
 type BookingTableActionsProps = {
@@ -42,9 +42,17 @@ export function BookingTableActions({ booking, onEdit, onUpdateStatus }: Booking
                 <span>Change Status</span>
             </DropdownMenuSubTrigger>
             <DropdownMenuSubContent>
+                <DropdownMenuItem onClick={() => onUpdateStatus(booking.id, 'Pending')} disabled={booking.status === 'Pending'}>
+                    <Package className="mr-2 h-4 w-4"/>
+                    Pending
+                </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => onUpdateStatus(booking.id, 'En Route')} disabled={booking.status === 'En Route'}>
                     <Truck className="mr-2 h-4 w-4"/>
                     En Route
+                </DropdownMenuItem>
+                 <DropdownMenuItem onClick={() => onUpdateStatus(booking.id, 'Pending Verification')} disabled={booking.status === 'Pending Verification'}>
+                    <Clock className="mr-2 h-4 w-4"/>
+                    Pending Verification
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => onUpdateStatus(booking.id, 'Delivered')} disabled={booking.status === 'Delivered'}>
                     <CheckCircle2 className="mr-2 h-4 w-4"/>
