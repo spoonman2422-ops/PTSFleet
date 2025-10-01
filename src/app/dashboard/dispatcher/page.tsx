@@ -2,7 +2,6 @@
 "use client";
 
 import { useState, useMemo } from 'react';
-import { bookings as initialBookings, users, vehicles } from '@/lib/data';
 import type { Booking, BookingStatus } from '@/lib/types';
 import { BookingTable } from '@/components/dispatcher/booking-table';
 import { Button } from '@/components/ui/button';
@@ -10,17 +9,19 @@ import { PlusCircle } from 'lucide-react';
 import { BookingDialog } from '@/components/dispatcher/booking-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { MessageBoard } from '@/components/message-board';
-import { useFirestore } from '@/firebase';
-import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
+import { useFirestore, useCollection } from '@/firebase';
+import { addDoc, collection, serverTimestamp, doc, setDoc, updateDoc } from 'firebase/firestore';
 import { useUser } from '@/context/user-context';
+import { users, vehicles } from '@/lib/data';
 
 export default function DispatcherPage() {
-  const [bookings, setBookings] = useState<Booking[]>(initialBookings);
+  const firestore = useFirestore();
+  const { data: bookings, isLoading: isLoadingBookings } = useCollection<Booking>('bookings');
+  
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
   const [filterStatus, setFilterStatus] = useState<BookingStatus | 'All'>('All');
   const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
-  const firestore = useFirestore();
   const { user } = useUser();
 
   const { toast } = useToast();
@@ -35,25 +36,26 @@ export default function DispatcherPage() {
     setIsDialogOpen(true);
   };
 
-  const handleSaveBooking = (bookingData: Omit<Booking, 'id' | 'status'>, id?: string) => {
+  const handleSaveBooking = async (bookingData: Omit<Booking, 'id' | 'status'>, id?: string) => {
+    if (!firestore) return;
+    
     if (id) {
       // Update existing booking
-      setBookings(current =>
-        current.map(b => b.id === id ? { ...b, ...bookingData } : b)
-      );
-      toast({ title: "Booking Updated", description: `Booking #${id.split('-')[1]} has been successfully updated.` });
+      const bookingRef = doc(firestore, 'bookings', id);
+      await updateDoc(bookingRef, bookingData);
+
+      toast({ title: "Booking Updated", description: `Booking #${id.substring(0, 4)} has been successfully updated.` });
       if(bookingData.driverId) {
         toast({ title: "Driver Notified", description: `A notification has been sent for the updated assignment.` });
       }
     } else {
       // Create new booking
-      const newBooking: Booking = {
+      const newBooking: Omit<Booking, 'id'> = {
         ...bookingData,
-        id: `booking-${Date.now()}`,
         status: 'Pending',
       };
-      setBookings(current => [newBooking, ...current]);
-      toast({ title: "Booking Created", description: `A new booking has been created.` });
+      const docRef = await addDoc(collection(firestore, 'bookings'), newBooking);
+      toast({ title: "Booking Created", description: `A new booking #${docRef.id.substring(0,4)} has been created.` });
        if(newBooking.driverId) {
         toast({ title: "Driver Notified", description: `A notification has been sent to the assigned driver.` });
       }
@@ -61,15 +63,17 @@ export default function DispatcherPage() {
   };
 
    const handleUpdateStatus = async (bookingId: string, status: BookingStatus) => {
-    setBookings(currentBookings =>
-      currentBookings.map(b => (b.id === bookingId ? { ...b, status } : b))
-    );
-     toast({ title: "Status Updated", description: `Booking status changed to ${status}.` });
+    if (!firestore) return;
+
+    const bookingRef = doc(firestore, 'bookings', bookingId);
+    await updateDoc(bookingRef, { status });
+
+    toast({ title: "Status Updated", description: `Booking status changed to ${status}.` });
 
      if (status === 'Delivered' && user && firestore) {
         const messagesPath = `bookings/${bookingId}/messages`;
         const messageData = {
-            text: `Dispatcher ${user.name} has confirmed the delivery for booking #${bookingId.substring(8, 12)}. Great job!`,
+            text: `Dispatcher ${user.name} has confirmed the delivery for booking #${bookingId.substring(0, 4)}. Great job!`,
             senderId: 'system',
             senderName: 'System Bot',
             bookingId: bookingId,
@@ -79,10 +83,18 @@ export default function DispatcherPage() {
      }
   };
   
+  const sortedBookings = useMemo(() => {
+    return (bookings || []).sort((a, b) => {
+      const dateA = a.pickupTime ? new Date(a.pickupTime).getTime() : 0;
+      const dateB = b.pickupTime ? new Date(b.pickupTime).getTime() : 0;
+      return dateB - dateA;
+    });
+  }, [bookings]);
+
   const filteredBookings = useMemo(() => {
-    if (filterStatus === 'All') return bookings;
-    return bookings.filter(b => b.status === filterStatus);
-  }, [bookings, filterStatus]);
+    if (filterStatus === 'All') return sortedBookings;
+    return sortedBookings.filter(b => b.status === filterStatus);
+  }, [sortedBookings, filterStatus]);
   
   const handleRowClick = (bookingId: string) => {
     setSelectedBookingId(bookingId);
@@ -105,6 +117,7 @@ export default function DispatcherPage() {
 
         <BookingTable
           bookings={filteredBookings}
+          isLoading={isLoadingBookings}
           onEdit={handleEdit}
           onUpdateStatus={handleUpdateStatus}
           filterStatus={filterStatus}

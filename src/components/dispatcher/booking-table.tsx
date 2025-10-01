@@ -1,10 +1,10 @@
+
 "use client";
 
 import * as React from 'react';
 import {
   Table,
   TableBody,
-  TableCaption,
   TableCell,
   TableHead,
   TableHeader,
@@ -22,9 +22,11 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { BookingTableActions } from './booking-table-actions';
 import { Package, Truck, CheckCircle2, XCircle, Clock } from 'lucide-react';
+import { Skeleton } from '../ui/skeleton';
 
 type BookingTableProps = {
   bookings: Booking[];
+  isLoading: boolean;
   onEdit: (booking: Booking) => void;
   onUpdateStatus: (bookingId: string, status: BookingStatus) => void;
   filterStatus: BookingStatus | 'All';
@@ -43,7 +45,7 @@ const statusConfig: Record<BookingStatus, { variant: 'secondary' | 'default' | '
 
 const bookingStatuses: (BookingStatus | 'All')[] = ['All', 'Pending', 'En Route', 'Pending Verification', 'Delivered', 'Cancelled'];
 
-export function BookingTable({ bookings, onEdit, onUpdateStatus, filterStatus, setFilterStatus, onRowClick, selectedBookingId }: BookingTableProps) {
+export function BookingTable({ bookings, isLoading, onEdit, onUpdateStatus, filterStatus, setFilterStatus, onRowClick, selectedBookingId }: BookingTableProps) {
   return (
     <div className="border rounded-lg bg-card text-card-foreground shadow-sm flex-1 flex flex-col">
         <div className="p-4 border-b">
@@ -70,8 +72,22 @@ export function BookingTable({ bookings, onEdit, onUpdateStatus, filterStatus, s
           </TableRow>
         </TableHeader>
         <TableBody>
-          {bookings.length > 0 ? (
+          {isLoading ? (
+            Array.from({ length: 5 }).map((_, i) => (
+              <TableRow key={i}>
+                <TableCell><Skeleton className="h-5 w-12" /></TableCell>
+                <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                <TableCell><Skeleton className="h-5 w-20" /></TableCell>
+                <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                <TableCell><Skeleton className="h-6 w-28" /></TableCell>
+                <TableCell className="text-right"><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
+              </TableRow>
+            ))
+          ) : bookings.length > 0 ? (
             bookings.map(booking => {
+              if (!booking.id) return null;
               const driver = booking.driverId ? users.find(u => u.id === booking.driverId) : null;
               const vehicle = booking.vehicleId ? vehicles.find(v => v.id === booking.vehicleId) : null;
               const currentStatusConfig = statusConfig[booking.status];
@@ -80,13 +96,13 @@ export function BookingTable({ bookings, onEdit, onUpdateStatus, filterStatus, s
               return (
                 <TableRow 
                   key={booking.id}
-                  onClick={() => onRowClick(booking.id)}
+                  onClick={() => onRowClick(booking.id!)}
                   className={cn(
                     "cursor-pointer",
                     selectedBookingId === booking.id && "bg-muted/50"
                   )}
                 >
-                  <TableCell className="font-medium">#{booking.id.substring(8, 12)}</TableCell>
+                  <TableCell className="font-medium">#{booking.id.substring(0, 4)}</TableCell>
                   <TableCell>{booking.customerName}</TableCell>
                   <TableCell>
                     <div className="flex flex-col">

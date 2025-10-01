@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "Message": {
@@ -28,6 +29,22 @@
         }
       },
       "required": ["text", "senderId", "senderName", "bookingId", "createdAt"]
+    },
+    "Booking": {
+      "title": "Booking",
+      "description": "A booking for a transport job.",
+      "type": "object",
+      "properties": {
+        "customerName": { "type": "string" },
+        "pickupAddress": { "type": "string" },
+        "deliveryAddress": { "type": "string" },
+        "pickupTime": { "type": "string", "format": "date-time" },
+        "deliveryTime": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["Pending", "En Route", "Pending Verification", "Delivered", "Cancelled"] },
+        "driverId": { "type": "string" },
+        "vehicleId": { "type": "string" }
+      },
+      "required": ["customerName", "pickupAddress", "deliveryAddress", "pickupTime", "deliveryTime", "status"]
     }
   },
   "auth": {
@@ -39,6 +56,12 @@
         "$ref": "#/entities/Message"
       },
       "description": "Messages for a specific booking."
+    },
+    "/bookings/{bookingId}": {
+      "schema": {
+        "$ref": "#/entities/Booking"
+      },
+      "description": "A collection of all bookings."
     }
   }
 }

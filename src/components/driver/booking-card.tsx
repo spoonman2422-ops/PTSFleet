@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -10,7 +11,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import type { Booking, BookingStatus, Message } from "@/lib/types";
+import type { Booking, BookingStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { MapPin, ArrowRight, Play, CheckCircle2, Package, Clock, Send } from "lucide-react";
 import { format } from "date-fns";
@@ -35,6 +36,7 @@ const statusConfig = {
 };
 
 export function BookingCard({ booking, onStatusChange, onClick, isSelected }: BookingCardProps) {
+  if (!booking.id) return null;
   const currentStatusConfig = statusConfig[booking.status];
   const StatusIcon = currentStatusConfig.icon;
   const firestore = useFirestore();
@@ -43,13 +45,13 @@ export function BookingCard({ booking, onStatusChange, onClick, isSelected }: Bo
   const handleActionClick = async (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent card's onClick from firing
     if(booking.status === 'Pending'){
-        onStatusChange(booking.id, 'En Route');
+        onStatusChange(booking.id!, 'En Route');
     } else if (booking.status === 'En Route'){
-        onStatusChange(booking.id, 'Pending Verification')
+        onStatusChange(booking.id!, 'Pending Verification')
         if (user && firestore) {
           const messagesPath = `bookings/${booking.id}/messages`;
           const messageData = {
-            text: `Delivery for booking #${booking.id.substring(8, 12)} is complete. Awaiting dispatcher verification.`,
+            text: `Delivery for booking #${booking.id!.substring(0, 4)} is complete. Awaiting dispatcher verification.`,
             senderId: 'system',
             senderName: 'System Bot',
             bookingId: booking.id,
@@ -71,7 +73,7 @@ export function BookingCard({ booking, onStatusChange, onClick, isSelected }: Bo
       <CardHeader>
         <div className="flex justify-between items-start">
             <div>
-                <CardTitle className="text-lg">Booking #{booking.id.split('-')[1]}</CardTitle>
+                <CardTitle className="text-lg">Booking #{booking.id.substring(0, 4)}</CardTitle>
                 <CardDescription>{booking.customerName}</CardDescription>
             </div>
           <Badge variant={currentStatusConfig.variant as any} className={cn("whitespace-nowrap", currentStatusConfig.className)}>

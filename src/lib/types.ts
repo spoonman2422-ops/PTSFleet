@@ -1,3 +1,4 @@
+
 import { Timestamp } from 'firebase/firestore';
 
 export type UserRole = 'Admin' | 'Dispatcher' | 'Driver';
@@ -21,7 +22,7 @@ export interface Vehicle {
 }
 
 export interface Booking {
-  id: string;
+  id?: string;
   customerName: string;
   pickupAddress: string;
   deliveryAddress: string;
