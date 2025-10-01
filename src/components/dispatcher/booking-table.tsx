@@ -29,6 +29,8 @@ type BookingTableProps = {
   onUpdateStatus: (bookingId: string, status: BookingStatus) => void;
   filterStatus: BookingStatus | 'All';
   setFilterStatus: (status: BookingStatus | 'All') => void;
+  onRowClick: (bookingId: string) => void;
+  selectedBookingId: string | null;
 };
 
 const statusConfig: Record<BookingStatus, { variant: 'secondary' | 'default' | 'destructive' | 'outline', icon: React.ElementType, className: string }> = {
@@ -40,7 +42,7 @@ const statusConfig: Record<BookingStatus, { variant: 'secondary' | 'default' | '
 
 const bookingStatuses: (BookingStatus | 'All')[] = ['All', 'Pending', 'En Route', 'Delivered', 'Cancelled'];
 
-export function BookingTable({ bookings, onEdit, onUpdateStatus, filterStatus, setFilterStatus }: BookingTableProps) {
+export function BookingTable({ bookings, onEdit, onUpdateStatus, filterStatus, setFilterStatus, onRowClick, selectedBookingId }: BookingTableProps) {
   return (
     <div className="border rounded-lg bg-card text-card-foreground shadow-sm flex-1 flex flex-col">
         <div className="p-4 border-b">
@@ -75,7 +77,14 @@ export function BookingTable({ bookings, onEdit, onUpdateStatus, filterStatus, s
               const StatusIcon = currentStatusConfig.icon;
 
               return (
-                <TableRow key={booking.id}>
+                <TableRow 
+                  key={booking.id}
+                  onClick={() => onRowClick(booking.id)}
+                  className={cn(
+                    "cursor-pointer",
+                    selectedBookingId === booking.id && "bg-muted/50"
+                  )}
+                >
                   <TableCell className="font-medium">#{booking.id.substring(8, 12)}</TableCell>
                   <TableCell>{booking.customerName}</TableCell>
                   <TableCell>

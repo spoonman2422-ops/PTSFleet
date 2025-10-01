@@ -8,12 +8,14 @@ import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
 import { BookingDialog } from '@/components/dispatcher/booking-dialog';
 import { useToast } from '@/hooks/use-toast';
+import { MessageBoard } from '@/components/message-board';
 
 export default function DispatcherPage() {
   const [bookings, setBookings] = useState<Booking[]>(initialBookings);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
   const [filterStatus, setFilterStatus] = useState<BookingStatus | 'All'>('All');
+  const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
 
   const { toast } = useToast();
 
@@ -63,27 +65,47 @@ export default function DispatcherPage() {
     if (filterStatus === 'All') return bookings;
     return bookings.filter(b => b.status === filterStatus);
   }, [bookings, filterStatus]);
+  
+  const handleRowClick = (bookingId: string) => {
+    setSelectedBookingId(bookingId);
+  };
+
 
   return (
-    <div className="flex flex-col gap-6 h-full">
-      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-        <div>
-            <h1 className="text-3xl font-bold tracking-tight">Dispatcher Dashboard</h1>
-            <p className="text-muted-foreground">Manage and track all bookings.</p>
+    <div className="grid md:grid-cols-3 gap-6 h-full">
+      <div className="md:col-span-2 flex flex-col gap-6">
+        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+          <div>
+              <h1 className="text-3xl font-bold tracking-tight">Dispatcher Dashboard</h1>
+              <p className="text-muted-foreground">Manage and track all bookings.</p>
+          </div>
+          <Button onClick={handleAddNew}>
+            <PlusCircle className="mr-2 h-4 w-4" />
+            New Booking
+          </Button>
         </div>
-        <Button onClick={handleAddNew}>
-          <PlusCircle className="mr-2 h-4 w-4" />
-          New Booking
-        </Button>
+
+        <BookingTable
+          bookings={filteredBookings}
+          onEdit={handleEdit}
+          onUpdateStatus={handleUpdateStatus}
+          filterStatus={filterStatus}
+          setFilterStatus={setFilterStatus}
+          onRowClick={handleRowClick}
+          selectedBookingId={selectedBookingId}
+        />
+      </div>
+      
+      <div className="md:col-span-1">
+        {selectedBookingId ? (
+            <MessageBoard bookingId={selectedBookingId} />
+        ) : (
+            <div className="flex items-center justify-center h-full border-2 border-dashed rounded-lg bg-muted/40">
+                <p className="text-muted-foreground">Select a booking to view messages</p>
+            </div>
+        )}
       </div>
 
-      <BookingTable
-        bookings={filteredBookings}
-        onEdit={handleEdit}
-        onUpdateStatus={handleUpdateStatus}
-        filterStatus={filterStatus}
-        setFilterStatus={setFilterStatus}
-      />
 
       <BookingDialog
         isOpen={isDialogOpen}

@@ -1,0 +1,44 @@
+{
+  "entities": {
+    "Message": {
+      "title": "Message",
+      "description": "A message sent between a driver and a dispatcher.",
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string",
+          "description": "The content of the message."
+        },
+        "senderId": {
+          "type": "string",
+          "description": "The ID of the user who sent the message."
+        },
+        "senderName": {
+          "type": "string",
+          "description": "The name of the user who sent the message."
+        },
+        "bookingId": {
+          "type": "string",
+          "description": "The ID of the booking this message relates to."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The time the message was sent."
+        }
+      },
+      "required": ["text", "senderId", "senderName", "bookingId", "createdAt"]
+    }
+  },
+  "auth": {
+    "providers": ["anonymous"]
+  },
+  "firestore": {
+    "/bookings/{bookingId}/messages/{messageId}": {
+      "schema": {
+        "$ref": "#/entities/Message"
+      },
+      "description": "Messages for a specific booking."
+    }
+  }
+}

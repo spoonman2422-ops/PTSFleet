@@ -18,6 +18,8 @@ import { format } from "date-fns";
 type BookingCardProps = {
   booking: Booking;
   onStatusChange: (bookingId: string, status: BookingStatus) => void;
+  onClick: () => void;
+  isSelected: boolean;
 };
 
 const statusConfig = {
@@ -27,12 +29,27 @@ const statusConfig = {
     Cancelled: { variant: "destructive", icon: Package, className: "bg-red-100 text-red-800" },
 };
 
-export function BookingCard({ booking, onStatusChange }: BookingCardProps) {
+export function BookingCard({ booking, onStatusChange, onClick, isSelected }: BookingCardProps) {
   const currentStatusConfig = statusConfig[booking.status];
   const StatusIcon = currentStatusConfig.icon;
 
+  const handleActionClick = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent card's onClick from firing
+    if(booking.status === 'Pending'){
+        onStatusChange(booking.id, 'En Route');
+    } else if (booking.status === 'En Route'){
+        onStatusChange(booking.id, 'Delivered')
+    }
+  }
+
   return (
-    <Card className="flex flex-col transition-all hover:shadow-lg">
+    <Card 
+        onClick={onClick}
+        className={cn(
+            "flex flex-col transition-all hover:shadow-lg cursor-pointer",
+            isSelected && "ring-2 ring-primary"
+        )}
+    >
       <CardHeader>
         <div className="flex justify-between items-start">
             <div>
@@ -67,13 +84,13 @@ export function BookingCard({ booking, onStatusChange }: BookingCardProps) {
       </CardContent>
       <CardFooter>
         {booking.status === 'Pending' && (
-          <Button className="w-full" onClick={() => onStatusChange(booking.id, 'En Route')}>
+          <Button className="w-full" onClick={handleActionClick}>
             <Play className="mr-2 h-4 w-4" />
             Start Trip
           </Button>
         )}
         {booking.status === 'En Route' && (
-          <Button className="w-full" onClick={() => onStatusChange(booking.id, 'Delivered')} variant="outline">
+          <Button className="w-full" onClick={handleActionClick} variant="outline">
             <CheckCircle2 className="mr-2 h-4 w-4" />
             Complete Delivery
           </Button>
