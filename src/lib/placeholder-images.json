@@ -1,3 +1,40 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "avatar-admin",
+      "description": "Admin User Avatar",
+      "imageUrl": "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxwZXJzb24lMjBwb3J0cmFpdHxlbnwwfHx8fDE3NTkzMDY0NTd8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "person portrait"
+    },
+    {
+      "id": "avatar-dispatcher-1",
+      "description": "Dispatcher 1 Avatar",
+      "imageUrl": "https://images.unsplash.com/photo-1592621385612-4d7129426394?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHx3b21hbiUyMHBvcnRyYWl0fGVufDB8fHx8MTc1OTI3NTk3MHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "woman portrait"
+    },
+    {
+      "id": "avatar-dispatcher-2",
+      "description": "Dispatcher 2 Avatar",
+      "imageUrl": "https://images.unsplash.com/photo-1607031542107-f6f46b5d54e9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxtYW4lMjBwb3J0cmFpdHxlbnwwfHx8fDE3NTkyNjA1ODZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "man portrait"
+    },
+    {
+      "id": "avatar-driver-1",
+      "description": "Driver 1 Avatar",
+      "imageUrl": "https://images.unsplash.com/photo-1623184663110-89ba5b565eb6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxtYW4lMjBzbWlsaW5nfGVufDB8fHx8MTc1OTI1ODQ3N3ww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "man smiling"
+    },
+    {
+      "id": "avatar-driver-2",
+      "description": "Driver 2 Avatar",
+      "imageUrl": "https://images.unsplash.com/photo-1580489944761-15a19d654956?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHx3b21hbiUyMHNtaWxpbmd8ZW58MHx8fHwxNzU5MjMzMTk0fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "woman smiling"
+    },
+    {
+      "id": "avatar-driver-3",
+      "description": "Driver 3 Avatar",
+      "imageUrl": "https://images.unsplash.com/photo-1611448746128-7c39e03b71e4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxwZXJzb24lMjBkcml2aW5nfGVufDB8fHx8MTc1OTMyOTE1Mnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "person driving"
+    }
+  ]
 }
