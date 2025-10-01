@@ -1,3 +1,4 @@
+
 "use client";
 import { useState, useRef, useEffect } from 'react';
 import { useUser } from '@/context/user-context';
@@ -12,6 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Send } from 'lucide-react';
 import { format } from 'date-fns';
 import type { Message } from '@/lib/types';
+import { users as staticUsers } from '@/lib/data';
 
 
 export function MessageBoard({ bookingId }: { bookingId: string }) {
@@ -23,7 +25,9 @@ export function MessageBoard({ bookingId }: { bookingId: string }) {
   const messagesPath = `bookings/${bookingId}/messages`;
   const { data: messages, isLoading } = useCollection<Message>(messagesPath);
 
-  const sortedMessages = (messages || []).sort((a,b) => a.createdAt.seconds - b.createdAt.seconds);
+  const sortedMessages = (messages || [])
+    .filter(msg => msg.createdAt) // Ensure createdAt exists
+    .sort((a,b) => a.createdAt.seconds - b.createdAt.seconds);
 
   useEffect(() => {
     // Auto-scroll to bottom
@@ -75,7 +79,7 @@ export function MessageBoard({ bookingId }: { bookingId: string }) {
               >
                 {msg.senderId !== user?.id && (
                     <Avatar className="h-8 w-8">
-                        <AvatarImage src={(users.find(u => u.id === msg.senderId) || {}).avatarUrl} />
+                        <AvatarImage src={(staticUsers.find(u => u.id === msg.senderId) || {}).avatarUrl} />
                         <AvatarFallback>{msg.senderName.charAt(0)}</AvatarFallback>
                     </Avatar>
                 )}
@@ -121,12 +125,3 @@ export function MessageBoard({ bookingId }: { bookingId: string }) {
     </Card>
   );
 }
-// Dummy users data needed for avatar URLs
-const users = [
-    { id: 'user-admin-1', name: 'Admin User', avatarUrl: 'https://picsum.photos/seed/101/100/100' },
-    { id: 'user-dispatcher-1', name: 'Sarah Johnson', avatarUrl: 'https://picsum.photos/seed/102/100/100' },
-    { id: 'user-dispatcher-2', name: 'Michael Chen', avatarUrl: 'https://picsum.photos/seed/103/100/100' },
-    { id: 'user-driver-1', name: 'John Doe', avatarUrl: 'https://picsum.photos/seed/104/100/100' },
-    { id: 'user-driver-2', name: 'Jane Smith', avatarUrl: 'https://picsum.photos/seed/105/100/100' },
-    { id: 'user-driver-3', name: 'Carlos Gomez', avatarUrl: 'https://picsum.photos/seed/106/100/100' },
-];
