@@ -209,5 +209,3 @@ export function MessageBoard({ bookingId }: { bookingId: string }) {
     </Card>
   );
 }
-
-    
