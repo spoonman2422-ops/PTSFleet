@@ -81,29 +81,33 @@ export function MessageBoard({ bookingId }: { bookingId: string }) {
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if ((!newMessage.trim() && !imageFile) || !user) return;
+    if ((!newMessage.trim() && !imageFile) || !user || !firestore) return;
 
     setIsUploading(true);
-    let imageUrl: string | undefined = undefined;
-
+    
     try {
+      let imageUrl: string | undefined = undefined;
+
       if (imageFile) {
         const storage = getStorage();
         const filePath = `messages/${bookingId}/${Date.now()}-${imageFile.name}`;
-        const imageRef = storageRef(storage, filePath);
+        const imageStorageRef = storageRef(storage, filePath);
         
-        await uploadBytes(imageRef, imageFile);
-        imageUrl = await getDownloadURL(imageRef);
+        await uploadBytes(imageStorageRef, imageFile);
+        imageUrl = await getDownloadURL(imageStorageRef);
       }
 
-      const messageData = {
-        text: newMessage,
+      const messageData: Omit<Message, 'id' | 'createdAt'> & { createdAt: any } = {
+        text: newMessage.trim(),
         senderId: user.id,
         senderName: user.name,
         bookingId: bookingId,
         createdAt: serverTimestamp(),
-        ...(imageUrl && { imageUrl }),
       };
+
+      if (imageUrl) {
+        messageData.imageUrl = imageUrl;
+      }
       
       await addDoc(collection(firestore, messagesPath), messageData);
       
@@ -177,7 +181,7 @@ export function MessageBoard({ bookingId }: { bookingId: string }) {
       <CardFooter className="flex flex-col items-start gap-2">
         {imagePreview && (
           <div className="relative w-24 h-24 border rounded-md p-1">
-            <Image src={imagePreview} alt="preview" layout="fill" objectFit="cover" className="rounded"/>
+            <Image src={imagePreview} alt="preview" fill objectFit="cover" className="rounded"/>
             <Button variant="destructive" size="icon" className="absolute -top-2 -right-2 h-6 w-6 rounded-full" onClick={removeImage}>
               <X className="h-4 w-4" />
             </Button>
@@ -205,3 +209,5 @@ export function MessageBoard({ bookingId }: { bookingId: string }) {
     </Card>
   );
 }
+
+    
