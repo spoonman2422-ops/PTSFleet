@@ -31,6 +31,7 @@ export interface Booking {
   status: BookingStatus;
   driverId: string | null;
   vehicleId: string | null;
+  proofOfDeliveryUrl?: string;
 }
 
 export interface Message {
@@ -40,4 +41,5 @@ export interface Message {
   senderName: string;
   bookingId: string;
   createdAt: Timestamp;
+  imageUrl?: string;
 }

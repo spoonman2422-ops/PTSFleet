@@ -5,32 +5,38 @@ import { useUser } from '@/context/user-context';
 import { useCollection } from '@/firebase/firestore/hooks';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Send } from 'lucide-react';
+import { Send, Paperclip, X, Image as ImageIcon, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import type { Message } from '@/lib/types';
 import { users as staticUsers } from '@/lib/data';
-
+import Image from 'next/image';
+import { useToast } from '@/hooks/use-toast';
 
 export function MessageBoard({ bookingId }: { bookingId: string }) {
   const { user } = useUser();
   const firestore = useFirestore();
   const [newMessage, setNewMessage] = useState('');
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
 
   const messagesPath = `bookings/${bookingId}/messages`;
   const { data: messages, isLoading } = useCollection<Message>(messagesPath);
 
   const sortedMessages = (messages || [])
-    .filter(msg => msg.createdAt) // Ensure createdAt exists
+    .filter(msg => msg.createdAt)
     .sort((a,b) => a.createdAt.seconds - b.createdAt.seconds);
 
   useEffect(() => {
-    // Auto-scroll to bottom
     if (scrollAreaRef.current) {
         const viewport = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
         if (viewport) {
@@ -38,25 +44,80 @@ export function MessageBoard({ bookingId }: { bookingId: string }) {
         }
     }
   }, [messages]);
+  
+  useEffect(() => {
+    if (imageFile) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(imageFile);
+    } else {
+      setImagePreview(null);
+    }
+  }, [imageFile]);
 
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) { // 2MB limit
+        toast({
+          variant: "destructive",
+          title: "File too large",
+          description: "Please select an image smaller than 2MB.",
+        });
+        return;
+      }
+      setImageFile(file);
+    }
+  };
+
+  const removeImage = () => {
+    setImageFile(null);
+    if(fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  }
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim() || !user) return;
+    if ((!newMessage.trim() && !imageFile) || !user) return;
 
-    const messageData = {
-      text: newMessage,
-      senderId: user.id,
-      senderName: user.name,
-      bookingId: bookingId,
-      createdAt: serverTimestamp(),
-    };
-    
+    setIsUploading(true);
+    let imageUrl: string | undefined = undefined;
+
     try {
+      if (imageFile) {
+        const storage = getStorage();
+        const filePath = `messages/${bookingId}/${Date.now()}-${imageFile.name}`;
+        const imageRef = storageRef(storage, filePath);
+        
+        await uploadBytes(imageRef, imageFile);
+        imageUrl = await getDownloadURL(imageRef);
+      }
+
+      const messageData = {
+        text: newMessage,
+        senderId: user.id,
+        senderName: user.name,
+        bookingId: bookingId,
+        createdAt: serverTimestamp(),
+        ...(imageUrl && { imageUrl }),
+      };
+      
       await addDoc(collection(firestore, messagesPath), messageData);
+      
       setNewMessage('');
+      removeImage();
     } catch (error) {
       console.error("Error sending message: ", error);
+      toast({
+        variant: 'destructive',
+        title: "Error",
+        description: "Failed to send message. Please try again."
+      })
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -85,13 +146,18 @@ export function MessageBoard({ bookingId }: { bookingId: string }) {
                 )}
                 <div className={`flex flex-col gap-1 ${msg.senderId === user?.id ? 'items-end' : ''}`}>
                     <div
-                    className={`max-w-xs rounded-lg p-3 text-sm ${
-                        msg.senderId === user?.id
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted'
-                    }`}
+                      className={`max-w-xs rounded-lg p-3 text-sm ${
+                          msg.senderId === user?.id
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-muted'
+                      }`}
                     >
-                        <p>{msg.text}</p>
+                      {msg.imageUrl && (
+                        <a href={msg.imageUrl} target="_blank" rel="noopener noreferrer">
+                          <Image src={msg.imageUrl} alt="attached image" width={200} height={200} className="rounded-md mb-2 max-w-full h-auto" />
+                        </a>
+                      )}
+                      {msg.text && <p>{msg.text}</p>}
                     </div>
                     <span className="text-xs text-muted-foreground">
                         {msg.senderName} - {msg.createdAt ? format(msg.createdAt.toDate(), 'p') : ''}
@@ -108,16 +174,30 @@ export function MessageBoard({ bookingId }: { bookingId: string }) {
           </div>
         </ScrollArea>
       </CardContent>
-      <CardFooter>
+      <CardFooter className="flex flex-col items-start gap-2">
+        {imagePreview && (
+          <div className="relative w-24 h-24 border rounded-md p-1">
+            <Image src={imagePreview} alt="preview" layout="fill" objectFit="cover" className="rounded"/>
+            <Button variant="destructive" size="icon" className="absolute -top-2 -right-2 h-6 w-6 rounded-full" onClick={removeImage}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
         <form onSubmit={handleSendMessage} className="flex w-full items-center space-x-2">
           <Input
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
             placeholder="Type a message..."
             autoComplete="off"
+            disabled={isUploading}
           />
-          <Button type="submit" size="icon" disabled={!newMessage.trim()}>
-            <Send className="h-4 w-4" />
+          <Button type="button" size="icon" variant="ghost" onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
+            <Paperclip className="h-4 w-4" />
+            <span className="sr-only">Attach file</span>
+          </Button>
+          <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" className="hidden" />
+          <Button type="submit" size="icon" disabled={(!newMessage.trim() && !imageFile) || isUploading}>
+            {isUploading ? <Loader2 className="h-4 w-4 animate-spin"/> : <Send className="h-4 w-4" />}
             <span className="sr-only">Send</span>
           </Button>
         </form>
