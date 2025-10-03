@@ -2,12 +2,14 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
+import { signInWithEmailAndPassword, signOut, onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
+import { useAuth } from '@/firebase';
 import type { User } from '@/lib/types';
 import { users } from '@/lib/data';
 
 interface UserContextType {
   user: User | null;
-  login: (userId: string) => void;
+  login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
 }
@@ -19,31 +21,34 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
+  const auth = useAuth();
 
   useEffect(() => {
-    const checkUser = () => {
-      try {
-        const storedUserId = localStorage.getItem('pts-user-id');
-        if (storedUserId) {
-          const foundUser = users.find(u => u.id === storedUserId);
-          if (foundUser) {
-            setUser(foundUser);
-          } else {
-            localStorage.removeItem('pts-user-id');
-          }
-        }
-      } catch (error) {
-        console.error("Could not access localStorage", error);
-      } finally {
+    if (!auth) {
         setIsLoading(false);
-      }
+        return;
     };
-    
-    // Only run this on the client
-    if (typeof window !== 'undefined') {
-        checkUser();
-    }
-  }, []);
+
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser: FirebaseUser | null) => {
+      if (firebaseUser) {
+        // Find the corresponding user profile from our static data
+        // In a real app, this would be a fetch from Firestore
+        const userProfile = users.find(u => u.email.toLowerCase() === firebaseUser.email?.toLowerCase());
+        if (userProfile) {
+            setUser(userProfile);
+        } else {
+            // If user is not in our static list, sign them out.
+            signOut(auth);
+            setUser(null);
+        }
+      } else {
+        setUser(null);
+      }
+      setIsLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [auth]);
 
   useEffect(() => {
     if (!isLoading) {
@@ -55,28 +60,16 @@ export function UserProvider({ children }: { children: ReactNode }) {
     }
   }, [user, isLoading, pathname, router]);
 
-
-  const login = (userId: string) => {
-    const foundUser = users.find(u => u.id === userId);
-    if (foundUser) {
-      setUser(foundUser);
-      try {
-        localStorage.setItem('pts-user-id', userId);
-      } catch (error) {
-        console.error("Could not access localStorage", error);
-      }
-      router.push('/dashboard');
-    }
+  const login = async (email: string, password: string) => {
+    if (!auth) throw new Error("Firebase Auth not initialized");
+    await signInWithEmailAndPassword(auth, email, password);
+    // The onAuthStateChanged listener will handle setting the user and routing
   };
 
-  const logout = () => {
-    setUser(null);
-     try {
-        localStorage.removeItem('pts-user-id');
-      } catch (error) {
-        console.error("Could not access localStorage", error);
-      }
-    router.push('/');
+  const logout = async () => {
+    if (!auth) return;
+    await signOut(auth);
+    // The onAuthStateChanged listener will handle clearing the user and routing
   };
   
   const value = { user, login, logout, isLoading };

@@ -3,20 +3,22 @@
 import React, { useState, useMemo } from 'react';
 import { useUser } from '@/context/user-context';
 import { users } from '@/lib/data';
-import type { UserRole } from '@/lib/types';
+import type { User, UserRole } from '@/lib/types';
 
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { Users, LogIn } from 'lucide-react';
+import { LogIn } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
-const roles: UserRole[] = ['Admin', 'Dispatcher', 'Driver'];
+const roles: UserRole[] = ['Admin', 'Dispatcher', 'Driver', 'Accountant'];
 
 export function LoginForm() {
   const [selectedRole, setSelectedRole] = useState<UserRole | ''>('');
-  const [selectedUser, setSelectedUser] = useState<string>('');
+  const [selectedUserId, setSelectedUserId] = useState<string>('');
   const [error, setError] = useState<string>('');
   const { login, isLoading } = useUser();
+  const { toast } = useToast();
 
   const usersInRole = useMemo(() => {
     if (!selectedRole) return [];
@@ -25,23 +27,41 @@ export function LoginForm() {
 
   const handleRoleChange = (role: string) => {
     setSelectedRole(role as UserRole);
-    setSelectedUser('');
+    setSelectedUserId('');
     setError('');
   };
 
   const handleUserChange = (userId: string) => {
-    setSelectedUser(userId);
+    setSelectedUserId(userId);
     setError('');
   }
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedUser) {
+    if (!selectedUserId) {
       setError('Please select a user to continue.');
       return;
     }
     setError('');
-    login(selectedUser);
+
+    const userToLogin = users.find(u => u.id === selectedUserId);
+    if (!userToLogin) {
+        setError('Selected user not found.');
+        return;
+    }
+
+    try {
+      // For this prototype, we'll use a hardcoded password.
+      // In a real application, you would have a password input field.
+      await login(userToLogin.email, 'password123');
+    } catch (err: any) {
+        console.error(err);
+        toast({
+            variant: "destructive",
+            title: "Login Failed",
+            description: err.message || "An unexpected error occurred."
+        })
+    }
   };
 
   return (
@@ -63,7 +83,7 @@ export function LoginForm() {
       {selectedRole && (
         <div className="space-y-2">
           <Label htmlFor="user-select">Select User</Label>
-          <Select onValueChange={handleUserChange} value={selectedUser} disabled={usersInRole.length === 0}>
+          <Select onValueChange={handleUserChange} value={selectedUserId} disabled={usersInRole.length === 0}>
             <SelectTrigger id="user-select" className="w-full">
               <SelectValue placeholder="Choose a user..." />
             </SelectTrigger>
@@ -78,7 +98,7 @@ export function LoginForm() {
       
       {error && <p className="text-sm font-medium text-destructive">{error}</p>}
 
-      <Button type="submit" className="w-full" disabled={!selectedUser || isLoading}>
+      <Button type="submit" className="w-full" disabled={!selectedUserId || isLoading}>
         {isLoading ? 'Logging in...' : 'Log In'}
         <LogIn className="ml-2 h-4 w-4" />
       </Button>

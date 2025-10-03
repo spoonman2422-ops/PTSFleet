@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/sidebar";
 import { AppLogo } from "./icons";
 import { Button } from "./ui/button";
-import { LogOut, User, Gauge, Truck, Users } from "lucide-react";
+import { LogOut, User, Gauge, Truck, Users, ShieldQuestion } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 
 export function DashboardSidebar() {
