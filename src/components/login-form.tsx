@@ -1,59 +1,51 @@
 
 "use client";
 
-import React, { useState, useMemo } from 'react';
+import React from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 import { useUser } from '@/context/user-context';
-import { users } from '@/lib/data';
-import type { User, UserRole } from '@/lib/types';
 import { type AuthError } from 'firebase/auth';
 
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Label } from '@/components/ui/label';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { LogIn } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-const roles: UserRole[] = ['Admin', 'Dispatcher', 'Driver', 'Accountant'];
+const formSchema = z.object({
+  email: z.string().email({ message: "Please enter a valid email address." }),
+  password: z.string().min(1, { message: "Password is required." }),
+});
+
+type LoginFormValues = z.infer<typeof formSchema>;
 
 export function LoginForm() {
-  const [selectedRole, setSelectedRole] = useState<UserRole | ''>('');
-  const [selectedUserId, setSelectedUserId] = useState<string>('');
-  const [password, setPassword] = useState('');
   const { login, createUser, isLoading } = useUser();
   const { toast } = useToast();
 
-  const usersInRole = useMemo(() => {
-    if (!selectedRole) return [];
-    return users.filter(user => user.role === selectedRole);
-  }, [selectedRole]);
+  const form = useForm<LoginFormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
 
-  const handleRoleChange = (role: string) => {
-    setSelectedRole(role as UserRole);
-    setSelectedUserId('');
-    setPassword('');
-  };
-
-  const handleUserChange = (userId: string) => {
-    setSelectedUserId(userId);
-  }
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const userToLogin = users.find(u => u.id === selectedUserId);
-    if (!userToLogin) {
-      toast({ variant: "destructive", title: "Login Error", description: "Please select a valid user." });
-      return;
-    }
-
+  const handleLogin = async (data: LoginFormValues) => {
     try {
-      await login(userToLogin.email, password);
+      await login(data.email, data.password);
     } catch (err) {
       const authError = err as AuthError;
+
+      // This logic attempts to sign up the user if they don't exist yet.
+      // This is useful for this demo app to automatically provision users.
       if (authError.code === 'auth/user-not-found') {
-        // If user is not found, try to create them
         try {
-          await createUser(userToLogin.email, password);
+          await createUser(data.email, data.password);
+          // After creating, try to log in again
+          await login(data.email, data.password);
         } catch (createErr) {
           const createAuthError = createErr as AuthError;
           toast({
@@ -63,7 +55,6 @@ export function LoginForm() {
           });
         }
       } else {
-        // Handle other login errors like wrong password
         toast({
             variant: "destructive",
             title: "Login Failed",
@@ -74,54 +65,51 @@ export function LoginForm() {
   };
 
   return (
-    <form onSubmit={handleLogin} className="space-y-6">
-      <div className="space-y-2">
-        <Label htmlFor="role-select">Select Your Role</Label>
-        <Select onValueChange={handleRoleChange} value={selectedRole}>
-          <SelectTrigger id="role-select" className="w-full">
-            <SelectValue placeholder="Choose a role..." />
-          </SelectTrigger>
-          <SelectContent>
-            {roles.map(role => (
-              <SelectItem key={role} value={role}>{role}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {selectedRole && (
-        <div className="space-y-2">
-          <Label htmlFor="user-select">Select User</Label>
-          <Select onValueChange={handleUserChange} value={selectedUserId} disabled={usersInRole.length === 0}>
-            <SelectTrigger id="user-select" className="w-full">
-              <SelectValue placeholder="Choose a user..." />
-            </SelectTrigger>
-            <SelectContent>
-              {usersInRole.map(user => (
-                <SelectItem key={user.id} value={user.id}>{user.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
-
-      {selectedUserId && (
-          <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input 
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your password"
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(handleLogin)} className="space-y-6">
+        <FormField
+          control={form.control}
+          name="email"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Email Address</FormLabel>
+              <FormControl>
+                <Input 
+                  type="email" 
+                  placeholder="e.g., admin@pts.com" 
+                  {...field} 
+                  autoComplete="email"
                 />
-          </div>
-      )}
-      
-      <Button type="submit" className="w-full" disabled={!selectedUserId || !password || isLoading}>
-        {isLoading ? 'Logging in...' : 'Log In'}
-        <LogIn className="ml-2 h-4 w-4" />
-      </Button>
-    </form>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="password"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Password</FormLabel>
+              <FormControl>
+                <Input 
+                  type="password" 
+                  placeholder="Enter your password" 
+                  {...field} 
+                  autoComplete="current-password"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <Button type="submit" className="w-full" disabled={isLoading}>
+          {isLoading ? 'Logging in...' : 'Log In'}
+          <LogIn className="ml-2 h-4 w-4" />
+        </Button>
+      </form>
+    </Form>
   );
 }
