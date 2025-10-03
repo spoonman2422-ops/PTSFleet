@@ -24,11 +24,23 @@ import {
 } from "@/components/ui/dropdown-menu";
 import type { User, UserRole } from "@/lib/types";
 import { UserDialog } from "@/components/admin/user-dialog";
-import { useUser } from "@/context/user-context";
 import { useToast } from "@/hooks/use-toast";
 import { useCollection, useFirestore } from "@/firebase";
-import { doc, setDoc, updateDoc } from "firebase/firestore";
+import { doc, setDoc, updateDoc, deleteDoc } from "firebase/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { useAuth } from "@/firebase";
+
 
 const roleBadgeVariant: Record<UserRole, "default" | "secondary" | "outline" | "destructive"> = {
     Admin: "destructive",
@@ -40,7 +52,10 @@ export default function UserManagementPage() {
   const { data: users, isLoading: isLoadingUsers } = useCollection<User>('users');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
-  const { createUser } = useUser();
+  const [deletingUser, setDeletingUser] = useState<User | null>(null);
+  const [isAlertOpen, setIsAlertOpen] = useState(false);
+  
+  const auth = useAuth();
   const firestore = useFirestore();
   const { toast } = useToast();
 
@@ -54,8 +69,13 @@ export default function UserManagementPage() {
     setIsDialogOpen(true);
   };
 
+  const handleOpenDeleteDialog = (user: User) => {
+    setDeletingUser(user);
+    setIsAlertOpen(true);
+  };
+
   const handleSaveUser = async (userData: Omit<User, 'id' | 'avatarUrl'> & { password?: string }, userId?: string) => {
-    if (!firestore) {
+    if (!firestore || !auth) {
         toast({ variant: 'destructive', title: 'Error', description: 'Database not available.' });
         return;
     }
@@ -74,7 +94,7 @@ export default function UserManagementPage() {
         }
         
         // Create user in Firebase Auth
-        const userCredential = await createUser(userData.email, userData.password);
+        const userCredential = await createUserWithEmailAndPassword(auth, userData.email, userData.password);
         const authUser = userCredential.user;
 
         // Save user profile to Firestore
@@ -82,7 +102,7 @@ export default function UserManagementPage() {
           name: userData.name,
           email: userData.email,
           role: userData.role,
-          avatarUrl: `https://picsum.photos/seed/${Math.random()}/100/100`,
+          avatarUrl: `https://picsum.photos/seed/${authUser.uid}/100/100`,
         };
 
         await setDoc(doc(firestore, "users", authUser.uid), newUser);
@@ -101,99 +121,142 @@ export default function UserManagementPage() {
     }
   };
 
+  const handleDeleteUser = async () => {
+    if (!deletingUser || !firestore) return;
+
+    try {
+      const userRef = doc(firestore, 'users', deletingUser.id);
+      await deleteDoc(userRef);
+
+      toast({
+        title: 'User Deleted',
+        description: `${deletingUser.name} has been removed from the system.`,
+      });
+    } catch (error: any) {
+       toast({
+        variant: 'destructive',
+        title: 'Failed to delete user',
+        description: error.message || 'Please note: Deleting users from Authentication requires server-side logic (Firebase Functions) which is not implemented.',
+      });
+    } finally {
+        setIsAlertOpen(false);
+        setDeletingUser(null);
+    }
+  };
+
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
-          <p className="text-muted-foreground">
-            Add, edit, and manage users and their roles.
-          </p>
+    <>
+      <div className="flex flex-col gap-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
+            <p className="text-muted-foreground">
+              Add, edit, and manage users and their roles.
+            </p>
+          </div>
+          <Button onClick={handleAddUser}>
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Add User
+          </Button>
         </div>
-        <Button onClick={handleAddUser}>
-          <PlusCircle className="mr-2 h-4 w-4" />
-          Add User
-        </Button>
-      </div>
-      <Card>
-        <CardHeader>
-          <CardTitle>Users</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>User</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoadingUsers ? (
-                Array.from({ length: 5 }).map((_, i) => (
-                  <TableRow key={i}>
+        <Card>
+          <CardHeader>
+            <CardTitle>Users</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>User</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoadingUsers ? (
+                  Array.from({ length: 5 }).map((_, i) => (
+                    <TableRow key={i}>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <Skeleton className="h-9 w-9 rounded-full" />
+                          <Skeleton className="h-5 w-24" />
+                        </div>
+                      </TableCell>
+                      <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                      <TableCell><Skeleton className="h-6 w-20" /></TableCell>
+                      <TableCell className="text-right"><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
+                    </TableRow>
+                  ))
+                ) : (users || []).map((user) => (
+                  <TableRow key={user.id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <Skeleton className="h-9 w-9 rounded-full" />
-                        <Skeleton className="h-5 w-24" />
+                        <Avatar className="h-9 w-9">
+                          <AvatarImage
+                            src={user.avatarUrl}
+                            alt={user.name}
+                          />
+                          <AvatarFallback>{user.name[0]}</AvatarFallback>
+                        </Avatar>
+                        <div className="font-medium">{user.name}</div>
                       </div>
                     </TableCell>
-                    <TableCell><Skeleton className="h-5 w-32" /></TableCell>
-                    <TableCell><Skeleton className="h-6 w-20" /></TableCell>
-                    <TableCell className="text-right"><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
+                    <TableCell>{user.email}</TableCell>
+                    <TableCell>
+                      <Badge variant={roleBadgeVariant[user.role]}>
+                        {user.role}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          <DropdownMenuItem onClick={() => handleEditUser(user)}>Edit</DropdownMenuItem>
+                          <DropdownMenuItem className="text-destructive" onClick={() => handleOpenDeleteDialog(user)}>
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
                   </TableRow>
-                ))
-              ) : (users || []).map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <Avatar className="h-9 w-9">
-                        <AvatarImage
-                          src={user.avatarUrl}
-                          alt={user.name}
-                        />
-                        <AvatarFallback>{user.name[0]}</AvatarFallback>
-                      </Avatar>
-                      <div className="font-medium">{user.name}</div>
-                    </div>
-                  </TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell>
-                    <Badge variant={roleBadgeVariant[user.role]}>
-                      {user.role}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent>
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => handleEditUser(user)}>Edit</DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive">
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-      
-      <UserDialog 
-        isOpen={isDialogOpen}
-        onOpenChange={setIsDialogOpen}
-        onSave={handleSaveUser}
-        user={editingUser}
-      />
-    </div>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+        
+        <UserDialog 
+          isOpen={isDialogOpen}
+          onOpenChange={setIsDialogOpen}
+          onSave={handleSaveUser}
+          user={editingUser}
+        />
+      </div>
+
+      <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the user profile for{' '}
+              <span className="font-bold">{deletingUser?.name}</span> from the database.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteUser} className="bg-destructive hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
