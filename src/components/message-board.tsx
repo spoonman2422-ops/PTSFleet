@@ -47,7 +47,16 @@ export function MessageBoard({ bookingId }: { bookingId: string }) {
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setImageFile(e.target.files[0]);
+      const file = e.target.files[0];
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        toast({
+          variant: 'destructive',
+          title: "File is too large",
+          description: "Please select an image smaller than 5MB."
+        });
+        return;
+      }
+      setImageFile(file);
     }
   };
 
@@ -197,5 +206,3 @@ export function MessageBoard({ bookingId }: { bookingId: string }) {
     </Card>
   );
 }
-
-  
