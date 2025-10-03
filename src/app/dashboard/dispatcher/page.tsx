@@ -83,7 +83,7 @@ export default function DispatcherPage() {
 
     toast({ title: "Status Updated", description: `Booking status changed to ${status}.` });
 
-     if (status === 'completed' && user && firestore) {
+     if (status === 'Delivered' && user && firestore) {
         const messagesPath = `bookings/${bookingId}/messages`;
         const messageData = {
             text: `Dispatcher ${user.name} has confirmed the delivery for booking #${bookingId.substring(0, 4)}. Great job!`,
