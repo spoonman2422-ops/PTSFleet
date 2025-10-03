@@ -129,14 +129,14 @@ export default function UserManagementPage() {
       await deleteDoc(userRef);
 
       toast({
-        title: 'User Deleted',
-        description: `${deletingUser.name} has been removed from the system.`,
+        title: 'User Profile Deleted',
+        description: `${deletingUser.name}'s profile has been removed from the database.`,
       });
     } catch (error: any) {
        toast({
         variant: 'destructive',
-        title: 'Failed to delete user',
-        description: error.message || 'Please note: Deleting users from Authentication requires server-side logic (Firebase Functions) which is not implemented.',
+        title: 'Failed to delete user profile',
+        description: error.message || 'Please note: Deleting the authentication record requires server-side logic (Firebase Functions) which is not implemented.',
       });
     } finally {
         setIsAlertOpen(false);
