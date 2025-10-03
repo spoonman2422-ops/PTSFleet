@@ -2,7 +2,6 @@
 "use client";
 
 import { useState } from "react";
-import { users as initialUsers } from "@/lib/data";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -27,18 +26,21 @@ import type { User, UserRole } from "@/lib/types";
 import { UserDialog } from "@/components/admin/user-dialog";
 import { useUser } from "@/context/user-context";
 import { useToast } from "@/hooks/use-toast";
+import { useCollection, useFirestore } from "@/firebase";
+import { doc, setDoc } from "firebase/firestore";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const roleBadgeVariant: Record<UserRole, "default" | "secondary" | "outline" | "destructive"> = {
     Admin: "destructive",
     Dispatcher: "secondary",
     Driver: "outline",
-    Accountant: "default"
 };
 
 export default function UserManagementPage() {
-  const [users, setUsers] = useState<User[]>(initialUsers);
+  const { data: users, isLoading: isLoadingUsers } = useCollection<User>('users');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { createUser } = useUser();
+  const firestore = useFirestore();
   const { toast } = useToast();
 
   const handleAddUser = () => {
@@ -50,24 +52,25 @@ export default function UserManagementPage() {
       toast({ variant: 'destructive', title: 'Error', description: 'Password is required to create a user.' });
       return;
     }
+    if (!firestore) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Database not available.' });
+        return;
+    }
     
     try {
       // Create user in Firebase Auth
-      await createUser(userData.email, userData.password);
+      const userCredential = await createUser(userData.email, userData.password);
+      const authUser = userCredential.user;
 
-      // In a real app, we'd save the user to Firestore and get a new ID from there.
-      // For now, we'll just add them to the local state with a temporary ID.
-      const newUser: User = {
-        ...userData,
-        id: `user-temp-${Date.now()}`,
+      // Save user profile to Firestore
+      const newUser: Omit<User, 'id'> = {
+        name: userData.name,
+        email: userData.email,
+        role: userData.role,
         avatarUrl: `https://picsum.photos/seed/${Math.random()}/100/100`,
       };
-      
-      // Update the component's state to re-render the table
-      setUsers(prevUsers => [...prevUsers, newUser]);
-      
-      // Also add to the "master" list so they can be logged in with.
-      initialUsers.push(newUser);
+
+      await setDoc(doc(firestore, "users", authUser.uid), newUser);
 
       toast({ title: 'User Created', description: `${userData.name} has been added.` });
       setIsDialogOpen(false);
@@ -110,7 +113,21 @@ export default function UserManagementPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {users.map((user) => (
+              {isLoadingUsers ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <TableRow key={i}>
+                    <TableCell>
+                      <div className="flex items-center gap-3">
+                        <Skeleton className="h-9 w-9 rounded-full" />
+                        <Skeleton className="h-5 w-24" />
+                      </div>
+                    </TableCell>
+                    <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                    <TableCell><Skeleton className="h-6 w-20" /></TableCell>
+                    <TableCell className="text-right"><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
+                  </TableRow>
+                ))
+              ) : (users || []).map((user) => (
                 <TableRow key={user.id}>
                   <TableCell>
                     <div className="flex items-center gap-3">

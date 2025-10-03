@@ -9,18 +9,20 @@ import {
   onAuthStateChanged, 
   createUserWithEmailAndPassword,
   type User as FirebaseUser,
-  type AuthError
+  type AuthError,
+  type UserCredential
 } from 'firebase/auth';
-import { useAuth } from '@/firebase';
+import { doc, getDoc } from 'firebase/firestore';
+import { useAuth, useFirestore } from '@/firebase';
 import type { User } from '@/lib/types';
-import { users } from '@/lib/data';
+
 
 interface UserContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
-  createUser: (email: string, password: string) => Promise<void>;
+  createUser: (email: string, password: string) => Promise<UserCredential>;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -31,22 +33,24 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const auth = useAuth();
+  const firestore = useFirestore();
 
   useEffect(() => {
-    if (!auth) {
+    if (!auth || !firestore) {
         setIsLoading(false);
         return;
     };
 
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser: FirebaseUser | null) => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
       if (firebaseUser) {
-        // Find user in our static data. In a real app, this would be a fetch from Firestore.
-        const userProfile = users.find(u => u.email.toLowerCase() === firebaseUser.email?.toLowerCase());
-        if (userProfile) {
+        const userDocRef = doc(firestore, 'users', firebaseUser.uid);
+        const userDocSnap = await getDoc(userDocRef);
+        
+        if (userDocSnap.exists()) {
+            const userProfile = { id: userDocSnap.id, ...userDocSnap.data() } as User;
             setUser(userProfile);
         } else {
-            // This case can happen if a user exists in Firebase Auth but not in our static data,
-            // for example if they were deleted from the user management page.
+            // This case can happen if a user exists in Firebase Auth but not in our firestore db,
             signOut(auth);
             setUser(null);
         }
@@ -57,7 +61,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     });
 
     return () => unsubscribe();
-  }, [auth]);
+  }, [auth, firestore]);
 
   useEffect(() => {
     // This effect handles routing based on auth state
@@ -73,21 +77,18 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string) => {
     if (!auth) throw new Error("Firebase Auth not initialized");
-    // The login function will now just try to sign in.
-    // If it fails, it will throw the error to be handled by the component.
     await signInWithEmailAndPassword(auth, email, password);
   };
 
-  const createUser = async (email: string, password: string) => {
+  const createUser = async (email: string, password: string): Promise<UserCredential> => {
     if (!auth) throw new Error("Firebase Auth not initialized");
-    await createUserWithEmailAndPassword(auth, email, password);
+    return createUserWithEmailAndPassword(auth, email, password);
   };
 
 
   const logout = async () => {
     if (!auth) return;
     await signOut(auth);
-    // The onAuthStateChanged listener will handle setting user to null and routing
   };
   
   const value = { user, login, logout, isLoading, createUser };

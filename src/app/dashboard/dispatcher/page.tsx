@@ -1,8 +1,8 @@
 
 "use client";
 
-import { useState, useMemo } from 'react';
-import type { Booking, BookingStatus } from '@/lib/types';
+import { useState, useMemo, useEffect } from 'react';
+import type { Booking, BookingStatus, User } from '@/lib/types';
 import { BookingTable } from '@/components/dispatcher/booking-table';
 import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
@@ -12,11 +12,12 @@ import { MessageBoard } from '@/components/message-board';
 import { useFirestore, useCollection } from '@/firebase';
 import { addDoc, collection, serverTimestamp, doc, setDoc, updateDoc } from 'firebase/firestore';
 import { useUser } from '@/context/user-context';
-import { users, vehicles } from '@/lib/data';
+import { vehicles } from '@/lib/data';
 
 export default function DispatcherPage() {
   const firestore = useFirestore();
   const { data: bookings, isLoading: isLoadingBookings } = useCollection<Booking>('bookings');
+  const { data: users, isLoading: isLoadingUsers } = useCollection<User>('users');
   
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
@@ -99,6 +100,8 @@ export default function DispatcherPage() {
   const handleRowClick = (bookingId: string) => {
     setSelectedBookingId(bookingId);
   };
+  
+  const drivers = useMemo(() => (users || []).filter(u => u.role === 'Driver'), [users]);
 
 
   return (
@@ -117,13 +120,14 @@ export default function DispatcherPage() {
 
         <BookingTable
           bookings={filteredBookings}
-          isLoading={isLoadingBookings}
+          isLoading={isLoadingBookings || isLoadingUsers}
           onEdit={handleEdit}
           onUpdateStatus={handleUpdateStatus}
           filterStatus={filterStatus}
           setFilterStatus={setFilterStatus}
           onRowClick={handleRowClick}
           selectedBookingId={selectedBookingId}
+          users={users || []}
         />
       </div>
       
@@ -143,7 +147,7 @@ export default function DispatcherPage() {
         onOpenChange={setIsDialogOpen}
         onSave={handleSaveBooking}
         booking={editingBooking}
-        drivers={users.filter(u => u.role === 'Driver')}
+        drivers={drivers}
         vehicles={vehicles}
       />
     </div>

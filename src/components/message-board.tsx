@@ -13,8 +13,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Send, Loader2, Paperclip, XCircle } from 'lucide-react';
 import { format } from 'date-fns';
-import type { Message } from '@/lib/types';
-import { users as staticUsers } from '@/lib/data';
+import type { Message, User } from '@/lib/types';
 import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 
@@ -31,6 +30,8 @@ export function MessageBoard({ bookingId }: { bookingId: string }) {
 
   const messagesPath = `bookings/${bookingId}/messages`;
   const { data: messages, isLoading } = useCollection<Message>(messagesPath);
+  const { data: users, isLoading: isLoadingUsers } = useCollection<User>('users');
+
 
   const sortedMessages = (messages || [])
     .filter(msg => msg.createdAt)
@@ -106,6 +107,12 @@ export function MessageBoard({ bookingId }: { bookingId: string }) {
     }
   };
 
+  const findUserAvatar = (senderId: string) => {
+    if (!users) return undefined;
+    if (senderId === 'system') return undefined;
+    return (users.find(u => u.id === senderId) || {}).avatarUrl;
+  }
+
   return (
     <Card className="flex flex-col h-[calc(100vh-12rem)]">
       <CardHeader>
@@ -125,7 +132,7 @@ export function MessageBoard({ bookingId }: { bookingId: string }) {
               >
                 {msg.senderId !== user?.id && (
                     <Avatar className="h-8 w-8">
-                        <AvatarImage src={(staticUsers.find(u => u.id === msg.senderId) || {}).avatarUrl} />
+                        <AvatarImage src={findUserAvatar(msg.senderId)} />
                         <AvatarFallback>{msg.senderName.charAt(0)}</AvatarFallback>
                     </Avatar>
                 )}

@@ -51,6 +51,18 @@
         "proofOfDeliveryUrl": { "type": "string", "format": "uri" }
       },
       "required": ["customerName", "pickupAddress", "deliveryAddress", "pickupTime", "deliveryTime", "status"]
+    },
+    "UserProfile": {
+        "title": "User Profile",
+        "description": "Stores public information about a user.",
+        "type": "object",
+        "properties": {
+            "name": { "type": "string" },
+            "email": { "type": "string", "format": "email" },
+            "role": { "type": "string", "enum": ["Admin", "Dispatcher", "Driver"] },
+            "avatarUrl": { "type": "string", "format": "uri" }
+        },
+        "required": ["name", "email", "role"]
     }
   },
   "auth": {
@@ -68,6 +80,12 @@
         "$ref": "#/entities/Booking"
       },
       "description": "A collection of all bookings."
+    },
+    "/users/{userId}": {
+      "schema": {
+        "$ref": "#/entities/UserProfile"
+      },
+      "description": "A collection of all user profiles."
     }
   }
 }

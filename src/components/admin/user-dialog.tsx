@@ -34,7 +34,7 @@ import type { UserRole } from '@/lib/types';
 const userSchema = z.object({
   name: z.string().min(1, 'Full name is required'),
   email: z.string().email('Invalid email address'),
-  role: z.enum(['Admin', 'Dispatcher', 'Driver', 'Accountant']),
+  role: z.enum(['Admin', 'Dispatcher', 'Driver']),
   password: z.string().min(6, 'Password must be at least 6 characters'),
 });
 
@@ -46,7 +46,7 @@ type UserDialogProps = {
   onSave: (data: UserFormValues) => void;
 };
 
-const roles: UserRole[] = ['Admin', 'Dispatcher', 'Driver', 'Accountant'];
+const roles: Omit<UserRole, 'Accountant'>[] = ['Admin', 'Dispatcher', 'Driver'];
 
 export function UserDialog({
   isOpen,

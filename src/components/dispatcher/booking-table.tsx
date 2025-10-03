@@ -16,8 +16,8 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs"
 import { Badge } from '@/components/ui/badge';
-import { users, vehicles } from '@/lib/data';
-import type { Booking, BookingStatus } from '@/lib/types';
+import { vehicles } from '@/lib/data';
+import type { Booking, BookingStatus, User } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { BookingTableActions } from './booking-table-actions';
@@ -33,6 +33,7 @@ type BookingTableProps = {
   setFilterStatus: (status: BookingStatus | 'All') => void;
   onRowClick: (bookingId: string) => void;
   selectedBookingId: string | null;
+  users: User[];
 };
 
 const statusConfig: Record<BookingStatus, { variant: 'secondary' | 'default' | 'destructive' | 'outline', icon: React.ElementType, className: string }> = {
@@ -45,7 +46,7 @@ const statusConfig: Record<BookingStatus, { variant: 'secondary' | 'default' | '
 
 const bookingStatuses: (BookingStatus | 'All')[] = ['All', 'Pending', 'En Route', 'Pending Verification', 'Delivered', 'Cancelled'];
 
-export function BookingTable({ bookings, isLoading, onEdit, onUpdateStatus, filterStatus, setFilterStatus, onRowClick, selectedBookingId }: BookingTableProps) {
+export function BookingTable({ bookings, isLoading, onEdit, onUpdateStatus, filterStatus, setFilterStatus, onRowClick, selectedBookingId, users }: BookingTableProps) {
   return (
     <div className="border rounded-lg bg-card text-card-foreground shadow-sm flex-1 flex flex-col">
         <div className="p-4 border-b">
