@@ -52,11 +52,15 @@ export function UserProvider({ children }: { children: ReactNode }) {
         } else {
             // User is authenticated but has no profile in Firestore.
             // Create a default profile for them.
+            // This is a recovery mechanism. If the admin logs in and has no profile,
+            // we create one for them with the 'Admin' role.
+            const isAdmin = firebaseUser.email === 'admin@pts.com';
+            
             console.warn(`No profile found for user ${firebaseUser.uid}. Creating a default profile.`);
             const newUserProfile: Omit<User, 'id'> = {
               name: firebaseUser.email?.split('@')[0] || 'New User',
               email: firebaseUser.email!,
-              role: 'Driver', // Default role
+              role: isAdmin ? 'Admin' : 'Driver', // Assign Admin role if it's the admin email
               avatarUrl: `https://picsum.photos/seed/${firebaseUser.uid}/100/100`,
             };
             await setDoc(userDocRef, newUserProfile);
