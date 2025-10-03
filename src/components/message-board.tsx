@@ -67,7 +67,8 @@ export function MessageBoard({ bookingId }: { bookingId: string }) {
     setIsSending(true);
     
     try {
-      let imageUrl: string | null = null;
+      let imageUrl: string | undefined = undefined;
+
       if (imageFile) {
         const storage = getStorage();
         const filePath = `messages/${bookingId}/${Date.now()}-${imageFile.name}`;
@@ -83,11 +84,8 @@ export function MessageBoard({ bookingId }: { bookingId: string }) {
         senderName: user.name,
         bookingId: bookingId,
         createdAt: serverTimestamp(),
+        ...(imageUrl && { imageUrl }),
       };
-
-      if (imageUrl) {
-        messageData.imageUrl = imageUrl;
-      }
       
       await addDoc(collection(firestore, messagesPath), messageData);
       

@@ -1,8 +1,8 @@
 'use client';
 
-import { createContext, useContext, ReactNode } from 'react';
+import { createContext, useContext, ReactNode, useEffect, useState } from 'react';
 import { FirebaseApp } from 'firebase/app';
-import { Auth } from 'firebase/auth';
+import { Auth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { Firestore } from 'firebase/firestore';
 import { app, auth, firestore } from './index';
 
@@ -15,6 +15,31 @@ interface FirebaseContextType {
 const FirebaseContext = createContext<FirebaseContextType | null>(null);
 
 export function FirebaseProvider({ children }: { children: ReactNode }) {
+  const [isFirebaseReady, setIsFirebaseReady] = useState(false);
+
+  useEffect(() => {
+    if (auth) {
+      // Sign in anonymously to satisfy security rules for storage, etc.
+      const unsubscribe = onAuthStateChanged(auth, (user) => {
+        if (user) {
+          // User is signed in.
+          setIsFirebaseReady(true);
+        } else {
+          // No user is signed in, attempt to sign in anonymously.
+          signInAnonymously(auth).catch((error) => {
+            console.error("Anonymous sign-in failed:", error);
+            // Still set to ready, but things might fail.
+            setIsFirebaseReady(true); 
+          });
+        }
+      });
+      return () => unsubscribe();
+    } else if (!app && !auth && !firestore) {
+      // This handles the case where config is missing
+      setIsFirebaseReady(true);
+    }
+  }, []);
+
   if (!app || !auth || !firestore) {
     return (
         <div className="flex h-screen flex-col items-center justify-center bg-background text-foreground">
@@ -29,6 +54,14 @@ export function FirebaseProvider({ children }: { children: ReactNode }) {
                 </p>
             </div>
         </div>
+    );
+  }
+
+  if (!isFirebaseReady) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="h-16 w-16 animate-spin rounded-full border-4 border-dashed border-primary"></div>
+      </div>
     );
   }
   
