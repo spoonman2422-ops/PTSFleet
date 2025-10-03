@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -13,7 +14,7 @@ import {
 } from "@/components/ui/sidebar";
 import { AppLogo } from "./icons";
 import { Button } from "./ui/button";
-import { LogOut, User, Gauge, Truck } from "lucide-react";
+import { LogOut, User, Gauge, Truck, Users } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 
 export function DashboardSidebar() {
@@ -23,6 +24,7 @@ export function DashboardSidebar() {
   const navItems = {
     Admin: [
         { href: "/dashboard/admin", label: "Admin Panel", icon: Gauge },
+        { href: "/dashboard/admin/users", label: "User Management", icon: Users },
     ],
     Dispatcher: [
         { href: "/dashboard/dispatcher", label: "Dashboard", icon: Gauge },
@@ -30,6 +32,7 @@ export function DashboardSidebar() {
     Driver: [
         { href: "/dashboard/driver", label: "My Bookings", icon: Truck },
     ],
+    Accountant: [],
   };
 
   const userRole = user?.role || "Driver";
@@ -49,7 +52,7 @@ export function DashboardSidebar() {
           <SidebarMenuItem key={item.href}>
             <Link href={item.href}>
               <SidebarMenuButton
-                isActive={pathname === item.href}
+                isActive={pathname.startsWith(item.href)}
                 tooltip={{ children: item.label }}
               >
                 <item.icon />

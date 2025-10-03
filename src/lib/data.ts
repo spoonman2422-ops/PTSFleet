@@ -8,6 +8,7 @@ export const users: User[] = [
   { id: 'user-driver-1', name: 'John Doe', email: 'john.d@pts.com', role: 'Driver', avatarUrl: 'https://picsum.photos/seed/104/100/100' },
   { id: 'user-driver-2', name: 'Jane Smith', email: 'jane.s@pts.com', role: 'Driver', avatarUrl: 'https://picsum.photos/seed/105/100/100' },
   { id: 'user-driver-3', name: 'Carlos Gomez', email: 'carlos.g@pts.com', role: 'Driver', avatarUrl: 'https://picsum.photos/seed/106/100/100' },
+  { id: 'user-accountant-1', name: 'Emily White', email: 'emily.w@pts.com', role: 'Accountant', avatarUrl: 'https://picsum.photos/seed/107/100/100' },
 ];
 
 export const vehicles: Vehicle[] = [
