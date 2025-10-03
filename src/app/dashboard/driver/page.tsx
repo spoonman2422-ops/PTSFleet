@@ -4,7 +4,7 @@
 import { useState, useMemo } from 'react';
 import { useUser } from '@/context/user-context';
 import { useCollection, useFirestore } from '@/firebase';
-import type { Booking } from '@/lib/types';
+import type { Booking, BookingStatus } from '@/lib/types';
 import { BookingCard } from '@/components/driver/booking-card';
 import { MessageBoard } from '@/components/message-board';
 import { doc, updateDoc } from 'firebase/firestore';
@@ -19,10 +19,10 @@ export default function DriverPage() {
     if (!user || !allBookings) return [];
     return allBookings
       .filter(b => b.driverId === user.id)
-      .sort((a, b) => new Date(a.pickupTime).getTime() - new Date(b.pickupTime).getTime());
+      .sort((a, b) => new Date(a.collectionDate).getTime() - new Date(b.collectionDate).getTime());
   }, [user, allBookings]);
 
-  const updateBookingStatus = async (bookingId: string, status: Booking['status']) => {
+  const updateBookingStatus = async (bookingId: string, status: BookingStatus) => {
     if (!firestore) return;
     const bookingRef = doc(firestore, 'bookings', bookingId);
     await updateDoc(bookingRef, { status });

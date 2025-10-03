@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -42,7 +43,7 @@ export function BookingTableActions({ booking, onEdit, onUpdateStatus }: Booking
                 <span>Change Status</span>
             </DropdownMenuSubTrigger>
             <DropdownMenuSubContent>
-                <DropdownMenuItem onClick={() => onUpdateStatus(booking.id, 'Pending')} disabled={booking.status === 'Pending'}>
+                <DropdownMenuItem onClick={() => onUpdateStatus(booking.id, 'pending')} disabled={booking.status === 'pending'}>
                     <Package className="mr-2 h-4 w-4"/>
                     Pending
                 </DropdownMenuItem>
@@ -63,7 +64,7 @@ export function BookingTableActions({ booking, onEdit, onUpdateStatus }: Booking
         <DropdownMenuSeparator />
         <DropdownMenuItem
           className="text-destructive focus:text-destructive focus:bg-destructive/10"
-          onClick={() => onUpdateStatus(booking.id, 'Cancelled')}
+          onClick={() => onUpdateStatus(booking.id, 'cancelled')}
         >
           <XCircle className="mr-2 h-4 w-4" />
           <span>Cancel Booking</span>

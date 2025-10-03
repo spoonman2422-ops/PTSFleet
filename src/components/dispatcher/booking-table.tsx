@@ -37,11 +37,9 @@ type BookingTableProps = {
 
 const statusConfig: Record<BookingStatus, { variant: 'secondary' | 'default' | 'destructive' | 'outline', icon: React.ElementType, className: string }> = {
   pending: { variant: 'secondary', icon: Package, className: 'bg-amber-100 text-amber-800 border-amber-200' },
-  'in-progress': { variant: 'default', icon: Truck, className: 'bg-blue-100 text-blue-800 border-blue-200' },
   'En Route': { variant: 'default', icon: Truck, className: 'bg-blue-100 text-blue-800 border-blue-200' },
   'Pending Verification': { variant: 'outline', icon: Clock, className: 'bg-purple-100 text-purple-800' },
   Delivered: { variant: 'default', icon: CheckCircle2, className: 'bg-green-100 text-green-800 border-green-200' },
-  completed: { variant: 'default', icon: CheckCircle2, className: 'bg-green-100 text-green-800 border-green-200' },
   cancelled: { variant: 'destructive', icon: XCircle, className: 'bg-red-100 text-red-800 border-red-200' },
 };
 
