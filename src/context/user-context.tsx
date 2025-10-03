@@ -12,7 +12,7 @@ import {
   type AuthError,
   type UserCredential
 } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useAuth, useFirestore } from '@/firebase';
 import type { User } from '@/lib/types';
 
@@ -50,9 +50,17 @@ export function UserProvider({ children }: { children: ReactNode }) {
             const userProfile = { id: userDocSnap.id, ...userDocSnap.data() } as User;
             setUser(userProfile);
         } else {
-            // This case can happen if a user exists in Firebase Auth but not in our firestore db,
-            signOut(auth);
-            setUser(null);
+            // User is authenticated but has no profile in Firestore.
+            // Create a default profile for them.
+            console.warn(`No profile found for user ${firebaseUser.uid}. Creating a default profile.`);
+            const newUserProfile: Omit<User, 'id'> = {
+              name: firebaseUser.email?.split('@')[0] || 'New User',
+              email: firebaseUser.email!,
+              role: 'Driver', // Default role
+              avatarUrl: `https://picsum.photos/seed/${firebaseUser.uid}/100/100`,
+            };
+            await setDoc(userDocRef, newUserProfile);
+            setUser({ id: firebaseUser.uid, ...newUserProfile });
         }
       } else {
         setUser(null);
