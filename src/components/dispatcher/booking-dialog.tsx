@@ -273,7 +273,7 @@ export function BookingDialog({
                       <FormItem>
                         <FormLabel>Booking Rate (Client)</FormLabel>
                         <FormControl>
-                          <Input type="number" placeholder="e.g., 12000" {...field} />
+                          <Input type="number" placeholder="0.00" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -286,7 +286,7 @@ export function BookingDialog({
                       <FormItem>
                         <FormLabel>Driver Rate</FormLabel>
                         <FormControl>
-                          <Input type="number" placeholder="e.g., 6000" {...field} />
+                          <Input type="number" placeholder="0.00" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -305,7 +305,7 @@ export function BookingDialog({
                         <FormItem>
                             <FormLabel>Toll Fee</FormLabel>
                             <FormControl>
-                            <Input type="number" placeholder="e.g., 500" {...field} />
+                            <Input type="number" placeholder="0.00" {...field} />
                             </FormControl>
                             <FormMessage />
                         </FormItem>
@@ -318,7 +318,7 @@ export function BookingDialog({
                         <FormItem>
                             <FormLabel>Fuel</FormLabel>
                             <FormControl>
-                            <Input type="number" placeholder="e.g., 2000" {...field} />
+                            <Input type="number" placeholder="0.00" {...field} />
                             </FormControl>
                             <FormMessage />
                         </FormItem>
@@ -331,7 +331,7 @@ export function BookingDialog({
                         <FormItem>
                             <FormLabel>Others</FormLabel>
                             <FormControl>
-                            <Input type="number" placeholder="e.g., 0" {...field} />
+                            <Input type="number" placeholder="0.00" {...field} />
                             </FormControl>
                             <FormMessage />
                         </FormItem>
