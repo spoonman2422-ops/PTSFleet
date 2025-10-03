@@ -74,16 +74,25 @@ export function UserProvider({ children }: { children: ReactNode }) {
       await signInWithEmailAndPassword(auth, email, password);
     } catch (error) {
       const authError = error as AuthError;
-      // If the user doesn't exist (or other invalid credential errors), try creating them.
+      // If the user doesn't exist, try creating them.
+      // Note: `auth/invalid-credential` can mean user not found OR wrong password.
+      // We will attempt to create an account only on this error. If the email already exists,
+      // `createUserWithEmailAndPassword` will fail with 'auth/email-already-in-use',
+      // which we will catch and then re-throw the original error to indicate a wrong password.
       if (authError.code === 'auth/invalid-credential' || authError.code === 'auth/user-not-found') {
         try {
           await createUserWithEmailAndPassword(auth, email, password);
         } catch (createError) {
-          // If creation fails (e.g. weak password, email already exists from a previous failed attempt), throw that error.
+          const createAuthError = createError as AuthError;
+          if (createAuthError.code === 'auth/email-already-in-use') {
+            // This means the user exists, but the initial sign-in failed, implying a wrong password.
+            throw new Error('Invalid password. Please try again.');
+          }
+          // For other creation errors (e.g., weak password), throw that error.
           throw createError;
         }
       } else {
-        // For other errors (e.g. network error), throw them.
+        // For other login errors (e.g. network error), throw them.
         throw error;
       }
     }
@@ -100,13 +109,14 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   // Show a global loader while we are determining auth state,
   // especially when navigating to a protected page.
-  if (isLoading && !pathname.startsWith('/')) {
+   if (isLoading && pathname !== '/') {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="h-16 w-16 animate-spin rounded-full border-4 border-dashed border-primary"></div>
       </div>
     );
   }
+
 
   return (
     <UserContext.Provider value={value}>
