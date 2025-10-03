@@ -5,12 +5,13 @@ import { useUser } from '@/context/user-context';
 import { useCollection } from '@/firebase/firestore/hooks';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Send, Loader2 } from 'lucide-react';
+import { Send, Loader2, Paperclip, XCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import type { Message } from '@/lib/types';
 import { users as staticUsers } from '@/lib/data';
@@ -21,8 +22,11 @@ export function MessageBoard({ bookingId }: { bookingId: string }) {
   const { user } = useUser();
   const firestore = useFirestore();
   const [newMessage, setNewMessage] = useState('');
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [isSending, setIsSending] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const { toast } = useToast();
 
   const messagesPath = `bookings/${bookingId}/messages`;
@@ -40,15 +44,30 @@ export function MessageBoard({ bookingId }: { bookingId: string }) {
         }
     }
   }, [messages]);
-  
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setImageFile(e.target.files[0]);
+    }
+  };
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newMessage.trim() || !user || !firestore) return;
+    if ((!newMessage.trim() && !imageFile) || !user || !firestore) return;
 
     setIsSending(true);
     
     try {
+      let imageUrl: string | null = null;
+      if (imageFile) {
+        const storage = getStorage();
+        const filePath = `messages/${bookingId}/${Date.now()}-${imageFile.name}`;
+        const imageStorageRef = storageRef(storage, filePath);
+        
+        await uploadBytes(imageStorageRef, imageFile);
+        imageUrl = await getDownloadURL(imageStorageRef);
+      }
+
       const messageData: Omit<Message, 'id' | 'createdAt'> & { createdAt: any } = {
         text: newMessage.trim(),
         senderId: user.id,
@@ -56,16 +75,24 @@ export function MessageBoard({ bookingId }: { bookingId: string }) {
         bookingId: bookingId,
         createdAt: serverTimestamp(),
       };
+
+      if (imageUrl) {
+        messageData.imageUrl = imageUrl;
+      }
       
       await addDoc(collection(firestore, messagesPath), messageData);
       
       setNewMessage('');
+      setImageFile(null);
+      if(fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
     } catch (error) {
       console.error("Error sending message: ", error);
       toast({
         variant: 'destructive',
         title: "Error sending message",
-        description: (error as Error).message || "An unknown error occurred."
+        description: (error as Error).message || "An unknown error occurred. Please check storage rules."
       })
     } finally {
       setIsSending(false);
@@ -125,7 +152,16 @@ export function MessageBoard({ bookingId }: { bookingId: string }) {
           </div>
         </ScrollArea>
       </CardContent>
-      <CardFooter>
+      <CardFooter className="flex flex-col items-start gap-2">
+        {imageFile && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted p-2 rounded-md w-full">
+            <Paperclip className="h-4 w-4" />
+            <span className="flex-1 truncate">{imageFile.name}</span>
+            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setImageFile(null)}>
+              <XCircle className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
         <form onSubmit={handleSendMessage} className="flex w-full items-center space-x-2">
           <Input
             value={newMessage}
@@ -134,7 +170,25 @@ export function MessageBoard({ bookingId }: { bookingId: string }) {
             autoComplete="off"
             disabled={isSending}
           />
-          <Button type="submit" size="icon" disabled={!newMessage.trim() || isSending}>
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileSelect}
+            className="hidden"
+            accept="image/*"
+            disabled={isSending}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isSending}
+          >
+            <Paperclip className="h-4 w-4" />
+            <span className="sr-only">Attach file</span>
+          </Button>
+          <Button type="submit" size="icon" disabled={(!newMessage.trim() && !imageFile) || isSending}>
             {isSending ? <Loader2 className="h-4 w-4 animate-spin"/> : <Send className="h-4 w-4" />}
             <span className="sr-only">Send</span>
           </Button>
@@ -143,3 +197,5 @@ export function MessageBoard({ bookingId }: { bookingId: string }) {
     </Card>
   );
 }
+
+  
