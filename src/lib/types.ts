@@ -35,7 +35,7 @@ export interface Booking {
   expectedExpenses: {
     tollFee: number;
     fuel: number;
-    others: number | null;
+    others: number;
   };
   status: BookingStatus;
   proofOfDeliveryUrl?: string;

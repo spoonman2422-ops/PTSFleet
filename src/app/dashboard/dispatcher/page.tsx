@@ -40,10 +40,21 @@ export default function DispatcherPage() {
   const handleSaveBooking = async (bookingData: Omit<Booking, 'id' | 'status'>, id?: string) => {
     if (!firestore) return;
     
+    const dataToSave = {
+      ...bookingData,
+      bookingRate: Number(bookingData.bookingRate) || 0,
+      driverRate: Number(bookingData.driverRate) || 0,
+      expectedExpenses: {
+        tollFee: Number(bookingData.expectedExpenses.tollFee) || 0,
+        fuel: Number(bookingData.expectedExpenses.fuel) || 0,
+        others: Number(bookingData.expectedExpenses.others) || 0,
+      }
+    }
+
     if (id) {
       // Update existing booking
       const bookingRef = doc(firestore, 'bookings', id);
-      await updateDoc(bookingRef, bookingData);
+      await updateDoc(bookingRef, dataToSave);
 
       toast({ title: "Booking Updated", description: `Booking #${id.substring(0, 4)} has been successfully updated.` });
       if(bookingData.driverId) {
@@ -52,8 +63,8 @@ export default function DispatcherPage() {
     } else {
       // Create new booking
       const newBooking: Omit<Booking, 'id'> = {
-        ...bookingData,
-        status: 'Pending',
+        ...dataToSave,
+        status: 'pending',
       };
       const docRef = await addDoc(collection(firestore, 'bookings'), newBooking);
       toast({ title: "Booking Created", description: `A new booking #${docRef.id.substring(0,4)} has been created.` });
@@ -61,6 +72,7 @@ export default function DispatcherPage() {
         toast({ title: "Driver Notified", description: `A notification has been sent to the assigned driver.` });
       }
     }
+    setIsDialogOpen(false);
   };
 
    const handleUpdateStatus = async (bookingId: string, status: BookingStatus) => {
@@ -71,7 +83,7 @@ export default function DispatcherPage() {
 
     toast({ title: "Status Updated", description: `Booking status changed to ${status}.` });
 
-     if (status === 'Delivered' && user && firestore) {
+     if (status === 'completed' && user && firestore) {
         const messagesPath = `bookings/${bookingId}/messages`;
         const messageData = {
             text: `Dispatcher ${user.name} has confirmed the delivery for booking #${bookingId.substring(0, 4)}. Great job!`,
@@ -86,8 +98,8 @@ export default function DispatcherPage() {
   
   const sortedBookings = useMemo(() => {
     return (bookings || []).sort((a, b) => {
-      const dateA = a.pickupTime ? new Date(a.pickupTime).getTime() : 0;
-      const dateB = b.pickupTime ? new Date(b.pickupTime).getTime() : 0;
+      const dateA = a.bookingDate ? new Date(a.bookingDate).getTime() : 0;
+      const dateB = b.bookingDate ? new Date(b.bookingDate).getTime() : 0;
       return dateB - dateA;
     });
   }, [bookings]);

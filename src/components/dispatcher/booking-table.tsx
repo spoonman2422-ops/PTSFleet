@@ -16,7 +16,6 @@ import {
   TabsTrigger,
 } from "@/components/ui/tabs"
 import { Badge } from '@/components/ui/badge';
-import { vehicles } from '@/lib/data';
 import type { Booking, BookingStatus, User } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
@@ -37,14 +36,13 @@ type BookingTableProps = {
 };
 
 const statusConfig: Record<BookingStatus, { variant: 'secondary' | 'default' | 'destructive' | 'outline', icon: React.ElementType, className: string }> = {
-  Pending: { variant: 'secondary', icon: Package, className: 'bg-amber-100 text-amber-800 border-amber-200' },
-  'En Route': { variant: 'default', icon: Truck, className: 'bg-blue-100 text-blue-800 border-blue-200' },
-  'Pending Verification': { variant: 'outline', icon: Clock, className: 'bg-purple-100 text-purple-800 border-purple-200' },
-  Delivered: { variant: 'default', icon: CheckCircle2, className: 'bg-green-100 text-green-800 border-green-200' },
-  Cancelled: { variant: 'destructive', icon: XCircle, className: 'bg-red-100 text-red-800 border-red-200' },
+  pending: { variant: 'secondary', icon: Package, className: 'bg-amber-100 text-amber-800 border-amber-200' },
+  'in-progress': { variant: 'default', icon: Truck, className: 'bg-blue-100 text-blue-800 border-blue-200' },
+  completed: { variant: 'default', icon: CheckCircle2, className: 'bg-green-100 text-green-800 border-green-200' },
+  cancelled: { variant: 'destructive', icon: XCircle, className: 'bg-red-100 text-red-800 border-red-200' },
 };
 
-const bookingStatuses: (BookingStatus | 'All')[] = ['All', 'Pending', 'En Route', 'Pending Verification', 'Delivered', 'Cancelled'];
+const bookingStatuses: (BookingStatus | 'All')[] = ['All', 'pending', 'in-progress', 'completed', 'cancelled'];
 
 export function BookingTable({ bookings, isLoading, onEdit, onUpdateStatus, filterStatus, setFilterStatus, onRowClick, selectedBookingId, users }: BookingTableProps) {
   return (
@@ -53,7 +51,7 @@ export function BookingTable({ bookings, isLoading, onEdit, onUpdateStatus, filt
             <Tabs value={filterStatus} onValueChange={(value) => setFilterStatus(value as BookingStatus | 'All')}>
                 <TabsList className="flex flex-wrap h-auto justify-start">
                     {bookingStatuses.map(status => (
-                         <TabsTrigger key={status} value={status}>{status}</TabsTrigger>
+                         <TabsTrigger key={status} value={status} className="capitalize">{status}</TabsTrigger>
                     ))}
                 </TabsList>
             </Tabs>
@@ -62,12 +60,10 @@ export function BookingTable({ bookings, isLoading, onEdit, onUpdateStatus, filt
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Booking ID</TableHead>
-            <TableHead>Customer</TableHead>
-            <TableHead>Pickup</TableHead>
-            <TableHead>Delivery</TableHead>
+            <TableHead>Booking</TableHead>
+            <TableHead>Client</TableHead>
+            <TableHead>Route</TableHead>
             <TableHead>Driver</TableHead>
-            <TableHead>Vehicle</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
@@ -76,12 +72,10 @@ export function BookingTable({ bookings, isLoading, onEdit, onUpdateStatus, filt
           {isLoading ? (
             Array.from({ length: 5 }).map((_, i) => (
               <TableRow key={i}>
-                <TableCell><Skeleton className="h-5 w-12" /></TableCell>
                 <TableCell><Skeleton className="h-5 w-24" /></TableCell>
-                <TableCell><Skeleton className="h-5 w-32" /></TableCell>
-                <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                <TableCell><Skeleton className="h-5 w-48" /></TableCell>
                 <TableCell><Skeleton className="h-5 w-20" /></TableCell>
-                <TableCell><Skeleton className="h-5 w-24" /></TableCell>
                 <TableCell><Skeleton className="h-6 w-28" /></TableCell>
                 <TableCell className="text-right"><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
               </TableRow>
@@ -90,7 +84,6 @@ export function BookingTable({ bookings, isLoading, onEdit, onUpdateStatus, filt
             bookings.map(booking => {
               if (!booking.id) return null;
               const driver = booking.driverId ? users.find(u => u.id === booking.driverId) : null;
-              const vehicle = booking.vehicleId ? vehicles.find(v => v.id === booking.vehicleId) : null;
               const currentStatusConfig = statusConfig[booking.status];
               const StatusIcon = currentStatusConfig.icon;
 
@@ -103,24 +96,20 @@ export function BookingTable({ bookings, isLoading, onEdit, onUpdateStatus, filt
                     selectedBookingId === booking.id && "bg-muted/50"
                   )}
                 >
-                  <TableCell className="font-medium">#{booking.id.substring(0, 4)}</TableCell>
-                  <TableCell>{booking.customerName}</TableCell>
                   <TableCell>
-                    <div className="flex flex-col">
-                        <span>{booking.pickupAddress}</span>
-                        <span className="text-xs text-muted-foreground">{format(new Date(booking.pickupTime), "PPp")}</span>
-                    </div>
+                      <div className="font-medium">#{booking.id.substring(0, 4).toUpperCase()}</div>
+                      <div className="text-xs text-muted-foreground">{format(new Date(booking.bookingDate), "PP")}</div>
                   </TableCell>
+                  <TableCell>{booking.clientId}</TableCell>
                   <TableCell>
                     <div className="flex flex-col">
-                        <span>{booking.deliveryAddress}</span>
-                        <span className="text-xs text-muted-foreground">{format(new Date(booking.deliveryTime), "PPp")}</span>
+                        <span className="font-medium">{booking.pickupLocation}</span>
+                        <span className="text-muted-foreground">to {booking.dropoffLocation}</span>
                     </div>
                   </TableCell>
                   <TableCell>{driver?.name || 'Unassigned'}</TableCell>
-                  <TableCell>{vehicle ? `${vehicle.make} ${vehicle.model}` : 'Unassigned'}</TableCell>
                   <TableCell>
-                    <Badge variant={currentStatusConfig.variant} className={cn('whitespace-nowrap', currentStatusConfig.className)}>
+                    <Badge variant={currentStatusConfig.variant} className={cn('whitespace-nowrap capitalize', currentStatusConfig.className)}>
                         <StatusIcon className="mr-1 h-3 w-3" />
                         {booking.status}
                     </Badge>
@@ -133,7 +122,7 @@ export function BookingTable({ bookings, isLoading, onEdit, onUpdateStatus, filt
             })
           ) : (
             <TableRow>
-              <TableCell colSpan={8} className="h-24 text-center">
+              <TableCell colSpan={6} className="h-24 text-center">
                 No bookings found for this filter.
               </TableCell>
             </TableRow>
