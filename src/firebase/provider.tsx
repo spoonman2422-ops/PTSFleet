@@ -1,8 +1,9 @@
+
 'use client';
 
 import { createContext, useContext, ReactNode, useEffect, useState } from 'react';
 import { FirebaseApp } from 'firebase/app';
-import { Auth, signInAnonymously, onAuthStateChanged } from 'firebase/auth';
+import { Auth } from 'firebase/auth';
 import { Firestore } from 'firebase/firestore';
 import { app, auth, firestore } from './index';
 
@@ -20,11 +21,11 @@ export function FirebaseProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // This effect now only handles showing a loading state until Firebase is ready,
     // or showing an error if the config is missing.
-    // The problematic anonymous sign-in logic has been removed.
     if (auth) {
       setIsFirebaseReady(true);
     } else if (!app && !auth && !firestore) {
-      setIsFirebaseReady(true);
+      // This handles the case where config is missing
+      setIsFirebaseReady(true); 
     }
   }, []);
 

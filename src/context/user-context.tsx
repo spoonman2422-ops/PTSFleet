@@ -33,7 +33,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!auth) {
-        setIsLoading(false);
+        // Firebase auth is not ready yet.
         return;
     };
 
@@ -100,7 +100,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   // Show a global loader while we are determining auth state,
   // especially when navigating to a protected page.
-  if (isLoading && pathname.startsWith('/dashboard')) {
+  if (isLoading && !pathname.startsWith('/')) {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="h-16 w-16 animate-spin rounded-full border-4 border-dashed border-primary"></div>
