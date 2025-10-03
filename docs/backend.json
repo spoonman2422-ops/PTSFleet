@@ -63,6 +63,20 @@
             "avatarUrl": { "type": "string", "format": "uri" }
         },
         "required": ["name", "email", "role"]
+    },
+    "Invoice": {
+      "title": "Invoice",
+      "description": "An invoice for a transport job.",
+      "type": "object",
+      "properties": {
+        "clientId": { "type": "string" },
+        "bookingId": { "type": "string" },
+        "amount": { "type": "number" },
+        "dueDate": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["Paid", "Unpaid", "Overdue"] },
+        "proofOfBillingUrl": { "type": "string", "format": "uri" }
+      },
+      "required": ["clientId", "bookingId", "amount", "dueDate", "status"]
     }
   },
   "auth": {
@@ -86,6 +100,12 @@
         "$ref": "#/entities/UserProfile"
       },
       "description": "A collection of all user profiles."
+    },
+    "/invoices/{invoiceId}": {
+      "schema": {
+        "$ref": "#/entities/Invoice"
+      },
+      "description": "A collection of all invoices."
     }
   }
 }
