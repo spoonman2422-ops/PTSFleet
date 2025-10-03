@@ -40,11 +40,13 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser: FirebaseUser | null) => {
       if (firebaseUser) {
+        // Find user in our static data. In a real app, this would be a fetch from Firestore.
         const userProfile = users.find(u => u.email.toLowerCase() === firebaseUser.email?.toLowerCase());
         if (userProfile) {
             setUser(userProfile);
         } else {
-            // This case can happen if a user exists in Firebase Auth but not in our static data
+            // This case can happen if a user exists in Firebase Auth but not in our static data,
+            // for example if they were deleted from the user management page.
             signOut(auth);
             setUser(null);
         }
