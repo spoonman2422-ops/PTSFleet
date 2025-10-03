@@ -1,7 +1,8 @@
 
 "use client";
 
-import { users } from "@/lib/data";
+import { useState } from "react";
+import { users as initialUsers } from "@/lib/data";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -22,7 +23,10 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { UserRole } from "@/lib/types";
+import type { User, UserRole } from "@/lib/types";
+import { UserDialog } from "@/components/admin/user-dialog";
+import { useUser } from "@/context/user-context";
+import { useToast } from "@/hooks/use-toast";
 
 const roleBadgeVariant: Record<UserRole, "default" | "secondary" | "outline" | "destructive"> = {
     Admin: "destructive",
@@ -32,6 +36,46 @@ const roleBadgeVariant: Record<UserRole, "default" | "secondary" | "outline" | "
 };
 
 export default function UserManagementPage() {
+  const [users, setUsers] = useState<User[]>(initialUsers);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const { createUser } = useUser();
+  const { toast } = useToast();
+
+  const handleAddUser = () => {
+    setIsDialogOpen(true);
+  };
+
+  const handleSaveUser = async (userData: Omit<User, 'id' | 'avatarUrl'> & { password?: string }) => {
+    if (!userData.password) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Password is required to create a user.' });
+      return;
+    }
+    
+    try {
+      // Create user in Firebase Auth
+      await createUser(userData.email, userData.password);
+
+      // In a real app, we'd save the user to Firestore and get a new ID.
+      // For now, we'll just add them to the local state with a temporary ID.
+      const newUser: User = {
+        ...userData,
+        id: `temp-${Date.now()}`,
+        avatarUrl: `https://picsum.photos/seed/${Math.random()}/100/100`,
+      };
+      setUsers(prevUsers => [...prevUsers, newUser]);
+
+      toast({ title: 'User Created', description: `${userData.name} has been added.` });
+      setIsDialogOpen(false);
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Failed to create user',
+        description: error.message || 'An unknown error occurred.',
+      });
+    }
+  };
+
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
@@ -41,7 +85,7 @@ export default function UserManagementPage() {
             Add, edit, and manage users and their roles.
           </p>
         </div>
-        <Button>
+        <Button onClick={handleAddUser}>
           <PlusCircle className="mr-2 h-4 w-4" />
           Add User
         </Button>
@@ -103,6 +147,12 @@ export default function UserManagementPage() {
           </Table>
         </CardContent>
       </Card>
+      
+      <UserDialog 
+        isOpen={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        onSave={handleSaveUser}
+      />
     </div>
   );
 }
