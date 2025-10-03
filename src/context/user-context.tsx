@@ -20,6 +20,7 @@ interface UserContextType {
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
+  createUser: (email: string, password: string) => Promise<void>;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -33,7 +34,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!auth) {
-        // Firebase auth is not ready yet.
+        setIsLoading(false);
         return;
     };
 
@@ -70,29 +71,16 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string) => {
     if (!auth) throw new Error("Firebase Auth not initialized");
-    try {
-      await signInWithEmailAndPassword(auth, email, password);
-    } catch (error) {
-      const authError = error as AuthError;
-      if (authError.code === 'auth/invalid-credential' || authError.code === 'auth/user-not-found') {
-        try {
-          await createUserWithEmailAndPassword(auth, email, password);
-        } catch (createError) {
-          const createAuthError = createError as AuthError;
-          if (createAuthError.code === 'auth/email-already-in-use') {
-            // This means the user exists, but the initial sign-in failed, implying a wrong password.
-            // We throw the original error to be caught by the form.
-            throw authError;
-          }
-          // For other creation errors (e.g., weak password), throw that error.
-          throw createError;
-        }
-      } else {
-        // For other login errors (e.g. network error), throw them.
-        throw error;
-      }
-    }
+    // The login function will now just try to sign in.
+    // If it fails, it will throw the error to be handled by the component.
+    await signInWithEmailAndPassword(auth, email, password);
   };
+
+  const createUser = async (email: string, password: string) => {
+    if (!auth) throw new Error("Firebase Auth not initialized");
+    await createUserWithEmailAndPassword(auth, email, password);
+  };
+
 
   const logout = async () => {
     if (!auth) return;
@@ -100,11 +88,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
     // The onAuthStateChanged listener will handle setting user to null and routing
   };
   
-  const value = { user, login, logout, isLoading };
+  const value = { user, login, logout, isLoading, createUser };
 
-  // Show a global loader while we are determining auth state,
-  // especially when navigating to a protected page.
-   if (isLoading && pathname !== '/') {
+   if (isLoading && !pathname.startsWith('/')) {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="h-16 w-16 animate-spin rounded-full border-4 border-dashed border-primary"></div>

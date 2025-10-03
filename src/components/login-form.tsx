@@ -20,7 +20,7 @@ export function LoginForm() {
   const [selectedRole, setSelectedRole] = useState<UserRole | ''>('');
   const [selectedUserId, setSelectedUserId] = useState<string>('');
   const [password, setPassword] = useState('');
-  const { login, isLoading } = useUser();
+  const { login, createUser, isLoading } = useUser();
   const { toast } = useToast();
 
   const usersInRole = useMemo(() => {
@@ -42,7 +42,6 @@ export function LoginForm() {
     e.preventDefault();
     const userToLogin = users.find(u => u.id === selectedUserId);
     if (!userToLogin) {
-      // This case should ideally not be hit if UI is working correctly
       toast({ variant: "destructive", title: "Login Error", description: "Please select a valid user." });
       return;
     }
@@ -50,23 +49,27 @@ export function LoginForm() {
     try {
       await login(userToLogin.email, password);
     } catch (err) {
-      console.error(err);
       const authError = err as AuthError;
-      let message = "An unexpected error occurred during login.";
-      
-      if (authError.code === 'auth/invalid-credential' || authError.code === 'auth/wrong-password' || authError.code === 'auth/user-not-found') {
-        message = 'Invalid email or password. Please try again.';
-      } else if (authError.code === 'auth/weak-password') {
-        message = 'The password is too weak. Please use at least 6 characters.';
-      } else if (authError.code === 'auth/email-already-in-use') {
-         message = 'This email is already in use with a different password.';
+      if (authError.code === 'auth/user-not-found') {
+        // If user is not found, try to create them
+        try {
+          await createUser(userToLogin.email, password);
+        } catch (createErr) {
+          const createAuthError = createErr as AuthError;
+          toast({
+            variant: "destructive",
+            title: "Sign Up Failed",
+            description: createAuthError.message || 'Could not create account.',
+          });
+        }
+      } else {
+        // Handle other login errors like wrong password
+        toast({
+            variant: "destructive",
+            title: "Login Failed",
+            description: authError.code === 'auth/invalid-credential' ? 'Invalid email or password.' : authError.message,
+        });
       }
-      
-      toast({
-          variant: "destructive",
-          title: "Login Failed",
-          description: message,
-      })
     }
   };
 
