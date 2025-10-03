@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useMemo } from 'react';
@@ -51,8 +52,8 @@ export function LoginForm() {
     }
 
     try {
-      // For this prototype, we'll use a hardcoded password.
       // In a real application, you would have a password input field.
+      // We use a hardcoded password for this prototype.
       await login(userToLogin.email, 'password123');
     } catch (err: any) {
         console.error(err);

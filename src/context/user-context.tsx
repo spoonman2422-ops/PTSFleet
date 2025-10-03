@@ -43,6 +43,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
         if (userProfile) {
             setUser(userProfile);
         } else {
+            // This case can happen if a user exists in Firebase Auth but not in our static data
             signOut(auth);
             setUser(null);
         }
@@ -56,10 +57,12 @@ export function UserProvider({ children }: { children: ReactNode }) {
   }, [auth]);
 
   useEffect(() => {
+    // This effect handles routing based on auth state
     if (!isLoading) {
-      if (user && pathname === '/') {
+      const isAuthPage = pathname === '/';
+      if (user && isAuthPage) {
         router.push('/dashboard');
-      } else if (!user && pathname.startsWith('/dashboard')) {
+      } else if (!user && !isAuthPage) {
         router.push('/');
       }
     }
@@ -71,16 +74,16 @@ export function UserProvider({ children }: { children: ReactNode }) {
       await signInWithEmailAndPassword(auth, email, password);
     } catch (error) {
       const authError = error as AuthError;
-      // If the user doesn't exist, create them.
+      // If the user doesn't exist (or other invalid credential errors), try creating them.
       if (authError.code === 'auth/invalid-credential' || authError.code === 'auth/user-not-found') {
         try {
           await createUserWithEmailAndPassword(auth, email, password);
         } catch (createError) {
-          // If creation fails (e.g. weak password, email exists), throw that error.
+          // If creation fails (e.g. weak password, email already exists from a previous failed attempt), throw that error.
           throw createError;
         }
       } else {
-        // If it's a different error (e.g. wrong password), throw it.
+        // For other errors (e.g. network error), throw them.
         throw error;
       }
     }
@@ -90,10 +93,13 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const logout = async () => {
     if (!auth) return;
     await signOut(auth);
+    // The onAuthStateChanged listener will handle setting user to null and routing
   };
   
   const value = { user, login, logout, isLoading };
 
+  // Show a global loader while we are determining auth state,
+  // especially when navigating to a protected page.
   if (isLoading && pathname.startsWith('/dashboard')) {
     return (
       <div className="flex h-screen items-center justify-center">
