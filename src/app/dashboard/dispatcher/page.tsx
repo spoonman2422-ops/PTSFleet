@@ -76,7 +76,7 @@ export default function DispatcherPage() {
   };
 
    const handleUpdateStatus = async (bookingId: string, status: BookingStatus) => {
-    if (!firestore) return;
+    if (!firestore || !bookings) return;
 
     const bookingRef = doc(firestore, 'bookings', bookingId);
     await updateDoc(bookingRef, { status });
@@ -93,6 +93,22 @@ export default function DispatcherPage() {
             createdAt: serverTimestamp(),
         };
         await addDoc(collection(firestore, messagesPath), messageData);
+        
+        const booking = bookings.find(b => b.id === bookingId);
+        if (booking) {
+            const invoiceData = {
+                clientId: booking.clientId,
+                bookingId: booking.id,
+                amount: booking.bookingRate,
+                dueDate: booking.dueDate,
+                status: 'Unpaid',
+            };
+            const invoiceRef = await addDoc(collection(firestore, 'invoices'), invoiceData);
+            toast({
+                title: "Invoice Created",
+                description: `Invoice #${invoiceRef.id.substring(0,4)} has been automatically created.`
+            });
+        }
      }
   };
   
