@@ -4,6 +4,7 @@ import { Timestamp } from 'firebase/firestore';
 export type UserRole = 'Admin' | 'Dispatcher' | 'Driver';
 
 export type BookingStatus = 'pending' | 'En Route' | 'Pending Verification' | 'Delivered' | 'cancelled';
+export type InvoiceStatus = 'Paid' | 'Unpaid' | 'Overdue';
 
 export interface User {
   id: string;
@@ -39,6 +40,17 @@ export interface Booking {
   };
   status: BookingStatus;
   proofOfDeliveryUrl?: string;
+}
+
+export interface Invoice {
+    id: string;
+    clientId: string;
+    bookingId: string;
+    amount: number;
+    dueDate: string;
+    status: InvoiceStatus;
+    proofOfBillingUrl?: string;
+    createdAt: Timestamp;
 }
 
 export interface Message {

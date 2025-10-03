@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/sidebar";
 import { AppLogo } from "./icons";
 import { Button } from "./ui/button";
-import { LogOut, User, Gauge, Truck, Users, ShieldQuestion, ClipboardList } from "lucide-react";
+import { LogOut, User, Gauge, Truck, Users, ShieldQuestion, ClipboardList, FileText } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 
 export function DashboardSidebar() {
@@ -26,6 +26,7 @@ export function DashboardSidebar() {
         { href: "/dashboard/admin", label: "Admin Panel", icon: Gauge },
         { href: "/dashboard/admin/users", label: "User Management", icon: Users },
         { href: "/dashboard/admin/bookings", label: "Booking Management", icon: ClipboardList },
+        { href: "/dashboard/admin/invoices", label: "Invoices", icon: FileText },
     ],
     Dispatcher: [
         { href: "/dashboard/dispatcher", label: "Dashboard", icon: Gauge },
