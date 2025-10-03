@@ -9,6 +9,7 @@ import type { User, UserRole } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { LogIn } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -17,6 +18,7 @@ const roles: UserRole[] = ['Admin', 'Dispatcher', 'Driver', 'Accountant'];
 export function LoginForm() {
   const [selectedRole, setSelectedRole] = useState<UserRole | ''>('');
   const [selectedUserId, setSelectedUserId] = useState<string>('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState<string>('');
   const { login, isLoading } = useUser();
   const { toast } = useToast();
@@ -29,6 +31,7 @@ export function LoginForm() {
   const handleRoleChange = (role: string) => {
     setSelectedRole(role as UserRole);
     setSelectedUserId('');
+    setPassword('');
     setError('');
   };
 
@@ -43,6 +46,10 @@ export function LoginForm() {
       setError('Please select a user to continue.');
       return;
     }
+    if (!password) {
+      setError('Please enter a password.');
+      return;
+    }
     setError('');
 
     const userToLogin = users.find(u => u.id === selectedUserId);
@@ -52,9 +59,7 @@ export function LoginForm() {
     }
 
     try {
-      // In a real application, you would have a password input field.
-      // We use a hardcoded password for this prototype.
-      await login(userToLogin.email, 'password123');
+      await login(userToLogin.email, password);
     } catch (err: any) {
         console.error(err);
         toast({
@@ -96,10 +101,23 @@ export function LoginForm() {
           </Select>
         </div>
       )}
+
+      {selectedUserId && (
+          <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input 
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter your password"
+                />
+          </div>
+      )}
       
       {error && <p className="text-sm font-medium text-destructive">{error}</p>}
 
-      <Button type="submit" className="w-full" disabled={!selectedUserId || isLoading}>
+      <Button type="submit" className="w-full" disabled={!selectedUserId || !password || isLoading}>
         {isLoading ? 'Logging in...' : 'Log In'}
         <LogIn className="ml-2 h-4 w-4" />
       </Button>
