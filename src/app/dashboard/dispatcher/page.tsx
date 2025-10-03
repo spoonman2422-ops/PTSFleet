@@ -97,7 +97,8 @@ export default function DispatcherPage() {
   };
   
   const sortedBookings = useMemo(() => {
-    return (bookings || []).sort((a, b) => {
+    if (!bookings) return [];
+    return bookings.sort((a, b) => {
       const dateA = a.bookingDate ? new Date(a.bookingDate).getTime() : 0;
       const dateB = b.bookingDate ? new Date(b.bookingDate).getTime() : 0;
       return dateB - dateA;

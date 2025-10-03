@@ -83,9 +83,17 @@ export function BookingTable({ bookings, isLoading, onEdit, onUpdateStatus, filt
             ))
           ) : bookings.length > 0 ? (
             bookings.map(booking => {
-              if (!booking.id) return null;
+              if (!booking.id || !booking.status) return null;
               const driver = booking.driverId ? users.find(u => u.id === booking.driverId) : null;
               const currentStatusConfig = statusConfig[booking.status];
+              if (!currentStatusConfig) {
+                  // Gracefully handle unknown statuses to prevent crashes
+                  return (
+                     <TableRow key={booking.id}>
+                        <TableCell colSpan={5}>Invalid booking status: {booking.status}</TableCell>
+                     </TableRow>
+                  )
+              }
               const StatusIcon = currentStatusConfig.icon;
 
               return (
