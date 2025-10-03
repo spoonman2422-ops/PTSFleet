@@ -40,17 +40,27 @@
       "description": "A booking for a transport job.",
       "type": "object",
       "properties": {
-        "customerName": { "type": "string" },
-        "pickupAddress": { "type": "string" },
-        "deliveryAddress": { "type": "string" },
-        "pickupTime": { "type": "string", "format": "date-time" },
-        "deliveryTime": { "type": "string", "format": "date-time" },
-        "status": { "type": "string", "enum": ["Pending", "En Route", "Pending Verification", "Delivered", "Cancelled"] },
+        "clientId": { "type": "string" },
         "driverId": { "type": "string" },
-        "vehicleId": { "type": "string" },
+        "pickupLocation": { "type": "string" },
+        "dropoffLocation": { "type": "string" },
+        "bookingDate": { "type": "string", "format": "date" },
+        "collectionDate": { "type": "string", "format": "date" },
+        "dueDate": { "type": "string", "format": "date" },
+        "bookingRate": { "type": "number" },
+        "driverRate": { "type": "number" },
+        "expectedExpenses": {
+          "type": "object",
+          "properties": {
+            "tollFee": { "type": "number" },
+            "fuel": { "type": "number" },
+            "others": { "type": ["number", "null"] }
+          }
+        },
+        "status": { "type": "string", "enum": ["pending", "in-progress", "completed", "cancelled"] },
         "proofOfDeliveryUrl": { "type": "string", "format": "uri" }
       },
-      "required": ["customerName", "pickupAddress", "deliveryAddress", "pickupTime", "deliveryTime", "status"]
+      "required": ["clientId", "pickupLocation", "dropoffLocation", "bookingDate", "status", "bookingRate"]
     },
     "UserProfile": {
         "title": "User Profile",

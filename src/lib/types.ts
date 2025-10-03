@@ -3,7 +3,7 @@ import { Timestamp } from 'firebase/firestore';
 
 export type UserRole = 'Admin' | 'Dispatcher' | 'Driver';
 
-export type BookingStatus = 'Pending' | 'En Route' | 'Delivered' | 'Cancelled' | 'Pending Verification';
+export type BookingStatus = 'pending' | 'in-progress' | 'completed' | 'cancelled';
 
 export interface User {
   id: string;
@@ -23,14 +23,21 @@ export interface Vehicle {
 
 export interface Booking {
   id?: string;
-  customerName: string;
-  pickupAddress: string;
-  deliveryAddress: string;
-  pickupTime: string;
-  deliveryTime: string;
-  status: BookingStatus;
+  clientId: string;
   driverId: string | null;
-  vehicleId: string | null;
+  pickupLocation: string;
+  dropoffLocation: string;
+  bookingDate: string;
+  collectionDate: string;
+  dueDate: string;
+  bookingRate: number;
+  driverRate: number;
+  expectedExpenses: {
+    tollFee: number;
+    fuel: number;
+    others: number | null;
+  };
+  status: BookingStatus;
   proofOfDeliveryUrl?: string;
 }
 
