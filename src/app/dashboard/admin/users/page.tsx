@@ -27,7 +27,7 @@ import { UserDialog } from "@/components/admin/user-dialog";
 import { useUser } from "@/context/user-context";
 import { useToast } from "@/hooks/use-toast";
 import { useCollection, useFirestore } from "@/firebase";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, updateDoc } from "firebase/firestore";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const roleBadgeVariant: Record<UserRole, "default" | "secondary" | "outline" | "destructive"> = {
@@ -39,45 +39,63 @@ const roleBadgeVariant: Record<UserRole, "default" | "secondary" | "outline" | "
 export default function UserManagementPage() {
   const { data: users, isLoading: isLoadingUsers } = useCollection<User>('users');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
   const { createUser } = useUser();
   const firestore = useFirestore();
   const { toast } = useToast();
 
   const handleAddUser = () => {
+    setEditingUser(null);
     setIsDialogOpen(true);
   };
 
-  const handleSaveUser = async (userData: Omit<User, 'id' | 'avatarUrl'> & { password?: string }) => {
-    if (!userData.password) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Password is required to create a user.' });
-      return;
-    }
+  const handleEditUser = (user: User) => {
+    setEditingUser(user);
+    setIsDialogOpen(true);
+  };
+
+  const handleSaveUser = async (userData: Omit<User, 'id' | 'avatarUrl'> & { password?: string }, userId?: string) => {
     if (!firestore) {
         toast({ variant: 'destructive', title: 'Error', description: 'Database not available.' });
         return;
     }
-    
+
     try {
-      // Create user in Firebase Auth
-      const userCredential = await createUser(userData.email, userData.password);
-      const authUser = userCredential.user;
+      if (userId) { // Editing existing user
+        const userRef = doc(firestore, "users", userId);
+        const { name, email, role } = userData;
+        await updateDoc(userRef, { name, email, role });
+        toast({ title: 'User Updated', description: `${name} has been updated.` });
 
-      // Save user profile to Firestore
-      const newUser: Omit<User, 'id'> = {
-        name: userData.name,
-        email: userData.email,
-        role: userData.role,
-        avatarUrl: `https://picsum.photos/seed/${Math.random()}/100/100`,
-      };
+      } else { // Creating new user
+        if (!userData.password) {
+          toast({ variant: 'destructive', title: 'Error', description: 'Password is required to create a user.' });
+          return;
+        }
+        
+        // Create user in Firebase Auth
+        const userCredential = await createUser(userData.email, userData.password);
+        const authUser = userCredential.user;
 
-      await setDoc(doc(firestore, "users", authUser.uid), newUser);
+        // Save user profile to Firestore
+        const newUser: Omit<User, 'id'> = {
+          name: userData.name,
+          email: userData.email,
+          role: userData.role,
+          avatarUrl: `https://picsum.photos/seed/${Math.random()}/100/100`,
+        };
 
-      toast({ title: 'User Created', description: `${userData.name} has been added.` });
+        await setDoc(doc(firestore, "users", authUser.uid), newUser);
+
+        toast({ title: 'User Created', description: `${userData.name} has been added.` });
+      }
       setIsDialogOpen(false);
+      setEditingUser(null);
+
     } catch (error: any) {
       toast({
         variant: 'destructive',
-        title: 'Failed to create user',
+        title: `Failed to ${userId ? 'update' : 'create'} user`,
         description: error.message || 'An unknown error occurred.',
       });
     }
@@ -156,7 +174,7 @@ export default function UserManagementPage() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent>
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem>Edit</DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleEditUser(user)}>Edit</DropdownMenuItem>
                         <DropdownMenuItem className="text-destructive">
                           Delete
                         </DropdownMenuItem>
@@ -174,6 +192,7 @@ export default function UserManagementPage() {
         isOpen={isDialogOpen}
         onOpenChange={setIsDialogOpen}
         onSave={handleSaveUser}
+        user={editingUser}
       />
     </div>
   );

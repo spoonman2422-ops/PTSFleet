@@ -4,6 +4,7 @@
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import { useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -29,21 +30,30 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type { UserRole } from '@/lib/types';
+import type { User, UserRole } from '@/lib/types';
 
-const userSchema = z.object({
+const userSchemaBase = z.object({
   name: z.string().min(1, 'Full name is required'),
   email: z.string().email('Invalid email address'),
   role: z.enum(['Admin', 'Dispatcher', 'Driver']),
+});
+
+const userSchemaCreate = userSchemaBase.extend({
   password: z.string().min(6, 'Password must be at least 6 characters'),
 });
 
-type UserFormValues = z.infer<typeof userSchema>;
+const userSchemaEdit = userSchemaBase.extend({
+  password: z.string().min(6, 'Password must be at least 6 characters').optional().or(z.literal('')),
+});
+
+
+type UserFormValues = z.infer<typeof userSchemaCreate>;
 
 type UserDialogProps = {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (data: UserFormValues) => void;
+  onSave: (data: Partial<UserFormValues>, id?: string) => void;
+  user: User | null;
 };
 
 const roles: Omit<UserRole, 'Accountant'>[] = ['Admin', 'Dispatcher', 'Driver'];
@@ -52,9 +62,12 @@ export function UserDialog({
   isOpen,
   onOpenChange,
   onSave,
+  user,
 }: UserDialogProps) {
+  const isEditMode = !!user;
+
   const form = useForm<UserFormValues>({
-    resolver: zodResolver(userSchema),
+    resolver: zodResolver(isEditMode ? userSchemaEdit : userSchemaCreate),
     defaultValues: {
       name: '',
       email: '',
@@ -63,9 +76,28 @@ export function UserDialog({
     },
   });
 
+  useEffect(() => {
+    if (isOpen) {
+      if (isEditMode) {
+        form.reset({
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          password: '',
+        });
+      } else {
+        form.reset({
+          name: '',
+          email: '',
+          role: 'Driver',
+          password: '',
+        });
+      }
+    }
+  }, [isOpen, isEditMode, user, form]);
+
   const onSubmit = (data: UserFormValues) => {
-    onSave(data);
-    form.reset();
+    onSave(data, user?.id);
   };
   
   const handleOpenChange = (open: boolean) => {
@@ -79,9 +111,9 @@ export function UserDialog({
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[480px]">
         <DialogHeader>
-          <DialogTitle>Add New User</DialogTitle>
+          <DialogTitle>{isEditMode ? 'Edit User' : 'Add New User'}</DialogTitle>
           <DialogDescription>
-            Fill in the details below to create a new user account.
+            {isEditMode ? "Update the user's details below." : 'Fill in the details below to create a new user account.'}
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -106,7 +138,7 @@ export function UserDialog({
                 <FormItem>
                   <FormLabel>Email Address</FormLabel>
                   <FormControl>
-                    <Input type="email" placeholder="e.g., john.d@example.com" {...field} />
+                    <Input type="email" placeholder="e.g., john.d@example.com" {...field} readOnly={isEditMode} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -117,9 +149,9 @@ export function UserDialog({
               name="password"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Password</FormLabel>
+                  <FormLabel>{isEditMode ? 'New Password (Optional)' : 'Password'}</FormLabel>
                   <FormControl>
-                    <Input type="password" placeholder="Min. 6 characters" {...field} />
+                    <Input type="password" placeholder={isEditMode ? 'Leave blank to keep current password' : 'Min. 6 characters'} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -131,7 +163,7 @@ export function UserDialog({
                 render={({ field }) => (
                 <FormItem>
                     <FormLabel>Role</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                         <SelectTrigger>
                         <SelectValue placeholder="Select a role" />
@@ -151,7 +183,7 @@ export function UserDialog({
               <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
                 Cancel
               </Button>
-              <Button type="submit">Create User</Button>
+              <Button type="submit">{isEditMode ? 'Save Changes' : 'Create User'}</Button>
             </DialogFooter>
           </form>
         </Form>
