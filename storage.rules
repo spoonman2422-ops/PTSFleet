@@ -1,8 +1,11 @@
 
 rules_version = '2';
+
 service firebase.storage {
   match /b/{bucket}/o {
-    match /{allPaths=**} {
+    // Allow users to upload images to a booking-specific folder within 'messages'
+    // if they are authenticated. This ensures that only signed-in users can upload files.
+    match /messages/{bookingId}/{allPaths=**} {
       allow read, write: if request.auth != null;
     }
   }
