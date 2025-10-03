@@ -126,6 +126,7 @@ export function BookingDialog({
         bookingDate: booking.bookingDate ? format(parseISO(booking.bookingDate), "yyyy-MM-dd") : '',
         collectionDate: booking.collectionDate ? format(parseISO(booking.collectionDate), "yyyy-MM-dd") : '',
         dueDate: booking.dueDate ? format(parseISO(booking.dueDate), "yyyy-MM-dd") : '',
+        driverId: booking.driverId || null,
       });
     } else {
       form.reset(defaultVals);
@@ -133,8 +134,7 @@ export function BookingDialog({
   }, [booking, form, isOpen]);
 
   const onSubmit = (data: BookingFormValues) => {
-    // onSave handles the conversion to number, here we just pass it on.
-    onSave(data as Omit<Booking, 'id' | 'status'>, booking?.id);
+    onSave({ ...data, driverId: data.driverId === UNASSIGNED_VALUE ? null : data.driverId }, booking?.id);
   };
 
   return (
@@ -242,7 +242,7 @@ export function BookingDialog({
                     <FormLabel>Assign Driver</FormLabel>
                     <Select 
                       onValueChange={(value) => field.onChange(value === UNASSIGNED_VALUE ? null : value)} 
-                      value={field.value ?? ''}
+                      value={field.value ?? UNASSIGNED_VALUE}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -347,7 +347,7 @@ export function BookingDialog({
                 <div className="text-lg">
                     <span>Net Margin: </span>
                     <span className={`font-bold ${netMargin < 0 ? 'text-destructive' : 'text-green-600'}`}>
-                        {netMargin.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}
+                        {netMargin.toLocaleString('en-PH', { style: 'currency', currency: 'PHP' })}
                     </span>
                 </div>
                 <DialogFooter>
@@ -363,5 +363,3 @@ export function BookingDialog({
     </Dialog>
   );
 }
-
-    
