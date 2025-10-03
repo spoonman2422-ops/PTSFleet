@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { Booking, BookingStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
-import { MapPin, ArrowRight, Play, CheckCircle2, Package, Clock, Send } from "lucide-react";
+import { MapPin, ArrowRight, Play, CheckCircle2, Package, Clock, Send, XCircle } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { useFirestore } from "@/firebase";
 import { addDoc, collection, serverTimestamp } from "firebase/firestore";
