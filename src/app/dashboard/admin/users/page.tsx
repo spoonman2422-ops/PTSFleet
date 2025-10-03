@@ -57,12 +57,15 @@ export default function UserManagementPage() {
 
       // In a real app, we'd save the user to Firestore and get a new ID.
       // For now, we'll just add them to the local state with a temporary ID.
+      // And we need to add them to the main `users` array so they can be "found" after login.
+      // This is a temporary solution until we move user data to Firestore.
       const newUser: User = {
         ...userData,
         id: `temp-${Date.now()}`,
         avatarUrl: `https://picsum.photos/seed/${Math.random()}/100/100`,
       };
       setUsers(prevUsers => [...prevUsers, newUser]);
+      initialUsers.push(newUser); // Add to the "master" list in memory
 
       toast({ title: 'User Created', description: `${userData.name} has been added.` });
       setIsDialogOpen(false);

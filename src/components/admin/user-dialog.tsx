@@ -29,7 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type { User, UserRole } from '@/lib/types';
+import type { UserRole } from '@/lib/types';
 
 const userSchema = z.object({
   name: z.string().min(1, 'Full name is required'),
@@ -67,9 +67,16 @@ export function UserDialog({
     onSave(data);
     form.reset();
   };
+  
+  const handleOpenChange = (open: boolean) => {
+    if (!open) {
+      form.reset();
+    }
+    onOpenChange(open);
+  }
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-[480px]">
         <DialogHeader>
           <DialogTitle>Add New User</DialogTitle>
@@ -141,7 +148,7 @@ export function UserDialog({
                 )}
             />
             <DialogFooter className="pt-4">
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+              <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
                 Cancel
               </Button>
               <Button type="submit">Create User</Button>
