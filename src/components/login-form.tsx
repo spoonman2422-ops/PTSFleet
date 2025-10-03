@@ -5,6 +5,7 @@ import React, { useState, useMemo } from 'react';
 import { useUser } from '@/context/user-context';
 import { users } from '@/lib/data';
 import type { User, UserRole } from '@/lib/types';
+import { type AuthError } from 'firebase/auth';
 
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -42,31 +43,35 @@ export function LoginForm() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedUserId) {
-      setError('Please select a user to continue.');
-      return;
-    }
-    if (!password) {
-      setError('Please enter a password.');
-      return;
-    }
     setError('');
 
     const userToLogin = users.find(u => u.id === selectedUserId);
     if (!userToLogin) {
-        setError('Selected user not found.');
+        setError('Please select a user to continue.');
+        return;
+    }
+    if (!password) {
+        setError('Please enter a password.');
         return;
     }
 
     try {
       await login(userToLogin.email, password);
-    } catch (err: any) {
-        console.error(err);
-        toast({
-            variant: "destructive",
-            title: "Login Failed",
-            description: err.message || "An unexpected error occurred."
-        })
+    } catch (err) {
+      console.error(err);
+      const authError = err as AuthError;
+      let message = "An unexpected error occurred during login.";
+      if (authError.code === 'auth/invalid-credential' || authError.code === 'auth/wrong-password') {
+        message = 'Invalid email or password. Please try again.';
+      } else if (authError.code === 'auth/weak-password') {
+        message = 'The password is too weak. Please use at least 6 characters.';
+      }
+      
+      toast({
+          variant: "destructive",
+          title: "Login Failed",
+          description: message,
+      })
     }
   };
 

@@ -74,11 +74,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
       await signInWithEmailAndPassword(auth, email, password);
     } catch (error) {
       const authError = error as AuthError;
-      // If the user doesn't exist, try creating them.
-      // Note: `auth/invalid-credential` can mean user not found OR wrong password.
-      // We will attempt to create an account only on this error. If the email already exists,
-      // `createUserWithEmailAndPassword` will fail with 'auth/email-already-in-use',
-      // which we will catch and then re-throw the original error to indicate a wrong password.
       if (authError.code === 'auth/invalid-credential' || authError.code === 'auth/user-not-found') {
         try {
           await createUserWithEmailAndPassword(auth, email, password);
@@ -86,7 +81,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
           const createAuthError = createError as AuthError;
           if (createAuthError.code === 'auth/email-already-in-use') {
             // This means the user exists, but the initial sign-in failed, implying a wrong password.
-            throw new Error('Invalid password. Please try again.');
+            // We throw the original error to be caught by the form.
+            throw authError;
           }
           // For other creation errors (e.g., weak password), throw that error.
           throw createError;
@@ -96,7 +92,6 @@ export function UserProvider({ children }: { children: ReactNode }) {
         throw error;
       }
     }
-    // The onAuthStateChanged listener will handle setting the user and routing
   };
 
   const logout = async () => {
