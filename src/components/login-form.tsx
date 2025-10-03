@@ -20,7 +20,6 @@ export function LoginForm() {
   const [selectedRole, setSelectedRole] = useState<UserRole | ''>('');
   const [selectedUserId, setSelectedUserId] = useState<string>('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState<string>('');
   const { login, isLoading } = useUser();
   const { toast } = useToast();
 
@@ -33,26 +32,19 @@ export function LoginForm() {
     setSelectedRole(role as UserRole);
     setSelectedUserId('');
     setPassword('');
-    setError('');
   };
 
   const handleUserChange = (userId: string) => {
     setSelectedUserId(userId);
-    setError('');
   }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-
     const userToLogin = users.find(u => u.id === selectedUserId);
     if (!userToLogin) {
-        setError('Please select a user to continue.');
-        return;
-    }
-    if (!password) {
-        setError('Please enter a password.');
-        return;
+      // This case should ideally not be hit if UI is working correctly
+      toast({ variant: "destructive", title: "Login Error", description: "Please select a valid user." });
+      return;
     }
 
     try {
@@ -61,10 +53,13 @@ export function LoginForm() {
       console.error(err);
       const authError = err as AuthError;
       let message = "An unexpected error occurred during login.";
-      if (authError.code === 'auth/invalid-credential' || authError.code === 'auth/wrong-password') {
+      
+      if (authError.code === 'auth/invalid-credential' || authError.code === 'auth/wrong-password' || authError.code === 'auth/user-not-found') {
         message = 'Invalid email or password. Please try again.';
       } else if (authError.code === 'auth/weak-password') {
         message = 'The password is too weak. Please use at least 6 characters.';
+      } else if (authError.code === 'auth/email-already-in-use') {
+         message = 'This email is already in use with a different password.';
       }
       
       toast({
@@ -120,8 +115,6 @@ export function LoginForm() {
           </div>
       )}
       
-      {error && <p className="text-sm font-medium text-destructive">{error}</p>}
-
       <Button type="submit" className="w-full" disabled={!selectedUserId || !password || isLoading}>
         {isLoading ? 'Logging in...' : 'Log In'}
         <LogIn className="ml-2 h-4 w-4" />
