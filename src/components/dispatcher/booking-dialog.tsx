@@ -62,6 +62,8 @@ type BookingDialogProps = {
   vehicles: Vehicle[]; // Keep this for future use if needed
 };
 
+const UNASSIGNED_VALUE = "unassigned";
+
 export function BookingDialog({
   isOpen,
   onOpenChange,
@@ -238,14 +240,17 @@ export function BookingDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Assign Driver</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || ''}>
+                    <Select 
+                      onValueChange={(value) => field.onChange(value === UNASSIGNED_VALUE ? null : value)} 
+                      value={field.value ?? ''}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select a driver" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">Unassigned</SelectItem>
+                        <SelectItem value={UNASSIGNED_VALUE}>Unassigned</SelectItem>
                         {drivers.map(driver => (
                           <SelectItem key={driver.id} value={driver.id}>{driver.name}</SelectItem>
                         ))}
@@ -358,3 +363,5 @@ export function BookingDialog({
     </Dialog>
   );
 }
+
+    
