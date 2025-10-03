@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Send, Paperclip, X, Image as ImageIcon, Loader2 } from 'lucide-react';
+import { Send, Paperclip, X, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import type { Message } from '@/lib/types';
 import { users as staticUsers } from '@/lib/data';
@@ -117,8 +117,8 @@ export function MessageBoard({ bookingId }: { bookingId: string }) {
       console.error("Error sending message: ", error);
       toast({
         variant: 'destructive',
-        title: "Error",
-        description: "Failed to send message. Please try again."
+        title: "Error sending message",
+        description: (error as Error).message || "An unknown error occurred."
       })
     } finally {
       setIsUploading(false);
