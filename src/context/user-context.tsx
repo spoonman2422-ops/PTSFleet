@@ -1,8 +1,16 @@
+
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { signInWithEmailAndPassword, signOut, onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
+import { 
+  signInWithEmailAndPassword, 
+  signOut, 
+  onAuthStateChanged, 
+  createUserWithEmailAndPassword,
+  type User as FirebaseUser,
+  type AuthError
+} from 'firebase/auth';
 import { useAuth } from '@/firebase';
 import type { User } from '@/lib/types';
 import { users } from '@/lib/data';
@@ -31,13 +39,10 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser: FirebaseUser | null) => {
       if (firebaseUser) {
-        // Find the corresponding user profile from our static data
-        // In a real app, this would be a fetch from Firestore
         const userProfile = users.find(u => u.email.toLowerCase() === firebaseUser.email?.toLowerCase());
         if (userProfile) {
             setUser(userProfile);
         } else {
-            // If user is not in our static list, sign them out.
             signOut(auth);
             setUser(null);
         }
@@ -62,19 +67,34 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string) => {
     if (!auth) throw new Error("Firebase Auth not initialized");
-    await signInWithEmailAndPassword(auth, email, password);
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (error) {
+      const authError = error as AuthError;
+      // If the user doesn't exist, create them.
+      if (authError.code === 'auth/invalid-credential' || authError.code === 'auth/user-not-found') {
+        try {
+          await createUserWithEmailAndPassword(auth, email, password);
+        } catch (createError) {
+          // If creation fails (e.g. weak password, email exists), throw that error.
+          throw createError;
+        }
+      } else {
+        // If it's a different error (e.g. wrong password), throw it.
+        throw error;
+      }
+    }
     // The onAuthStateChanged listener will handle setting the user and routing
   };
 
   const logout = async () => {
     if (!auth) return;
     await signOut(auth);
-    // The onAuthStateChanged listener will handle clearing the user and routing
   };
   
   const value = { user, login, logout, isLoading };
 
-  if (isLoading) {
+  if (isLoading && pathname.startsWith('/dashboard')) {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="h-16 w-16 animate-spin rounded-full border-4 border-dashed border-primary"></div>
