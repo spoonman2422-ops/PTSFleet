@@ -57,18 +57,17 @@ export default function UserManagementPage() {
 
       // In a real app, we'd save the user to Firestore and get a new ID from there.
       // For now, we'll just add them to the local state with a temporary ID.
-      // Crucially, we also add them to the "master" list in memory so they can be "found" after login.
       const newUser: User = {
         ...userData,
-        id: `user-temp-${Date.now()}`, // The ID needs to be unique but doesn't have to match Firebase Auth UID for this demo
+        id: `user-temp-${Date.now()}`,
         avatarUrl: `https://picsum.photos/seed/${Math.random()}/100/100`,
       };
       
-      // Add to the "master" in-memory list
-      initialUsers.push(newUser);
-      
       // Update the component's state to re-render the table
       setUsers(prevUsers => [...prevUsers, newUser]);
+      
+      // Also add to the "master" list so they can be logged in with.
+      initialUsers.push(newUser);
 
       toast({ title: 'User Created', description: `${userData.name} has been added.` });
       setIsDialogOpen(false);
