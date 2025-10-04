@@ -176,10 +176,10 @@ export default function DispatcherPage() {
             const driver = users?.find(u => u.id === booking.driverId);
             return (
                 booking.id?.substring(0, 4).toLowerCase().includes(lowercasedQuery) ||
-                booking.clientId.toLowerCase().includes(lowercasedQuery) ||
-                (driver?.name.toLowerCase().includes(lowercasedQuery) ?? false) ||
-                booking.pickupLocation.toLowerCase().includes(lowercasedQuery) ||
-                booking.dropoffLocation.toLowerCase().includes(lowercasedQuery)
+                booking.clientId?.toLowerCase().includes(lowercasedQuery) ||
+                driver?.name?.toLowerCase().includes(lowercasedQuery) ||
+                booking.pickupLocation?.toLowerCase().includes(lowercasedQuery) ||
+                booking.dropoffLocation?.toLowerCase().includes(lowercasedQuery)
             );
         });
     }
