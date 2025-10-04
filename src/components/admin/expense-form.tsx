@@ -56,7 +56,11 @@ export function ExpenseForm() {
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(expenseSchema),
     defaultValues: {
+      category: undefined,
       description: "",
+      amount: 0,
+      dateIncurred: undefined,
+      paidBy: undefined,
       notes: "",
     },
   });
@@ -82,8 +86,11 @@ export function ExpenseForm() {
         description: "The new expense has been logged successfully.",
       });
       form.reset({
+        category: undefined,
         description: "",
         amount: 0,
+        dateIncurred: undefined,
+        paidBy: undefined,
         notes: "",
       });
     } catch (error) {
@@ -106,7 +113,7 @@ export function ExpenseForm() {
                 render={({ field }) => (
                 <FormItem>
                     <FormLabel>Category</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                         <SelectTrigger>
                         <SelectValue placeholder="Select an expense category" />
@@ -199,7 +206,7 @@ export function ExpenseForm() {
                 render={({ field }) => (
                 <FormItem>
                     <FormLabel>Payment Method</FormLabel>
-                     <Select onValueChange={field.onChange} defaultValue={field.value}>
+                     <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                         <SelectTrigger>
                         <SelectValue placeholder="Select a payment method" />
@@ -240,4 +247,3 @@ export function ExpenseForm() {
     </Form>
   );
 }
-
