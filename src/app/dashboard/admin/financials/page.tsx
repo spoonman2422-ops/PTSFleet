@@ -8,25 +8,42 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { addDays, isBefore, isAfter, parseISO, differenceInDays, startOfWeek, startOfMonth, startOfYear, format } from 'date-fns';
-import { TrendingUp, AlertTriangle, CalendarCheck2, Briefcase, Wallet, CheckCircle } from 'lucide-react';
+import { TrendingUp, AlertTriangle, CalendarCheck2, Briefcase, Wallet, CheckCircle, LandPlot } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 
 
-type ProfitFilter = 'Overall' | 'Annual' | 'Monthly' | 'Weekly';
+type FinancialFilter = 'Overall' | 'Annual' | 'Monthly' | 'Weekly';
 
 export default function FinancialsPage() {
   const { data: bookings, isLoading: isLoadingBookings } = useCollection<Booking>('bookings');
   const { data: invoices, isLoading: isLoadingInvoices } = useCollection<Invoice>('invoices');
   const { data: expenses, isLoading: isLoadingExpenses } = useCollection<Expense>('expenses');
 
-  const [profitFilter, setProfitFilter] = useState<ProfitFilter>('Overall');
-  const [expenseFilter, setExpenseFilter] = useState<ProfitFilter>('Overall');
+  const [profitFilter, setProfitFilter] = useState<FinancialFilter>('Overall');
+  const [expenseFilter, setExpenseFilter] = useState<FinancialFilter>('Overall');
+  const [taxFilter, setTaxFilter] = useState<FinancialFilter>('Overall');
 
 
   const now = new Date();
   const nextSevenDays = addDays(now, 7);
+
+  const getStartDate = (filter: FinancialFilter) => {
+    const today = new Date();
+    switch(filter) {
+        case 'Weekly':
+            return startOfWeek(today);
+        case 'Monthly':
+            return startOfMonth(today);
+        case 'Annual':
+            return startOfYear(today);
+        case 'Overall':
+        default:
+            return new Date(0); // The beginning of time
+    }
+  };
+
 
   const upcomingCollections = useMemo(() => {
     if (!bookings || !invoices) return [];
@@ -50,9 +67,9 @@ export default function FinancialsPage() {
         return { invoice: inv, booking };
       })
       .sort((a, b) => {
-        const dateA = a.invoice.createdAt ? a.invoice.createdAt.toMillis() : 0;
-        const dateB = b.invoice.createdAt ? b.invoice.createdAt.toMillis() : 0;
-        return dateB - dateA;
+         const dateA = a.invoice.dateIssued ? parseISO(a.invoice.dateIssued).getTime() : 0;
+         const dateB = b.invoice.dateIssued ? parseISO(b.invoice.dateIssued).getTime() : 0;
+         return dateB - dateA;
       });
   }, [invoices, bookings]);
 
@@ -71,20 +88,6 @@ export default function FinancialsPage() {
       .sort((a, b) => parseISO(a.invoice.dueDate).getTime() - parseISO(b.invoice.dueDate).getTime());
   }, [invoices, bookings, now]);
 
-  const getStartDate = (filter: ProfitFilter) => {
-    const today = new Date();
-    switch(filter) {
-        case 'Weekly':
-            return startOfWeek(today);
-        case 'Monthly':
-            return startOfMonth(today);
-        case 'Annual':
-            return startOfYear(today);
-        case 'Overall':
-        default:
-            return new Date(0); // The beginning of time
-    }
-  };
 
   const profitTrackerData = useMemo(() => {
     if (!bookings) return [];
@@ -115,8 +118,39 @@ export default function FinancialsPage() {
   const totalExpenses = useMemo(() => {
     return filteredExpenses.reduce((acc, expense) => acc + expense.amount, 0);
   }, [filteredExpenses]);
+
+  const taxSummaryData = useMemo(() => {
+    const startDate = getStartDate(taxFilter);
+    const relevantInvoices = (invoices || []).filter(inv => isAfter(parseISO(inv.dateIssued), startDate));
+    const relevantExpenses = (expenses || []).filter(exp => isAfter(parseISO(exp.dateIncurred), startDate));
+
+    const outputVat = relevantInvoices
+      .filter(inv => inv.vatRegistered)
+      .reduce((acc, inv) => acc + inv.vatAmount, 0);
+
+    const inputVat = relevantExpenses
+      .filter(exp => exp.vatIncluded)
+      .reduce((acc, exp) => acc + exp.inputVat, 0);
+
+    const percentageTax = relevantInvoices
+      .filter(inv => !inv.vatRegistered)
+      .reduce((acc, inv) => acc + inv.percentageTaxAmount, 0);
+    
+    const incomeTax = relevantInvoices.reduce((acc, inv) => acc + inv.incomeTaxAmount, 0);
+
+    return {
+      outputVat,
+      inputVat,
+      vatPayable: outputVat - inputVat,
+      percentageTax,
+      incomeTax,
+    }
+  }, [invoices, expenses, taxFilter]);
   
   const isLoading = isLoadingBookings || isLoadingInvoices || isLoadingExpenses;
+
+  const formatCurrency = (amount: number) => new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(amount);
+
 
   return (
     <div className="flex flex-col gap-6">
@@ -125,7 +159,7 @@ export default function FinancialsPage() {
         <p className="text-muted-foreground">Monitor your collections, outstanding payments, and profitability.</p>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
@@ -182,7 +216,7 @@ export default function FinancialsPage() {
                             <TableRow key={invoice.id}>
                                 <TableCell>
                                     <div className="font-medium">#{invoice.id.substring(0, 4)}</div>
-                                    <div className="text-xs text-muted-foreground">₱{invoice.amount.toLocaleString()}</div>
+                                    <div className="text-xs text-muted-foreground">{formatCurrency(invoice.grossSales)}</div>
                                 </TableCell>
                                 <TableCell>{booking?.clientId || invoice.clientId}</TableCell>
                                 <TableCell className="text-right text-red-600 font-medium">
@@ -214,9 +248,9 @@ export default function FinancialsPage() {
                                     <p className="text-sm text-muted-foreground">{booking?.clientId || invoice.clientId}</p>
                                 </div>
                                 <div className="text-right">
-                                    <p className="font-semibold text-green-600">+₱{invoice.amount.toLocaleString()}</p>
+                                    <p className="font-semibold text-green-600">+{formatCurrency(invoice.grossSales)}</p>
                                     <p className="text-xs text-muted-foreground">
-                                        {invoice.createdAt ? format(invoice.createdAt.toDate(), 'PP') : ''}
+                                        {invoice.dateIssued ? format(parseISO(invoice.dateIssued), 'PP') : ''}
                                     </p>
                                 </div>
                             </div>
@@ -225,6 +259,57 @@ export default function FinancialsPage() {
                 ) : <p className="text-sm text-muted-foreground text-center py-10">No completed collections yet.</p>}
             </CardContent>
         </Card>
+        
+        <Card>
+            <CardHeader>
+                 <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                        <LandPlot className="h-5 w-5 text-orange-500" />
+                        <span>Tax Summary</span>
+                    </CardTitle>
+                    <Select value={taxFilter} onValueChange={(value) => setTaxFilter(value as FinancialFilter)}>
+                        <SelectTrigger className="w-full sm:w-[180px]">
+                            <SelectValue placeholder="Filter by period" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="Overall">Overall</SelectItem>
+                            <SelectItem value="Annual">This Year</SelectItem>
+                            <SelectItem value="Monthly">This Month</SelectItem>
+                            <SelectItem value="Weekly">This Week</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+            </CardHeader>
+            <CardContent>
+                {isLoading ? <Skeleton className="h-40 w-full" /> : (
+                  <div className="space-y-4 text-sm">
+                      <div className="flex justify-between items-center">
+                          <span className="text-muted-foreground">Output VAT (from Sales)</span>
+                          <span className="font-medium">{formatCurrency(taxSummaryData.outputVat)}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                          <span className="text-muted-foreground">Input VAT (from Expenses)</span>
+                          <span className="font-medium text-green-600">-{formatCurrency(taxSummaryData.inputVat)}</span>
+                      </div>
+                      <Separator />
+                       <div className="flex justify-between items-center font-bold">
+                          <span>VAT Payable</span>
+                          <span>{formatCurrency(taxSummaryData.vatPayable)}</span>
+                      </div>
+                       <Separator />
+                       <div className="flex justify-between items-center pt-2">
+                          <span className="text-muted-foreground">Percentage Tax (Non-VAT)</span>
+                          <span className="font-medium">{formatCurrency(taxSummaryData.percentageTax)}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                          <span className="text-muted-foreground">Income Tax</span>
+                          <span className="font-medium">{formatCurrency(taxSummaryData.incomeTax)}</span>
+                      </div>
+                  </div>
+                )}
+            </CardContent>
+        </Card>
+
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -236,7 +321,7 @@ export default function FinancialsPage() {
                         <TrendingUp className="h-5 w-5 text-green-500" />
                         <span>Profit/Margin Tracker</span>
                     </CardTitle>
-                    <Select value={profitFilter} onValueChange={(value) => setProfitFilter(value as ProfitFilter)}>
+                    <Select value={profitFilter} onValueChange={(value) => setProfitFilter(value as FinancialFilter)}>
                         <SelectTrigger className="w-full sm:w-[180px]">
                             <SelectValue placeholder="Filter by period" />
                         </SelectTrigger>
@@ -271,7 +356,7 @@ export default function FinancialsPage() {
                             <TableCell>{format(parseISO(booking.dueDate), 'PP')}</TableCell>
                             <TableCell className="text-right font-medium">
                                 <span className={booking.profit >= 0 ? 'text-green-600' : 'text-red-600'}>
-                                    ₱{booking.profit.toLocaleString()}
+                                    {formatCurrency(booking.profit)}
                                 </span>
                             </TableCell>
                             </TableRow>
@@ -290,7 +375,7 @@ export default function FinancialsPage() {
                         <Wallet className="h-5 w-5 text-blue-500" />
                         <span>Expense Tracker</span>
                     </CardTitle>
-                    <Select value={expenseFilter} onValueChange={(value) => setExpenseFilter(value as ProfitFilter)}>
+                    <Select value={expenseFilter} onValueChange={(value) => setExpenseFilter(value as FinancialFilter)}>
                         <SelectTrigger className="w-full sm:w-[180px]">
                             <SelectValue placeholder="Filter by period" />
                         </SelectTrigger>
@@ -321,7 +406,7 @@ export default function FinancialsPage() {
                             <TableCell>{format(parseISO(expense.dateIncurred), 'PP')}</TableCell>
                             <TableCell className="capitalize">{expense.category}</TableCell>
                             <TableCell className="text-right font-medium">
-                                ₱{expense.amount.toLocaleString()}
+                                {formatCurrency(expense.amount)}
                             </TableCell>
                         </TableRow>
                     ))}
@@ -331,8 +416,8 @@ export default function FinancialsPage() {
                 <Separator className="my-4" />
                 <div className="flex justify-end text-right">
                     <div>
-                        <p className="text-muted-foreground">Total Expenses</p>
-                        <p className="font-bold text-xl">₱{totalExpenses.toLocaleString()}</p>
+                        <p className="text-muted-foreground">Total Expenses ({expenseFilter})</p>
+                        <p className="font-bold text-xl">{formatCurrency(totalExpenses)}</p>
                     </div>
                 </div>
                 </>
@@ -343,5 +428,7 @@ export default function FinancialsPage() {
     </div>
   );
 }
+
+    
 
     
