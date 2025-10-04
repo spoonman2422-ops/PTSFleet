@@ -1,0 +1,243 @@
+
+"use client";
+
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { useFirestore } from "@/firebase";
+import { useUser } from "@/context/user-context";
+import { addDoc, collection } from "firebase/firestore";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
+import { Textarea } from "../ui/textarea";
+
+const expenseCategories = ["fuel", "maintenance", "toll", "office", "staff", "permits", "vehicle parts", "pms", "change oil", "client representation"] as const;
+const paymentMethods = ["cash", "bank", "credit"] as const;
+
+const expenseSchema = z.object({
+  category: z.enum(expenseCategories, { required_error: "Category is required." }),
+  description: z.string().min(1, 'Description is required'),
+  amount: z.coerce.number().min(0.01, 'Amount must be greater than 0'),
+  dateIncurred: z.date({
+    required_error: "A date is required.",
+  }),
+  paidBy: z.enum(paymentMethods, { required_error: "Payment method is required." }),
+  notes: z.string().optional(),
+});
+
+type ExpenseFormValues = z.infer<typeof expenseSchema>;
+
+export function ExpenseForm() {
+  const firestore = useFirestore();
+  const { user } = useUser();
+  const { toast } = useToast();
+
+  const form = useForm<ExpenseFormValues>({
+    resolver: zodResolver(expenseSchema),
+    defaultValues: {
+      description: "",
+      notes: "",
+    },
+  });
+
+  const onSubmit = async (data: ExpenseFormValues) => {
+    if (!firestore || !user) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "You must be logged in to add an expense.",
+      });
+      return;
+    }
+
+    try {
+      await addDoc(collection(firestore, "expenses"), {
+        ...data,
+        addedBy: user.id,
+        dateIncurred: format(data.dateIncurred, "yyyy-MM-dd"), 
+      });
+      toast({
+        title: "Expense Saved",
+        description: "The new expense has been logged successfully.",
+      });
+      form.reset({
+        description: "",
+        amount: 0,
+        notes: "",
+      });
+    } catch (error) {
+      console.error("Error adding expense: ", error);
+      toast({
+        variant: "destructive",
+        title: "Something went wrong",
+        description: "Could not save the expense. Please try again.",
+      });
+    }
+  };
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <FormField
+                control={form.control}
+                name="category"
+                render={({ field }) => (
+                <FormItem>
+                    <FormLabel>Category</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                        <SelectTrigger>
+                        <SelectValue placeholder="Select an expense category" />
+                        </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                        {expenseCategories.map(cat => (
+                            <SelectItem key={cat} value={cat} className="capitalize">{cat}</SelectItem>
+                        ))}
+                    </SelectContent>
+                    </Select>
+                    <FormMessage />
+                </FormItem>
+                )}
+            />
+            <FormField
+                control={form.control}
+                name="amount"
+                render={({ field }) => (
+                <FormItem>
+                    <FormLabel>Amount</FormLabel>
+                    <FormControl>
+                    <Input type="number" placeholder="0.00" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                </FormItem>
+                )}
+            />
+        </div>
+
+        <FormField
+            control={form.control}
+            name="description"
+            render={({ field }) => (
+            <FormItem>
+                <FormLabel>Description</FormLabel>
+                <FormControl>
+                <Input placeholder="e.g., Replacement tires for Truck A" {...field} />
+                </FormControl>
+                <FormMessage />
+            </FormItem>
+            )}
+        />
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+             <FormField
+                control={form.control}
+                name="dateIncurred"
+                render={({ field }) => (
+                <FormItem className="flex flex-col">
+                    <FormLabel>Date Incurred</FormLabel>
+                    <Popover>
+                    <PopoverTrigger asChild>
+                        <FormControl>
+                        <Button
+                            variant={"outline"}
+                            className={cn(
+                            "w-full pl-3 text-left font-normal",
+                            !field.value && "text-muted-foreground"
+                            )}
+                        >
+                            {field.value ? (
+                            format(field.value, "PPP")
+                            ) : (
+                            <span>Pick a date</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                        </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={field.onChange}
+                        disabled={(date) =>
+                            date > new Date() || date < new Date("1900-01-01")
+                        }
+                        initialFocus
+                        />
+                    </PopoverContent>
+                    </Popover>
+                    <FormMessage />
+                </FormItem>
+                )}
+            />
+            <FormField
+                control={form.control}
+                name="paidBy"
+                render={({ field }) => (
+                <FormItem>
+                    <FormLabel>Payment Method</FormLabel>
+                     <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                        <SelectTrigger>
+                        <SelectValue placeholder="Select a payment method" />
+                        </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                        {paymentMethods.map(method => (
+                            <SelectItem key={method} value={method} className="capitalize">{method}</SelectItem>
+                        ))}
+                    </SelectContent>
+                    </Select>
+                    <FormMessage />
+                </FormItem>
+                )}
+            />
+        </div>
+        
+        <FormField
+            control={form.control}
+            name="notes"
+            render={({ field }) => (
+            <FormItem>
+                <FormLabel>Notes (Optional)</FormLabel>
+                <FormControl>
+                <Textarea placeholder="Any additional notes about this expense..." {...field} />
+                </FormControl>
+                <FormMessage />
+            </FormItem>
+            )}
+        />
+
+        <div className="flex justify-end pt-4">
+            <Button type="submit" disabled={form.formState.isSubmitting}>
+                {form.formState.isSubmitting ? 'Saving...' : 'Save Expense'}
+            </Button>
+        </div>
+      </form>
+    </Form>
+  );
+}
+
