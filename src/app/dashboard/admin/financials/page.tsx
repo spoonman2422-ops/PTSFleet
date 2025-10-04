@@ -4,11 +4,11 @@
 import { useMemo, useState } from 'react';
 import { useCollection } from '@/firebase';
 import type { Booking, Invoice, Expense } from '@/lib/types';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { addDays, isBefore, isAfter, parseISO, differenceInDays, startOfWeek, startOfMonth, startOfYear, format } from 'date-fns';
-import { TrendingUp, AlertTriangle, CalendarCheck2, Briefcase, Wallet } from 'lucide-react';
+import { TrendingUp, AlertTriangle, CalendarCheck2, Briefcase, Wallet, CheckCircle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
@@ -124,10 +124,112 @@ export default function FinancialsPage() {
         <h1 className="text-3xl font-bold tracking-tight">Financial Overview</h1>
         <p className="text-muted-foreground">Monitor your collections, outstanding payments, and profitability.</p>
       </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+                <CalendarCheck2 className="h-5 w-5 text-blue-500" />
+                <span>Upcoming Collections (Next 7 Days)</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? <Skeleton className="h-40 w-full" /> : upcomingCollections.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Booking</TableHead>
+                    <TableHead>Client</TableHead>
+                    <TableHead className="text-right">Amount</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {upcomingCollections.map(booking => (
+                    <TableRow key={booking.id}>
+                      <TableCell>
+                        <div className="font-medium">#{booking.id?.substring(0,4)}</div>
+                        <div className="text-xs text-muted-foreground">{format(parseISO(booking.collectionDate), 'PP')}</div>
+                      </TableCell>
+                      <TableCell>{booking.clientId}</TableCell>
+                      <TableCell className="text-right">₱{booking.bookingRate.toLocaleString()}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : <p className="text-sm text-muted-foreground text-center py-10">No upcoming collections in the next 7 days.</p>}
+          </CardContent>
+        </Card>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+                <AlertTriangle className="h-5 w-5 text-red-500" />
+                <span>Outstanding Payments</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+             {isLoading ? <Skeleton className="h-40 w-full" /> : outstandingPayments.length > 0 ? (
+                 <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Invoice</TableHead>
+                            <TableHead>Client</TableHead>
+                            <TableHead className="text-right">Days Overdue</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {outstandingPayments.map(({ invoice, booking }) => (
+                            <TableRow key={invoice.id}>
+                                <TableCell>
+                                    <div className="font-medium">#{invoice.id.substring(0, 4)}</div>
+                                    <div className="text-xs text-muted-foreground">₱{invoice.amount.toLocaleString()}</div>
+                                </TableCell>
+                                <TableCell>{booking?.clientId || invoice.clientId}</TableCell>
+                                <TableCell className="text-right text-red-600 font-medium">
+                                    {differenceInDays(now, parseISO(invoice.dueDate))} days
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                 </Table>
+             ) : <p className="text-sm text-muted-foreground text-center py-10">No outstanding payments. Good job!</p>}
+          </CardContent>
+        </Card>
+
+        <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                    <CheckCircle className="h-5 w-5 text-green-500"/>
+                    <span>Completed Collections</span>
+                </CardTitle>
+                <CardDescription>Recently paid invoices.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                {isLoading ? <Skeleton className="h-40 w-full" /> : completedCollections.length > 0 ? (
+                    <div className="space-y-4">
+                        {completedCollections.slice(0, 5).map(({ invoice, booking }) => (
+                            <div key={invoice.id} className="flex justify-between items-center">
+                                <div>
+                                    <p className="font-medium">#{invoice.id.substring(0, 4)}</p>
+                                    <p className="text-sm text-muted-foreground">{booking?.clientId || invoice.clientId}</p>
+                                </div>
+                                <div className="text-right">
+                                    <p className="font-semibold text-green-600">+₱{invoice.amount.toLocaleString()}</p>
+                                    <p className="text-xs text-muted-foreground">
+                                        {invoice.createdAt ? format(invoice.createdAt.toDate(), 'PP') : ''}
+                                    </p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : <p className="text-sm text-muted-foreground text-center py-10">No completed collections yet.</p>}
+            </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         
-        <Card className="xl:col-span-2">
+        <Card>
             <CardHeader>
                 <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
                     <CardTitle className="flex items-center gap-2 text-lg">
@@ -149,32 +251,34 @@ export default function FinancialsPage() {
             </CardHeader>
             <CardContent>
                 {isLoading ? <Skeleton className="h-40 w-full" /> : profitTrackerData.length > 0 ? (
-                <Table>
-                    <TableHeader>
-                    <TableRow>
-                        <TableHead>Booking</TableHead>
-                        <TableHead>Client</TableHead>
-                        <TableHead>Date</TableHead>
-                        <TableHead className="text-right">Profit</TableHead>
-                    </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                    {profitTrackerData.map(booking => (
-                        <TableRow key={booking.id}>
-                        <TableCell>
-                            <div className="font-medium">#{booking.id?.substring(0, 4)}</div>
-                        </TableCell>
-                        <TableCell>{booking.clientId}</TableCell>
-                        <TableCell>{format(parseISO(booking.dueDate), 'PP')}</TableCell>
-                        <TableCell className="text-right font-medium">
-                            <span className={booking.profit >= 0 ? 'text-green-600' : 'text-red-600'}>
-                                ₱{booking.profit.toLocaleString()}
-                            </span>
-                        </TableCell>
+                <div className="max-h-96 overflow-y-auto">
+                    <Table>
+                        <TableHeader>
+                        <TableRow>
+                            <TableHead>Booking</TableHead>
+                            <TableHead>Client</TableHead>
+                            <TableHead>Date</TableHead>
+                            <TableHead className="text-right">Profit</TableHead>
                         </TableRow>
-                    ))}
-                    </TableBody>
-                </Table>
+                        </TableHeader>
+                        <TableBody>
+                        {profitTrackerData.map(booking => (
+                            <TableRow key={booking.id}>
+                            <TableCell>
+                                <div className="font-medium">#{booking.id?.substring(0, 4)}</div>
+                            </TableCell>
+                            <TableCell>{booking.clientId}</TableCell>
+                            <TableCell>{format(parseISO(booking.dueDate), 'PP')}</TableCell>
+                            <TableCell className="text-right font-medium">
+                                <span className={booking.profit >= 0 ? 'text-green-600' : 'text-red-600'}>
+                                    ₱{booking.profit.toLocaleString()}
+                                </span>
+                            </TableCell>
+                            </TableRow>
+                        ))}
+                        </TableBody>
+                    </Table>
+                </div>
              ) : <p className="text-sm text-muted-foreground text-center py-10">No delivered bookings to analyze for this period.</p>}
           </CardContent>
         </Card>
