@@ -43,9 +43,9 @@ export function DashboardSidebar() {
 
   return (
     <Sidebar collapsible="icon" side="left" variant="sidebar">
-      <SidebarHeader className="h-16 justify-center text-primary-foreground bg-primary flex items-center">
-        <AppLogo className="w-8 h-8 mr-2" stroke="white"/>
-        <span className="text-lg font-semibold group-data-[collapsible=icon]:hidden">
+      <SidebarHeader className="h-16 justify-center bg-primary flex items-center">
+        <AppLogo width={32} height={32} className="mr-2" />
+        <span className="text-lg font-semibold text-primary-foreground group-data-[collapsible=icon]:hidden">
           PTSFleet
         </span>
       </SidebarHeader>

@@ -8,7 +8,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         <Card className="shadow-2xl">
           <CardHeader className="items-center text-center">
-            <AppLogo className="w-20 h-20 mb-2 text-primary" />
+            <AppLogo className="mb-2" width={80} height={80} />
             <CardTitle className="text-3xl font-bold">PTSFleetSystem</CardTitle>
             <CardDescription>Professional Transport Solutions</CardDescription>
           </CardHeader>

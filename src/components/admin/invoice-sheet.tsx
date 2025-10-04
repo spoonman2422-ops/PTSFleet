@@ -64,7 +64,7 @@ export function InvoiceSheet({ isOpen, onOpenChange, invoice, booking, client }:
           <SheetHeader className="p-6">
             <div className="flex justify-between items-start">
               <div>
-                <AppLogo className="w-16 h-16 text-primary" />
+                <AppLogo width={64} height={64} />
                 <SheetTitle className="text-3xl font-bold mt-4">Invoice</SheetTitle>
                 <SheetDescription>Invoice # {invoice.id.substring(0, 7).toUpperCase()}</SheetDescription>
               </div>
