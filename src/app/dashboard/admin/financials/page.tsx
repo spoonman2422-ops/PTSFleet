@@ -220,27 +220,27 @@ export default function FinancialsPage() {
 
         {/* Profit Tracker */}
         <Card>
-          <CardHeader>
-             <div className="flex justify-between items-start">
-                <CardTitle className="flex items-center gap-2 text-lg">
-                <TrendingUp className="h-5 w-5 text-green-500" />
-                <span>Profit/Margin Tracker</span>
-                </CardTitle>
-                 <Select value={profitFilter} onValueChange={(value) => setProfitFilter(value as ProfitFilter)}>
-                    <SelectTrigger className="w-[120px]">
-                        <SelectValue placeholder="Filter" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="Overall">Overall</SelectItem>
-                        <SelectItem value="Annual">Annual</SelectItem>
-                        <SelectItem value="Monthly">Monthly</SelectItem>
-                        <SelectItem value="Weekly">Weekly</SelectItem>
-                    </SelectContent>
-                </Select>
-            </div>
-          </CardHeader>
-          <CardContent>
-             {isLoading ? <Skeleton className="h-40 w-full" /> : profitTrackerData.length > 0 ? (
+            <CardHeader>
+                <div className="flex flex-col gap-4">
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                        <TrendingUp className="h-5 w-5 text-green-500" />
+                        <span>Profit/Margin Tracker</span>
+                    </CardTitle>
+                    <Select value={profitFilter} onValueChange={(value) => setProfitFilter(value as ProfitFilter)}>
+                        <SelectTrigger className="w-[180px]">
+                            <SelectValue placeholder="Filter by period" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="Overall">Overall</SelectItem>
+                            <SelectItem value="Annual">This Year</SelectItem>
+                            <SelectItem value="Monthly">This Month</SelectItem>
+                            <SelectItem value="Weekly">This Week</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+            </CardHeader>
+            <CardContent>
+                {isLoading ? <Skeleton className="h-40 w-full" /> : profitTrackerData.length > 0 ? (
                 <Table>
                     <TableHeader>
                     <TableRow>
@@ -271,9 +271,3 @@ export default function FinancialsPage() {
     </div>
   );
 }
-
-
-    
-
-
-    
