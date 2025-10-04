@@ -12,6 +12,9 @@ import {
   useReactTable,
   type ColumnFiltersState,
   type SortingState,
+  type VisibilityState,
+  getFacetedRowModel,
+  getFacetedUniqueValues,
 } from "@tanstack/react-table"
 
 import {
@@ -38,6 +41,9 @@ type ExpenseTableProps = {
 export function ExpenseTable({ data, users, isLoading }: ExpenseTableProps) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
+  const [globalFilter, setGlobalFilter] = React.useState("")
+  const [columnVisibility, setColumnVisibility] =
+    React.useState<VisibilityState>({})
 
   const columns: ColumnDef<Expense>[] = React.useMemo(() => [
     {
@@ -80,11 +86,11 @@ export function ExpenseTable({ data, users, isLoading }: ExpenseTableProps) {
         const user = users.find(u => u.id === userId);
         return <span>{user?.name || "Unknown"}</span>;
       },
-      filterFn: (row, id, value) => {
-        const userId = row.getValue(id) as string;
+      accessorFn: (row) => {
+        const userId = row.addedBy;
         const user = users.find(u => u.id === userId);
-        return user ? user.name.toLowerCase().includes(String(value).toLowerCase()) : false;
-      },
+        return user?.name || "Unknown";
+      }
     },
   ], [users]);
 
@@ -96,10 +102,16 @@ export function ExpenseTable({ data, users, isLoading }: ExpenseTableProps) {
     onSortingChange: setSorting,
     getSortedRowModel: getSortedRowModel(),
     onColumnFiltersChange: setColumnFilters,
+    onGlobalFilterChange: setGlobalFilter,
     getFilteredRowModel: getFilteredRowModel(),
+    getFacetedRowModel: getFacetedRowModel(),
+    getFacetedUniqueValues: getFacetedUniqueValues(),
+    onColumnVisibilityChange: setColumnVisibility,
     state: {
       sorting,
       columnFilters,
+      globalFilter,
+      columnVisibility,
     },
   })
 
@@ -116,10 +128,10 @@ export function ExpenseTable({ data, users, isLoading }: ExpenseTableProps) {
     <div>
       <div className="flex items-center py-4">
         <Input
-          placeholder="Filter descriptions..."
-          value={(table.getColumn("description")?.getFilterValue() as string) ?? ""}
+          placeholder="Search expenses..."
+          value={globalFilter ?? ''}
           onChange={(event) =>
-            table.getColumn("description")?.setFilterValue(event.target.value)
+            setGlobalFilter(event.target.value)
           }
           className="max-w-sm"
         />
