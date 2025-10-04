@@ -14,6 +14,7 @@ import { addDoc, collection, serverTimestamp, doc, setDoc, updateDoc } from 'fir
 import { useUser } from '@/context/user-context';
 import { vehicles } from '@/lib/data';
 import { format } from 'date-fns';
+import { Input } from '@/components/ui/input';
 
 export default function AdminBookingsPage() {
   const firestore = useFirestore();
@@ -24,6 +25,7 @@ export default function AdminBookingsPage() {
   const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
   const [filterStatus, setFilterStatus] = useState<BookingStatus | 'All'>('All');
   const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const { user } = useUser();
 
   const { toast } = useToast();
@@ -165,9 +167,25 @@ export default function AdminBookingsPage() {
   }, [bookings]);
 
   const filteredBookings = useMemo(() => {
-    if (filterStatus === 'All') return sortedBookings;
-    return sortedBookings.filter(b => b.status === filterStatus);
-  }, [sortedBookings, filterStatus]);
+    let filtered = sortedBookings;
+    if (filterStatus !== 'All') {
+      filtered = filtered.filter(b => b.status === filterStatus);
+    }
+    if (searchQuery) {
+        const lowercasedQuery = searchQuery.toLowerCase();
+        filtered = filtered.filter(booking => {
+            const driver = users?.find(u => u.id === booking.driverId);
+            return (
+                booking.id?.substring(0, 4).toLowerCase().includes(lowercasedQuery) ||
+                booking.clientId.toLowerCase().includes(lowercasedQuery) ||
+                (driver?.name.toLowerCase().includes(lowercasedQuery) ?? false) ||
+                booking.pickupLocation.toLowerCase().includes(lowercasedQuery) ||
+                booking.dropoffLocation.toLowerCase().includes(lowercasedQuery)
+            );
+        });
+    }
+    return filtered;
+  }, [sortedBookings, filterStatus, searchQuery, users]);
   
   const handleRowClick = (bookingId: string) => {
     setSelectedBookingId(bookingId);
@@ -200,6 +218,8 @@ export default function AdminBookingsPage() {
           onRowClick={handleRowClick}
           selectedBookingId={selectedBookingId}
           users={users || []}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
         />
       </div>
       

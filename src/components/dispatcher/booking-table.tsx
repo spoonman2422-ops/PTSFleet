@@ -22,6 +22,7 @@ import { format } from 'date-fns';
 import { BookingTableActions } from './booking-table-actions';
 import { Package, Truck, CheckCircle2, XCircle, Clock } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
+import { Input } from '../ui/input';
 
 type BookingTableProps = {
   bookings: Booking[];
@@ -33,6 +34,8 @@ type BookingTableProps = {
   onRowClick: (bookingId: string) => void;
   selectedBookingId: string | null;
   users: User[];
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
 };
 
 const statusConfig: Record<BookingStatus, { variant: 'secondary' | 'default' | 'destructive' | 'outline', icon: React.ElementType, className: string }> = {
@@ -45,10 +48,10 @@ const statusConfig: Record<BookingStatus, { variant: 'secondary' | 'default' | '
 
 const bookingStatuses: (BookingStatus | 'All')[] = ['All', 'pending', 'En Route', 'Pending Verification', 'Delivered', 'cancelled'];
 
-export function BookingTable({ bookings, isLoading, onEdit, onUpdateStatus, filterStatus, setFilterStatus, onRowClick, selectedBookingId, users }: BookingTableProps) {
+export function BookingTable({ bookings, isLoading, onEdit, onUpdateStatus, filterStatus, setFilterStatus, onRowClick, selectedBookingId, users, searchQuery, setSearchQuery }: BookingTableProps) {
   return (
     <div className="border rounded-lg bg-card text-card-foreground shadow-sm flex-1 flex flex-col">
-        <div className="p-4 border-b">
+        <div className="p-4 border-b flex flex-col sm:flex-row gap-4 justify-between sm:items-center">
             <Tabs value={filterStatus} onValueChange={(value) => setFilterStatus(value as BookingStatus | 'All')}>
                 <TabsList className="flex flex-wrap h-auto justify-start">
                     {bookingStatuses.map(status => (
@@ -56,6 +59,12 @@ export function BookingTable({ bookings, isLoading, onEdit, onUpdateStatus, filt
                     ))}
                 </TabsList>
             </Tabs>
+             <Input
+                placeholder="Search bookings..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="max-w-sm"
+            />
         </div>
       <div className="overflow-auto flex-1">
       <Table>
@@ -132,7 +141,7 @@ export function BookingTable({ bookings, isLoading, onEdit, onUpdateStatus, filt
           ) : (
             <TableRow>
               <TableCell colSpan={6} className="h-24 text-center">
-                No bookings found for this filter.
+                No bookings found.
               </TableCell>
             </TableRow>
           )}
