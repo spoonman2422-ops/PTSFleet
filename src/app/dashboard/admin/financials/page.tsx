@@ -7,7 +7,7 @@ import type { Booking, Invoice } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { addDays, isBefore, isAfter, parseISO, differenceInDays, startOfWeek, startOfMonth, startOfYear } from 'date-fns';
+import { addDays, isBefore, isAfter, parseISO, differenceInDays, startOfWeek, startOfMonth, startOfYear, format } from 'date-fns';
 import { TrendingUp, AlertTriangle, CalendarCheck2, Briefcase } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -30,6 +30,22 @@ export default function FinancialsPage() {
       .filter(b => b.collectionDate && isAfter(parseISO(b.collectionDate), now) && isBefore(parseISO(b.collectionDate), nextSevenDays))
       .sort((a, b) => parseISO(a.collectionDate).getTime() - parseISO(b.collectionDate).getTime());
   }, [bookings, now, nextSevenDays]);
+  
+  const completedCollections = useMemo(() => {
+    if (!invoices || !bookings) return [];
+    return invoices
+      .filter(inv => inv.status === 'Paid')
+      .map(inv => {
+        const booking = bookings.find(b => b.id === inv.bookingId);
+        return { invoice: inv, booking };
+      })
+      .sort((a, b) => {
+        const dateA = a.invoice.createdAt ? a.invoice.createdAt.toMillis() : 0;
+        const dateB = b.invoice.createdAt ? b.invoice.createdAt.toMillis() : 0;
+        return dateB - dateA;
+      });
+  }, [invoices, bookings]);
+
 
   const outstandingPayments = useMemo(() => {
     if (!invoices || !bookings) return [];
@@ -87,10 +103,10 @@ export default function FinancialsPage() {
         <p className="text-muted-foreground">Monitor your collections, outstanding payments, and profitability.</p>
       </div>
 
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
         
         {/* Upcoming Collections */}
-        <Card className="lg:col-span-1">
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
               <CalendarCheck2 className="h-5 w-5 text-blue-500" />
@@ -123,9 +139,46 @@ export default function FinancialsPage() {
             ) : <p className="text-sm text-muted-foreground text-center py-10">No collections in the next 7 days.</p>}
           </CardContent>
         </Card>
+        
+        {/* Completed Collections */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <Briefcase className="h-5 w-5 text-green-500" />
+              <span>Completed Collections</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? <Skeleton className="h-40 w-full" /> : completedCollections.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Invoice</TableHead>
+                    <TableHead>Client</TableHead>
+                    <TableHead className="text-right">Amount</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {completedCollections.map(({ invoice, booking }) => (
+                    <TableRow key={invoice.id}>
+                       <TableCell>
+                        <div className="font-medium">#{invoice.id?.substring(0, 4)}</div>
+                        <div className="text-xs text-muted-foreground">
+                            {invoice.createdAt ? format(invoice.createdAt.toDate(), 'PP') : ''}
+                        </div>
+                      </TableCell>
+                      <TableCell>{booking?.clientId || invoice.clientId}</TableCell>
+                      <TableCell className="text-right font-medium">₱{invoice.amount.toLocaleString()}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : <p className="text-sm text-muted-foreground text-center py-10">No completed collections yet.</p>}
+          </CardContent>
+        </Card>
 
         {/* Outstanding Payments */}
-        <Card className="lg:col-span-1">
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
               <AlertTriangle className="h-5 w-5 text-red-500" />
@@ -160,7 +213,7 @@ export default function FinancialsPage() {
         </Card>
 
         {/* Profit Tracker */}
-        <Card className="lg:col-span-1">
+        <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
               <TrendingUp className="h-5 w-5 text-green-500" />
@@ -208,3 +261,5 @@ export default function FinancialsPage() {
   );
 }
 
+
+    
