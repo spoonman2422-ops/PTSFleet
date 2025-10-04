@@ -1,19 +1,25 @@
 
 "use client";
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useCollection } from '@/firebase';
 import type { Booking, Invoice } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { addDays, isBefore, isAfter, parseISO, differenceInDays } from 'date-fns';
+import { addDays, isBefore, isAfter, parseISO, differenceInDays, startOfWeek, startOfMonth, startOfYear } from 'date-fns';
 import { TrendingUp, AlertTriangle, CalendarCheck2, Briefcase } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
+
+type ProfitFilter = 'Overall' | 'Annual' | 'Monthly' | 'Weekly';
 
 export default function FinancialsPage() {
   const { data: bookings, isLoading: isLoadingBookings } = useCollection<Booking>('bookings');
   const { data: invoices, isLoading: isLoadingInvoices } = useCollection<Invoice>('invoices');
+  const [profitFilter, setProfitFilter] = useState<ProfitFilter>('Overall');
+
 
   const now = new Date();
   const nextSevenDays = addDays(now, 7);
@@ -41,16 +47,36 @@ export default function FinancialsPage() {
 
   const profitTrackerData = useMemo(() => {
     if (!bookings) return [];
-    return bookings
-      .filter(b => b.status === 'Delivered')
+    
+    const deliveredBookings = bookings
+        .filter(b => b.status === 'Delivered' && b.dueDate);
+
+    const getStartDate = () => {
+        const today = new Date();
+        switch(profitFilter) {
+            case 'Weekly':
+                return startOfWeek(today);
+            case 'Monthly':
+                return startOfMonth(today);
+            case 'Annual':
+                return startOfYear(today);
+            case 'Overall':
+            default:
+                return new Date(0); // The beginning of time
+        }
+    };
+    
+    const startDate = getStartDate();
+
+    return deliveredBookings
+      .filter(booking => isAfter(parseISO(booking.dueDate), startDate))
       .map(booking => {
         const totalExpenses = (booking.expectedExpenses.tollFee || 0) + (booking.expectedExpenses.fuel || 0) + (booking.expectedExpenses.others || 0);
         const profit = booking.bookingRate - (booking.driverRate + totalExpenses);
         return { ...booking, profit };
       })
-      .sort((a, b) => parseISO(b.dueDate).getTime() - parseISO(a.dueDate).getTime())
-      .slice(0, 10); // Show top 10 most recently completed
-  }, [bookings]);
+      .sort((a, b) => parseISO(b.dueDate).getTime() - parseISO(a.dueDate).getTime());
+  }, [bookings, profitFilter]);
   
   const isLoading = isLoadingBookings || isLoadingInvoices;
 
@@ -138,8 +164,16 @@ export default function FinancialsPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
               <TrendingUp className="h-5 w-5 text-green-500" />
-              <span>Recent Profit Tracker</span>
+              <span>Profit/Margin Tracker</span>
             </CardTitle>
+             <Tabs value={profitFilter} onValueChange={(value) => setProfitFilter(value as ProfitFilter)}>
+                <TabsList className="grid w-full grid-cols-4 h-auto">
+                    <TabsTrigger value="Overall">Overall</TabsTrigger>
+                    <TabsTrigger value="Annual">Annual</TabsTrigger>
+                    <TabsTrigger value="Monthly">Monthly</TabsTrigger>
+                    <TabsTrigger value="Weekly">Weekly</TabsTrigger>
+                </TabsList>
+            </Tabs>
           </CardHeader>
           <CardContent>
              {isLoading ? <Skeleton className="h-40 w-full" /> : profitTrackerData.length > 0 ? (
@@ -166,7 +200,7 @@ export default function FinancialsPage() {
                     ))}
                     </TableBody>
                 </Table>
-             ) : <p className="text-sm text-muted-foreground text-center py-10">No delivered bookings to analyze.</p>}
+             ) : <p className="text-sm text-muted-foreground text-center py-10">No delivered bookings to analyze for this period.</p>}
           </CardContent>
         </Card>
       </div>
