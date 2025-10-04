@@ -87,6 +87,45 @@
         "proofOfBillingUrl": { "type": "string", "format": "uri" }
       },
       "required": ["clientId", "bookingId", "amount", "dueDate", "status"]
+    },
+    "Expense": {
+      "title": "Expense",
+      "description": "A record of a business expense.",
+      "type": "object",
+      "properties": {
+        "category": {
+          "type": "string",
+          "description": "The category of the expense.",
+          "enum": ["fuel", "maintenance", "toll", "office", "staff", "permits"]
+        },
+        "description": {
+          "type": "string",
+          "description": "A detailed description of the expense."
+        },
+        "amount": {
+          "type": "number",
+          "description": "The amount of the expense."
+        },
+        "dateIncurred": {
+          "type": "string",
+          "format": "date",
+          "description": "The date the expense was incurred."
+        },
+        "paidBy": {
+          "type": "string",
+          "description": "The payment method used for the expense.",
+          "enum": ["cash", "bank", "credit"]
+        },
+        "addedBy": {
+          "type": "string",
+          "description": "The ID of the user who logged this expense."
+        },
+        "notes": {
+          "type": "string",
+          "description": "Optional notes about the expense."
+        }
+      },
+      "required": ["category", "description", "amount", "dateIncurred", "paidBy", "addedBy"]
     }
   },
   "auth": {
@@ -116,6 +155,13 @@
         "$ref": "#/entities/Invoice"
       },
       "description": "A collection of all invoices."
+    },
+    "/expenses/{expenseId}": {
+      "schema": {
+        "$ref": "#/entities/Expense"
+      },
+      "description": "A collection of all business expenses."
     }
   }
 }
+
