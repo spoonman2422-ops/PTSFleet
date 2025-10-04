@@ -11,7 +11,6 @@ export function AppLogo(props: SVGProps<SVGSVGElement> & { width?: number, heigh
       alt="Platinum Trucking Services Logo"
       width={width}
       height={height}
-      priority
     />
   );
 }
