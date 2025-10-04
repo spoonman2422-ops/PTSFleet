@@ -7,7 +7,7 @@ export function AppLogo(props: SVGProps<SVGSVGElement> & { width?: number, heigh
   return (
     <Image
       {...rest}
-      src="https://i.ibb.co/L6V2LSp/platinum-logo-1.png"
+      src="/logo.png"
       alt="Platinum Trucking Services Logo"
       width={width}
       height={height}
