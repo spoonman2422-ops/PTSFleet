@@ -55,7 +55,8 @@ export function InvoiceSheet({ isOpen, onOpenChange, invoice, booking, client }:
     return null;
   }
 
-  const invoiceCreationDate = invoice.createdAt ? invoice.createdAt.toDate() : new Date();
+  const invoiceCreationDate = invoice.dateIssued ? parseISO(invoice.dateIssued) : new Date();
+  const totalAmount = invoice.grossSales; // For display purposes, the total is the gross sales. Taxes are itemized.
 
   return (
     <Sheet open={isOpen} onOpenChange={onOpenChange}>
@@ -116,21 +117,33 @@ export function InvoiceSheet({ isOpen, onOpenChange, invoice, booking, client }:
                     </p>
                   </td>
                   <td className="py-4 text-right">
-                    {new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(invoice.amount)}
+                    {new Intl.NumberFormat('en-ph', { style: 'currency', currency: 'PHP' }).format(invoice.grossSales)}
                   </td>
                 </tr>
               </tbody>
             </table>
             <div className="flex justify-end mt-8">
-              <div className="w-full max-w-xs">
+              <div className="w-full max-w-sm">
                 <div className="flex justify-between">
-                  <span className="font-semibold">Subtotal</span>
-                  <span>{new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(invoice.amount)}</span>
+                  <span className="text-muted-foreground">Subtotal</span>
+                  <span>{new Intl.NumberFormat('en-ph', { style: 'currency', currency: 'PHP' }).format(invoice.grossSales)}</span>
                 </div>
+                 {invoice.vatRegistered && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">VAT ({invoice.vatRate * 100}%)</span>
+                    <span>{new Intl.NumberFormat('en-ph', { style: 'currency', currency: 'PHP' }).format(invoice.vatAmount)}</span>
+                  </div>
+                )}
+                {!invoice.vatRegistered && invoice.percentageTaxAmount > 0 && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Percentage Tax ({invoice.percentageTaxRate * 100}%)</span>
+                    <span>{new Intl.NumberFormat('en-ph', { style: 'currency', currency: 'PHP' }).format(invoice.percentageTaxAmount)}</span>
+                  </div>
+                )}
                 <Separator className="my-2" />
                 <div className="flex justify-between font-bold text-lg">
                   <span>Total</span>
-                  <span>{new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(invoice.amount)}</span>
+                  <span>{new Intl.NumberFormat('en-ph', { style: 'currency', currency: 'PHP' }).format(totalAmount)}</span>
                 </div>
               </div>
             </div>

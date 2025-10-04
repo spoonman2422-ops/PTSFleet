@@ -30,6 +30,7 @@ export interface Booking {
   dropoffLocation: string;
   bookingDate: string;
   collectionDate: string;
+  completionDate?: string;
   dueDate: string;
   bookingRate: number;
   driverRate: number;
@@ -46,11 +47,20 @@ export interface Invoice {
     id: string;
     clientId: string;
     bookingId: string;
-    amount: number;
+    grossSales: number;
+    vatRegistered: boolean;
+    vatRate: number;
+    vatAmount: number;
+    percentageTaxRate: number;
+    percentageTaxAmount: number;
+taking    incomeTaxOption: '8_percent_flat' | 'graduated';
+    incomeTaxAmount: number;
+    netRevenue: number;
+    dateIssued: string;
     dueDate: string;
     status: InvoiceStatus;
     proofOfBillingUrl?: string;
-    createdAt: Timestamp;
+    createdAt?: Timestamp;
 }
 
 export interface Message {
@@ -68,10 +78,11 @@ export interface Expense {
   category: "fuel" | "maintenance" | "toll" | "office" | "staff" | "permits" | "vehicle parts" | "pms" | "change oil" | "client representation";
   description: string;
   amount: number;
+  vatIncluded: boolean;
+  vatRate: number;
+  inputVat: number;
   dateIncurred: string;
   paidBy: "cash" | "bank" | "credit";
   addedBy: string;
   notes?: string;
 }
-
-    

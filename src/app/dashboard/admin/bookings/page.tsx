@@ -13,6 +13,7 @@ import { useFirestore, useCollection } from '@/firebase';
 import { addDoc, collection, serverTimestamp, doc, setDoc, updateDoc } from 'firebase/firestore';
 import { useUser } from '@/context/user-context';
 import { vehicles } from '@/lib/data';
+import { format } from 'date-fns';
 
 export default function AdminBookingsPage() {
   const firestore = useFirestore();
@@ -79,7 +80,12 @@ export default function AdminBookingsPage() {
     if (!firestore || !bookings) return;
 
     const bookingRef = doc(firestore, 'bookings', bookingId);
-    await updateDoc(bookingRef, { status });
+    
+    const updateData: { status: BookingStatus; completionDate?: string } = { status };
+    if (status === 'Delivered') {
+      updateData.completionDate = format(new Date(), 'yyyy-MM-dd');
+    }
+    await updateDoc(bookingRef, updateData);
 
     toast({ title: "Status Updated", description: `Booking status changed to ${status}.` });
 
@@ -96,17 +102,54 @@ export default function AdminBookingsPage() {
 
         const booking = bookings.find(b => b.id === bookingId);
         if (booking) {
+            // Simplified tax settings (can be moved to a config file or admin UI later)
+            const vatRegistered = false; // Example: Business is NON-VAT registered
+            const incomeTaxOption = '8_percent_flat'; // Example: Opted for 8% flat rate
+
+            const grossSales = booking.bookingRate;
+            let vatAmount = 0;
+            let percentageTaxAmount = 0;
+            let incomeTaxAmount = 0;
+            let netRevenue = 0;
+
+            if (vatRegistered) {
+                vatAmount = grossSales * 0.12;
+                netRevenue = grossSales; // netRevenue for VAT is the gross sales itself. The VAT is separate.
+            } else {
+                percentageTaxAmount = grossSales * 0.03;
+                netRevenue = grossSales - percentageTaxAmount;
+            }
+
+            if (incomeTaxOption === '8_percent_flat') {
+                incomeTaxAmount = grossSales * 0.08;
+            } else {
+                // Graduated income tax simulation
+                if (grossSales <= 250000) incomeTaxAmount = 0;
+                else if (grossSales <= 400000) incomeTaxAmount = grossSales * 0.15;
+                else if (grossSales <= 8000000) incomeTaxAmount = grossSales * 0.20;
+                else incomeTaxAmount = grossSales * 0.25;
+            }
+
             const invoiceData = {
                 clientId: booking.clientId,
                 bookingId: booking.id,
-                amount: booking.bookingRate,
+                grossSales: grossSales,
+                vatRegistered: vatRegistered,
+                vatRate: 0.12,
+                vatAmount: vatAmount,
+                percentageTaxRate: 0.03,
+                percentageTaxAmount: percentageTaxAmount,
+                incomeTaxOption: incomeTaxOption,
+                incomeTaxAmount: incomeTaxAmount,
+                netRevenue: netRevenue,
+                dateIssued: new Date().toISOString(),
                 dueDate: booking.dueDate,
                 status: 'Unpaid',
             };
             const invoiceRef = await addDoc(collection(firestore, 'invoices'), invoiceData);
             toast({
                 title: "Invoice Created",
-                description: `Invoice #${invoiceRef.id.substring(0,4)} has been automatically created.`
+                description: `Invoice #${invoiceRef.id.substring(0,4)} has been automatically generated with tax computations.`
             });
         }
      }

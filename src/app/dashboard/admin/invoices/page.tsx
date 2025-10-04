@@ -110,7 +110,7 @@ export default function InvoicesPage() {
                                     <TableHead>Invoice #</TableHead>
                                     <TableHead>Client</TableHead>
                                     <TableHead>Due Date</TableHead>
-                                    <TableHead>Amount</TableHead>
+                                    <TableHead>Gross Sales</TableHead>
                                     <TableHead>Status</TableHead>
                                     <TableHead className="text-right">Actions</TableHead>
                                 </TableRow>
@@ -134,7 +134,7 @@ export default function InvoicesPage() {
                                             <TableCell className="font-medium">#{invoice.id.substring(0, 7).toUpperCase()}</TableCell>
                                             <TableCell>{client?.name || invoice.clientId}</TableCell>
                                             <TableCell>{format(parseISO(invoice.dueDate), 'PP')}</TableCell>
-                                            <TableCell>{new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(invoice.amount)}</TableCell>
+                                            <TableCell>{new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(invoice.grossSales)}</TableCell>
                                             <TableCell>
                                                 <Badge variant={statusConfig[invoice.status].variant as any} className={statusConfig[invoice.status].className}>
                                                     {invoice.status}

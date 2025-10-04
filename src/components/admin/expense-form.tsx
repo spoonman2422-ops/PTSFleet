@@ -15,6 +15,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,7 @@ import {
 } from "@/components/ui/select";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import { Checkbox } from "@/components/ui/checkbox";
 import { CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -39,6 +41,7 @@ const expenseSchema = z.object({
   category: z.enum(expenseCategories, { required_error: "Category is required." }),
   description: z.string().min(1, 'Description is required'),
   amount: z.coerce.number().min(0.01, 'Amount must be greater than 0'),
+  vatIncluded: z.boolean().default(false),
   dateIncurred: z.date({
     required_error: "A date is required.",
   }),
@@ -59,6 +62,7 @@ export function ExpenseForm() {
       category: undefined,
       description: "",
       amount: 0,
+      vatIncluded: false,
       dateIncurred: undefined,
       paidBy: undefined,
       notes: "",
@@ -75,11 +79,16 @@ export function ExpenseForm() {
       return;
     }
 
+    const vatRate = 0.12;
+    const inputVat = data.vatIncluded ? data.amount * vatRate : 0;
+
     try {
       await addDoc(collection(firestore, "expenses"), {
         ...data,
         addedBy: user.id,
-        dateIncurred: format(data.dateIncurred, "yyyy-MM-dd"), 
+        dateIncurred: format(data.dateIncurred, "yyyy-MM-dd"),
+        vatRate,
+        inputVat,
       });
       toast({
         title: "Expense Saved",
@@ -89,6 +98,7 @@ export function ExpenseForm() {
         category: undefined,
         description: "",
         amount: 0,
+        vatIncluded: false,
         dateIncurred: undefined,
         paidBy: undefined,
         notes: "",
@@ -157,6 +167,29 @@ export function ExpenseForm() {
             </FormItem>
             )}
         />
+        
+        <FormField
+            control={form.control}
+            name="vatIncluded"
+            render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                    <FormControl>
+                        <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                        <FormLabel>
+                        VAT Included
+                        </FormLabel>
+                        <FormDescription>
+                        Select if this expense includes a 12% value-added tax.
+                        </FormDescription>
+                    </div>
+                </FormItem>
+            )}
+            />
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
              <FormField

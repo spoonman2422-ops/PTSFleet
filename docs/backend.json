@@ -46,6 +46,7 @@
         "dropoffLocation": { "type": "string" },
         "bookingDate": { "type": "string", "format": "date" },
         "collectionDate": { "type": "string", "format": "date" },
+        "completionDate": { "type": "string", "format": "date" },
         "dueDate": { "type": "string", "format": "date" },
         "bookingRate": { "type": "number" },
         "driverRate": { "type": "number" },
@@ -76,21 +77,30 @@
     },
     "Invoice": {
       "title": "Invoice",
-      "description": "An invoice for a transport job.",
+      "description": "An invoice for a transport job with tax calculations.",
       "type": "object",
       "properties": {
         "clientId": { "type": "string" },
         "bookingId": { "type": "string" },
-        "amount": { "type": "number" },
+        "grossSales": { "type": "number" },
+        "vatRegistered": { "type": "boolean" },
+        "vatRate": { "type": "number" },
+        "vatAmount": { "type": "number" },
+        "percentageTaxRate": { "type": "number" },
+        "percentageTaxAmount": { "type": "number" },
+        "incomeTaxOption": { "type": "string", "enum": ["8_percent_flat", "graduated"] },
+        "incomeTaxAmount": { "type": "number" },
+        "netRevenue": { "type": "number" },
+        "dateIssued": { "type": "string", "format": "date-time" },
         "dueDate": { "type": "string", "format": "date-time" },
         "status": { "type": "string", "enum": ["Paid", "Unpaid", "Overdue"] },
         "proofOfBillingUrl": { "type": "string", "format": "uri" }
       },
-      "required": ["clientId", "bookingId", "amount", "dueDate", "status"]
+      "required": ["clientId", "bookingId", "grossSales", "dateIssued", "dueDate", "status"]
     },
     "Expense": {
       "title": "Expense",
-      "description": "A record of a business expense.",
+      "description": "A record of a business expense with VAT details.",
       "type": "object",
       "properties": {
         "category": {
@@ -106,6 +116,9 @@
           "type": "number",
           "description": "The amount of the expense."
         },
+        "vatIncluded": { "type": "boolean" },
+        "vatRate": { "type": "number" },
+        "inputVat": { "type": "number" },
         "dateIncurred": {
           "type": "string",
           "format": "date",
