@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { addDays, isBefore, isAfter, parseISO, differenceInDays, startOfWeek, startOfMonth, startOfYear, format } from 'date-fns';
 import { TrendingUp, AlertTriangle, CalendarCheck2, Briefcase } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 
 type ProfitFilter = 'Overall' | 'Annual' | 'Monthly' | 'Weekly';
@@ -221,18 +221,23 @@ export default function FinancialsPage() {
         {/* Profit Tracker */}
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <TrendingUp className="h-5 w-5 text-green-500" />
-              <span>Profit/Margin Tracker</span>
-            </CardTitle>
-             <Tabs value={profitFilter} onValueChange={(value) => setProfitFilter(value as ProfitFilter)}>
-                <TabsList className="grid w-full grid-cols-4 h-auto">
-                    <TabsTrigger value="Overall">Overall</TabsTrigger>
-                    <TabsTrigger value="Annual">Annual</TabsTrigger>
-                    <TabsTrigger value="Monthly">Monthly</TabsTrigger>
-                    <TabsTrigger value="Weekly">Weekly</TabsTrigger>
-                </TabsList>
-            </Tabs>
+             <div className="flex justify-between items-start">
+                <CardTitle className="flex items-center gap-2 text-lg">
+                <TrendingUp className="h-5 w-5 text-green-500" />
+                <span>Profit/Margin Tracker</span>
+                </CardTitle>
+                 <Select value={profitFilter} onValueChange={(value) => setProfitFilter(value as ProfitFilter)}>
+                    <SelectTrigger className="w-[120px]">
+                        <SelectValue placeholder="Filter" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="Overall">Overall</SelectItem>
+                        <SelectItem value="Annual">Annual</SelectItem>
+                        <SelectItem value="Monthly">Monthly</SelectItem>
+                        <SelectItem value="Weekly">Weekly</SelectItem>
+                    </SelectContent>
+                </Select>
+            </div>
           </CardHeader>
           <CardContent>
              {isLoading ? <Skeleton className="h-40 w-full" /> : profitTrackerData.length > 0 ? (
@@ -266,6 +271,9 @@ export default function FinancialsPage() {
     </div>
   );
 }
+
+
+    
 
 
     
