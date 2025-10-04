@@ -16,6 +16,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { doc, updateDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
 
 
 const statusConfig: Record<InvoiceStatus, { variant: 'secondary' | 'default' | 'destructive', className: string }> = {
@@ -35,6 +36,7 @@ export default function InvoicesPage() {
     const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
     const [isSheetOpen, setIsSheetOpen] = useState(false);
     const [filterStatus, setFilterStatus] = useState<InvoiceStatus | 'All'>('All');
+    const [searchQuery, setSearchQuery] = useState('');
 
     const { toast } = useToast();
 
@@ -44,9 +46,23 @@ export default function InvoicesPage() {
     }, [invoices]);
 
     const filteredInvoices = useMemo(() => {
-        if (filterStatus === 'All') return sortedInvoices;
-        return sortedInvoices.filter(i => i.status === filterStatus);
-    }, [sortedInvoices, filterStatus]);
+        let filtered = sortedInvoices;
+        
+        if (filterStatus !== 'All') {
+            filtered = filtered.filter(i => i.status === filterStatus);
+        }
+
+        if (searchQuery) {
+            const lowercasedQuery = searchQuery.toLowerCase();
+            filtered = filtered.filter(invoice => {
+                 const client = users?.find(u => u.id === invoice.clientId);
+                 const clientNameMatch = client?.name.toLowerCase().includes(lowercasedQuery);
+                 const invoiceIdMatch = invoice.id.toLowerCase().includes(lowercasedQuery);
+                 return clientNameMatch || invoiceIdMatch;
+            });
+        }
+        return filtered;
+    }, [sortedInvoices, filterStatus, searchQuery, users]);
     
     const isLoading = isLoadingInvoices || isLoadingUsers || isLoadingBookings;
 
@@ -95,13 +111,21 @@ export default function InvoicesPage() {
                 </div>
                 <Card>
                     <CardHeader>
-                         <Tabs value={filterStatus} onValueChange={(value) => setFilterStatus(value as InvoiceStatus | 'All')}>
-                            <TabsList className="flex flex-wrap h-auto justify-start">
-                                {invoiceStatuses.map(status => (
-                                    <TabsTrigger key={status} value={status} className="capitalize">{status}</TabsTrigger>
-                                ))}
-                            </TabsList>
-                        </Tabs>
+                        <div className="flex flex-col sm:flex-row gap-4 justify-between sm:items-center">
+                            <Tabs value={filterStatus} onValueChange={(value) => setFilterStatus(value as InvoiceStatus | 'All')}>
+                                <TabsList className="flex flex-wrap h-auto justify-start">
+                                    {invoiceStatuses.map(status => (
+                                        <TabsTrigger key={status} value={status} className="capitalize">{status}</TabsTrigger>
+                                    ))}
+                                </TabsList>
+                            </Tabs>
+                             <Input
+                                placeholder="Search by client or invoice #"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="max-w-sm"
+                            />
+                        </div>
                     </CardHeader>
                     <CardContent>
                         <Table>
@@ -172,7 +196,9 @@ export default function InvoicesPage() {
                         </Table>
                          { !isLoading && filteredInvoices.length === 0 && (
                             <div className="text-center py-16">
-                                <p className="text-muted-foreground">No invoices found for this filter.</p>
+                                <p className="text-muted-foreground">
+                                    {searchQuery ? 'No invoices found for your search.' : 'No invoices found for this filter.'}
+                                </p>
                             </div>
                         )}
                     </CardContent>
