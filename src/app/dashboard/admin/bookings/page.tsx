@@ -104,34 +104,45 @@ export default function AdminBookingsPage() {
 
         const booking = bookings.find(b => b.id === bookingId);
         if (booking) {
-            // Simplified tax settings (can be moved to a config file or admin UI later)
-            const vatRegistered = false; // Example: Business is NON-VAT registered
-            const incomeTaxOption = '8_percent_flat'; // Example: Opted for 8% flat rate
+            // --- TAX COMPUTATION LOGIC ---
+            const vatRegistered = false; 
+            const incomeTaxOption = '8_percent_flat'; 
 
             const grossSales = booking.bookingRate;
             let vatAmount = 0;
             let percentageTaxAmount = 0;
             let incomeTaxAmount = 0;
-            let netRevenue = 0;
 
             if (vatRegistered) {
+                // Business is VAT-registered
                 vatAmount = grossSales * 0.12;
-                netRevenue = grossSales; // netRevenue for VAT is the gross sales itself. The VAT is separate.
+                percentageTaxAmount = 0; // Not applicable
             } else {
-                percentageTaxAmount = grossSales * 0.03;
-                netRevenue = grossSales - percentageTaxAmount;
+                // Business is NON-VAT registered
+                vatAmount = 0; // Not applicable
+                // The 3% percentage tax is NOT applicable if the 8% flat income tax is chosen
+                percentageTaxAmount = incomeTaxOption === 'graduated' ? grossSales * 0.03 : 0;
             }
 
             if (incomeTaxOption === '8_percent_flat') {
-                incomeTaxAmount = grossSales * 0.08;
+                // The 8% is on gross sales in excess of 250,000
+                const taxableIncome = Math.max(0, grossSales - 250000);
+                incomeTaxAmount = taxableIncome * 0.08;
             } else {
-                // Graduated income tax simulation
-                if (grossSales <= 250000) incomeTaxAmount = 0;
-                else if (grossSales <= 400000) incomeTaxAmount = grossSales * 0.15;
-                else if (grossSales <= 8000000) incomeTaxAmount = grossSales * 0.20;
-                else incomeTaxAmount = grossSales * 0.25;
+                // Graduated income tax simulation on net taxable income
+                // Note: For a real scenario, this would be `grossSales - totalDeductibleExpenses`
+                const taxableIncome = grossSales; 
+                if (taxableIncome <= 250000) incomeTaxAmount = 0;
+                else if (taxableIncome <= 400000) incomeTaxAmount = (taxableIncome - 250000) * 0.15;
+                else if (taxableIncome <= 800000) incomeTaxAmount = 22500 + (taxableIncome - 400000) * 0.20;
+                else if (taxableIncome <= 2000000) incomeTaxAmount = 102500 + (taxableIncome - 800000) * 0.25;
+                else if (taxableIncome <= 8000000) incomeTaxAmount = 402500 + (taxableIncome - 2000000) * 0.30;
+                else incomeTaxAmount = 2202500 + (taxableIncome - 8000000) * 0.35;
             }
 
+            const totalTaxes = vatAmount + percentageTaxAmount + incomeTaxAmount;
+            const netRevenue = grossSales - totalTaxes;
+            
             const invoiceData = {
                 clientId: booking.clientId,
                 bookingId: booking.id,
@@ -176,11 +187,11 @@ export default function AdminBookingsPage() {
         filtered = filtered.filter(booking => {
             const driver = users?.find(u => u.id === booking.driverId);
             return (
-                booking.id?.substring(0, 4).toLowerCase().includes(lowercasedQuery) ||
-                booking.clientId?.toLowerCase().includes(lowercasedQuery) ||
-                driver?.name?.toLowerCase().includes(lowercasedQuery) ||
-                booking.pickupLocation?.toLowerCase().includes(lowercasedQuery) ||
-                booking.dropoffLocation?.toLowerCase().includes(lowercasedQuery)
+                (booking.id && booking.id.substring(0, 4).toLowerCase().includes(lowercasedQuery)) ||
+                (booking.clientId && booking.clientId.toLowerCase().includes(lowercasedQuery)) ||
+                (driver && driver.name && driver.name.toLowerCase().includes(lowercasedQuery)) ||
+                (booking.pickupLocation && booking.pickupLocation.toLowerCase().includes(lowercasedQuery)) ||
+                (booking.dropoffLocation && booking.dropoffLocation.toLowerCase().includes(lowercasedQuery))
             );
         });
     }
