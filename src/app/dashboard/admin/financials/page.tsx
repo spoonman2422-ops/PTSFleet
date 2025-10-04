@@ -78,6 +78,7 @@ export default function FinancialsPage() {
     if (!invoices || !bookings) return [];
     return invoices
       .filter(inv => {
+        if (!inv.dueDate) return false;
         const isPastDue = isBefore(parseISO(inv.dueDate), now);
         return isPastDue && (inv.status === 'Unpaid' || inv.status === 'Overdue');
       })
@@ -98,7 +99,7 @@ export default function FinancialsPage() {
     const startDate = getStartDate(profitFilter);
 
     return deliveredBookings
-      .filter(booking => isAfter(parseISO(booking.dueDate), startDate))
+      .filter(booking => booking.dueDate && isAfter(parseISO(booking.dueDate), startDate))
       .map(booking => {
         const totalExpenses = (booking.expectedExpenses.tollFee || 0) + (booking.expectedExpenses.fuel || 0) + (booking.expectedExpenses.others || 0);
         const profit = booking.bookingRate - (booking.driverRate + totalExpenses);
@@ -111,7 +112,7 @@ export default function FinancialsPage() {
     if (!expenses) return [];
     const startDate = getStartDate(expenseFilter);
     return expenses
-      .filter(expense => isAfter(parseISO(expense.dateIncurred), startDate))
+      .filter(expense => expense.dateIncurred && isAfter(parseISO(expense.dateIncurred), startDate))
       .sort((a, b) => parseISO(b.dateIncurred).getTime() - parseISO(a.dateIncurred).getTime());
   }, [expenses, expenseFilter]);
 
@@ -121,8 +122,8 @@ export default function FinancialsPage() {
 
   const taxSummaryData = useMemo(() => {
     const startDate = getStartDate(taxFilter);
-    const relevantInvoices = (invoices || []).filter(inv => isAfter(parseISO(inv.dateIssued), startDate));
-    const relevantExpenses = (expenses || []).filter(exp => isAfter(parseISO(exp.dateIncurred), startDate));
+    const relevantInvoices = (invoices || []).filter(inv => inv.dateIssued && isAfter(parseISO(inv.dateIssued), startDate));
+    const relevantExpenses = (expenses || []).filter(exp => exp.dateIncurred && isAfter(parseISO(exp.dateIncurred), startDate));
 
     const outputVat = relevantInvoices
       .filter(inv => inv.vatRegistered)
@@ -428,7 +429,3 @@ export default function FinancialsPage() {
     </div>
   );
 }
-
-    
-
-    
