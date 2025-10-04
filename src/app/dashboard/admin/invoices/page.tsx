@@ -56,8 +56,8 @@ export default function InvoicesPage() {
             const lowercasedQuery = searchQuery.toLowerCase();
             filtered = filtered.filter(invoice => {
                  const client = users?.find(u => u.id === invoice.clientId);
-                 const clientNameMatch = client?.name.toLowerCase().includes(lowercasedQuery);
-                 const invoiceIdMatch = invoice.id.toLowerCase().includes(lowercasedQuery);
+                 const clientNameMatch = client?.name.toLowerCase().includes(lowercasedQuery) ?? invoice.clientId.toLowerCase().includes(lowercasedQuery);
+                 const invoiceIdMatch = invoice.id.substring(0, 7).toLowerCase().includes(lowercasedQuery);
                  return clientNameMatch || invoiceIdMatch;
             });
         }
@@ -95,9 +95,14 @@ export default function InvoicesPage() {
     }, [selectedInvoice, bookings]);
 
     const selectedClient = useMemo(() => {
-        if (!selectedBooking || !users) return null;
-        return users.find(u => u.id === selectedBooking.clientId) ?? { id: selectedBooking.clientId, name: selectedBooking.clientId, email: '', role: 'Driver', avatarUrl: '' };
-    }, [selectedBooking, users]);
+        if (!selectedInvoice || !users) return null;
+        // Find user by clientID from the invoice itself
+        const clientUser = users.find(u => u.id === selectedInvoice.clientId);
+        if (clientUser) return clientUser;
+
+        // Fallback for older data or if user is not in the users collection
+        return { id: selectedInvoice.clientId, name: selectedInvoice.clientId, email: '', role: 'Driver', avatarUrl: '' };
+    }, [selectedInvoice, users]);
 
 
     return (
@@ -216,3 +221,5 @@ export default function InvoicesPage() {
         </>
     );
 }
+
+    
