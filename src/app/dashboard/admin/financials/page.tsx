@@ -25,11 +25,17 @@ export default function FinancialsPage() {
   const nextSevenDays = addDays(now, 7);
 
   const upcomingCollections = useMemo(() => {
-    if (!bookings) return [];
+    if (!bookings || !invoices) return [];
     return bookings
-      .filter(b => b.collectionDate && isAfter(parseISO(b.collectionDate), now) && isBefore(parseISO(b.collectionDate), nextSevenDays))
+      .filter(b => {
+        const invoice = invoices.find(inv => inv.bookingId === b.id);
+        if (invoice && invoice.status === 'Paid') {
+          return false;
+        }
+        return b.collectionDate && isAfter(parseISO(b.collectionDate), now) && isBefore(parseISO(b.collectionDate), nextSevenDays)
+      })
       .sort((a, b) => parseISO(a.collectionDate).getTime() - parseISO(b.collectionDate).getTime());
-  }, [bookings, now, nextSevenDays]);
+  }, [bookings, invoices, now, nextSevenDays]);
   
   const completedCollections = useMemo(() => {
     if (!invoices || !bookings) return [];
