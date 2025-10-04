@@ -62,3 +62,16 @@ export interface Message {
   createdAt: Timestamp;
   imageUrl?: string;
 }
+
+export interface Expense {
+  id: string;
+  category: "fuel" | "maintenance" | "toll" | "office" | "staff" | "permits" | "vehicle parts" | "pms" | "change oil" | "client representation";
+  description: string;
+  amount: number;
+  dateIncurred: string;
+  paidBy: "cash" | "bank" | "credit";
+  addedBy: string;
+  notes?: string;
+}
+
+    

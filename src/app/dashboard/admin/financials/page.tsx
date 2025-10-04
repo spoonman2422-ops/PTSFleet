@@ -3,14 +3,15 @@
 
 import { useMemo, useState } from 'react';
 import { useCollection } from '@/firebase';
-import type { Booking, Invoice } from '@/lib/types';
+import type { Booking, Invoice, Expense } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { addDays, isBefore, isAfter, parseISO, differenceInDays, startOfWeek, startOfMonth, startOfYear, format } from 'date-fns';
-import { TrendingUp, AlertTriangle, CalendarCheck2, Briefcase } from 'lucide-react';
+import { TrendingUp, AlertTriangle, CalendarCheck2, Briefcase, Wallet } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Separator } from '@/components/ui/separator';
 
 
 type ProfitFilter = 'Overall' | 'Annual' | 'Monthly' | 'Weekly';
@@ -18,7 +19,10 @@ type ProfitFilter = 'Overall' | 'Annual' | 'Monthly' | 'Weekly';
 export default function FinancialsPage() {
   const { data: bookings, isLoading: isLoadingBookings } = useCollection<Booking>('bookings');
   const { data: invoices, isLoading: isLoadingInvoices } = useCollection<Invoice>('invoices');
+  const { data: expenses, isLoading: isLoadingExpenses } = useCollection<Expense>('expenses');
+
   const [profitFilter, setProfitFilter] = useState<ProfitFilter>('Overall');
+  const [expenseFilter, setExpenseFilter] = useState<ProfitFilter>('Overall');
 
 
   const now = new Date();
@@ -67,28 +71,28 @@ export default function FinancialsPage() {
       .sort((a, b) => parseISO(a.invoice.dueDate).getTime() - parseISO(b.invoice.dueDate).getTime());
   }, [invoices, bookings, now]);
 
+  const getStartDate = (filter: ProfitFilter) => {
+    const today = new Date();
+    switch(filter) {
+        case 'Weekly':
+            return startOfWeek(today);
+        case 'Monthly':
+            return startOfMonth(today);
+        case 'Annual':
+            return startOfYear(today);
+        case 'Overall':
+        default:
+            return new Date(0); // The beginning of time
+    }
+  };
+
   const profitTrackerData = useMemo(() => {
     if (!bookings) return [];
     
     const deliveredBookings = bookings
         .filter(b => b.status === 'Delivered' && b.dueDate);
-
-    const getStartDate = () => {
-        const today = new Date();
-        switch(profitFilter) {
-            case 'Weekly':
-                return startOfWeek(today);
-            case 'Monthly':
-                return startOfMonth(today);
-            case 'Annual':
-                return startOfYear(today);
-            case 'Overall':
-            default:
-                return new Date(0); // The beginning of time
-        }
-    };
     
-    const startDate = getStartDate();
+    const startDate = getStartDate(profitFilter);
 
     return deliveredBookings
       .filter(booking => isAfter(parseISO(booking.dueDate), startDate))
@@ -99,8 +103,20 @@ export default function FinancialsPage() {
       })
       .sort((a, b) => parseISO(b.dueDate).getTime() - parseISO(a.dueDate).getTime());
   }, [bookings, profitFilter]);
+
+  const filteredExpenses = useMemo(() => {
+    if (!expenses) return [];
+    const startDate = getStartDate(expenseFilter);
+    return expenses
+      .filter(expense => isAfter(parseISO(expense.dateIncurred), startDate))
+      .sort((a, b) => parseISO(b.dateIncurred).getTime() - parseISO(a.dateIncurred).getTime());
+  }, [expenses, expenseFilter]);
+
+  const totalExpenses = useMemo(() => {
+    return filteredExpenses.reduce((acc, expense) => acc + expense.amount, 0);
+  }, [filteredExpenses]);
   
-  const isLoading = isLoadingBookings || isLoadingInvoices;
+  const isLoading = isLoadingBookings || isLoadingInvoices || isLoadingExpenses;
 
   return (
     <div className="flex flex-col gap-6">
@@ -109,125 +125,17 @@ export default function FinancialsPage() {
         <p className="text-muted-foreground">Monitor your collections, outstanding payments, and profitability.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-6">
         
-        {/* Upcoming Collections */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <CalendarCheck2 className="h-5 w-5 text-blue-500" />
-              <span>Upcoming Collections</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? <Skeleton className="h-40 w-full" /> : upcomingCollections.length > 0 ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Booking</TableHead>
-                    <TableHead>Client</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {upcomingCollections.map(booking => (
-                    <TableRow key={booking.id}>
-                      <TableCell>
-                        <div className="font-medium">#{booking.id?.substring(0, 4)}</div>
-                        <div className="text-xs text-muted-foreground">{differenceInDays(parseISO(booking.collectionDate), now)} days</div>
-                      </TableCell>
-                      <TableCell>{booking.clientId}</TableCell>
-                      <TableCell className="text-right font-medium">₱{booking.bookingRate.toLocaleString()}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            ) : <p className="text-sm text-muted-foreground text-center py-10">No collections in the next 7 days.</p>}
-          </CardContent>
-        </Card>
-        
-        {/* Completed Collections */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <Briefcase className="h-5 w-5 text-green-500" />
-              <span>Completed Collections</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? <Skeleton className="h-40 w-full" /> : completedCollections.length > 0 ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Invoice</TableHead>
-                    <TableHead>Client</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {completedCollections.map(({ invoice, booking }) => (
-                    <TableRow key={invoice.id}>
-                       <TableCell>
-                        <div className="font-medium">#{invoice.id?.substring(0, 4)}</div>
-                        <div className="text-xs text-muted-foreground">
-                            {invoice.createdAt ? format(invoice.createdAt.toDate(), 'PP') : ''}
-                        </div>
-                      </TableCell>
-                      <TableCell>{booking?.clientId || invoice.clientId}</TableCell>
-                      <TableCell className="text-right font-medium">₱{invoice.amount.toLocaleString()}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            ) : <p className="text-sm text-muted-foreground text-center py-10">No completed collections yet.</p>}
-          </CardContent>
-        </Card>
-
-        {/* Outstanding Payments */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <AlertTriangle className="h-5 w-5 text-red-500" />
-              <span>Outstanding Payments</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-             {isLoading ? <Skeleton className="h-40 w-full" /> : outstandingPayments.length > 0 ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Invoice</TableHead>
-                    <TableHead>Client</TableHead>
-                    <TableHead className="text-right">Amount</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {outstandingPayments.map(({ invoice, booking }) => (
-                    <TableRow key={invoice.id}>
-                      <TableCell>
-                        <div className="font-medium">#{invoice.id.substring(0, 4)}</div>
-                        <div className="text-xs text-destructive">{differenceInDays(now, parseISO(invoice.dueDate))} days overdue</div>
-                      </TableCell>
-                       <TableCell>{booking?.clientId || invoice.clientId}</TableCell>
-                      <TableCell className="text-right font-medium">₱{invoice.amount.toLocaleString()}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            ) : <p className="text-sm text-muted-foreground text-center py-10">No outstanding payments.</p>}
-          </CardContent>
-        </Card>
-
-        {/* Profit Tracker */}
-        <Card>
+        <Card className="xl:col-span-2">
             <CardHeader>
-                <div className="flex flex-col gap-4">
+                <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
                     <CardTitle className="flex items-center gap-2 text-lg">
                         <TrendingUp className="h-5 w-5 text-green-500" />
                         <span>Profit/Margin Tracker</span>
                     </CardTitle>
                     <Select value={profitFilter} onValueChange={(value) => setProfitFilter(value as ProfitFilter)}>
-                        <SelectTrigger className="w-[180px]">
+                        <SelectTrigger className="w-full sm:w-[180px]">
                             <SelectValue placeholder="Filter by period" />
                         </SelectTrigger>
                         <SelectContent>
@@ -245,6 +153,8 @@ export default function FinancialsPage() {
                     <TableHeader>
                     <TableRow>
                         <TableHead>Booking</TableHead>
+                        <TableHead>Client</TableHead>
+                        <TableHead>Date</TableHead>
                         <TableHead className="text-right">Profit</TableHead>
                     </TableRow>
                     </TableHeader>
@@ -253,8 +163,9 @@ export default function FinancialsPage() {
                         <TableRow key={booking.id}>
                         <TableCell>
                             <div className="font-medium">#{booking.id?.substring(0, 4)}</div>
-                            <div className="text-xs text-muted-foreground">{booking.clientId}</div>
                         </TableCell>
+                        <TableCell>{booking.clientId}</TableCell>
+                        <TableCell>{format(parseISO(booking.dueDate), 'PP')}</TableCell>
                         <TableCell className="text-right font-medium">
                             <span className={booking.profit >= 0 ? 'text-green-600' : 'text-red-600'}>
                                 ₱{booking.profit.toLocaleString()}
@@ -267,7 +178,66 @@ export default function FinancialsPage() {
              ) : <p className="text-sm text-muted-foreground text-center py-10">No delivered bookings to analyze for this period.</p>}
           </CardContent>
         </Card>
+
+        <Card>
+            <CardHeader>
+                <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                        <Wallet className="h-5 w-5 text-blue-500" />
+                        <span>Expense Tracker</span>
+                    </CardTitle>
+                    <Select value={expenseFilter} onValueChange={(value) => setExpenseFilter(value as ProfitFilter)}>
+                        <SelectTrigger className="w-full sm:w-[180px]">
+                            <SelectValue placeholder="Filter by period" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="Overall">Overall</SelectItem>
+                            <SelectItem value="Annual">This Year</SelectItem>
+                            <SelectItem value="Monthly">This Month</SelectItem>
+                            <SelectItem value="Weekly">This Week</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+            </CardHeader>
+            <CardContent>
+                {isLoading ? <Skeleton className="h-40 w-full" /> : filteredExpenses.length > 0 ? (
+                <>
+                <div className="max-h-64 overflow-y-auto">
+                <Table>
+                    <TableHeader>
+                    <TableRow>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Category</TableHead>
+                        <TableHead className="text-right">Amount</TableHead>
+                    </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                    {filteredExpenses.map(expense => (
+                        <TableRow key={expense.id}>
+                            <TableCell>{format(parseISO(expense.dateIncurred), 'PP')}</TableCell>
+                            <TableCell className="capitalize">{expense.category}</TableCell>
+                            <TableCell className="text-right font-medium">
+                                ₱{expense.amount.toLocaleString()}
+                            </TableCell>
+                        </TableRow>
+                    ))}
+                    </TableBody>
+                </Table>
+                </div>
+                <Separator className="my-4" />
+                <div className="flex justify-end text-right">
+                    <div>
+                        <p className="text-muted-foreground">Total Expenses</p>
+                        <p className="font-bold text-xl">₱{totalExpenses.toLocaleString()}</p>
+                    </div>
+                </div>
+                </>
+             ) : <p className="text-sm text-muted-foreground text-center py-10">No expenses logged for this period.</p>}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
 }
+
+    
