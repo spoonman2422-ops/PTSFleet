@@ -69,9 +69,12 @@ export function InvoiceSheet({ isOpen, onOpenChange, invoice, booking, client }:
                 <SheetDescription>Invoice # {invoice.id.substring(0, 7).toUpperCase()}</SheetDescription>
               </div>
               <div className="text-right">
-                <h3 className="font-bold text-lg">PTSFleetSystem</h3>
+                <h3 className="font-bold text-lg">Platinum Trucking Services</h3>
                 <p className="text-sm text-muted-foreground">
-                  123 Transport Lane, Manila, PH
+                  BLOCK 8 LOT 33 PHASE 1 BISMUTH ST. <br />
+                  STA. ELENA VILLAGE, BRGY. SAN JOSE, ANTIPOLO CITY <br />
+                  platinum.trucking.services1@gmail.com <br />
+                  09171900017
                 </p>
               </div>
             </div>
@@ -147,4 +150,3 @@ export function InvoiceSheet({ isOpen, onOpenChange, invoice, booking, client }:
     </Sheet>
   );
 }
-
