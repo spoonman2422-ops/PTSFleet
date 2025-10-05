@@ -139,6 +139,31 @@
         }
       },
       "required": ["category", "description", "amount", "dateIncurred", "paidBy", "addedBy"]
+    },
+    "RevolvingFundContribution": {
+      "title": "Revolving Fund Contribution",
+      "description": "A record of a contribution to the company's revolving fund by an owner.",
+      "type": "object",
+      "properties": {
+        "contributorName": {
+          "type": "string",
+          "description": "The name of the owner making the contribution."
+        },
+        "amount": {
+          "type": "number",
+          "description": "The amount contributed."
+        },
+        "contributionDate": {
+          "type": "string",
+          "format": "date",
+          "description": "The date the contribution was made."
+        },
+        "addedBy": {
+          "type": "string",
+          "description": "The ID of the admin who logged this contribution."
+        }
+      },
+      "required": ["contributorName", "amount", "contributionDate", "addedBy"]
     }
   },
   "auth": {
@@ -174,6 +199,12 @@
         "$ref": "#/entities/Expense"
       },
       "description": "A collection of all business expenses."
+    },
+    "/revolvingFundContributions/{contributionId}": {
+      "schema": {
+        "$ref": "#/entities/RevolvingFundContribution"
+      },
+      "description": "A collection of all revolving fund contributions from owners."
     }
   }
 }

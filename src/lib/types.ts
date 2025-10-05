@@ -53,7 +53,7 @@ export interface Invoice {
     vatAmount: number;
     percentageTaxRate: number;
     percentageTaxAmount: number;
-taking    incomeTaxOption: '8_percent_flat' | 'graduated';
+    incomeTaxOption: '8_percent_flat' | 'graduated';
     incomeTaxAmount: number;
     netRevenue: number;
     dateIssued: string;
@@ -85,4 +85,12 @@ export interface Expense {
   paidBy: "cash" | "bank" | "credit";
   addedBy: string;
   notes?: string;
+}
+
+export interface RevolvingFundContribution {
+  id: string;
+  contributorName: string;
+  amount: number;
+  contributionDate: string;
+  addedBy: string;
 }
