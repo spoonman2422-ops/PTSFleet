@@ -47,6 +47,25 @@ export function InvoiceSheet({ isOpen, onOpenChange, invoice, booking, client }:
       }
     });
 
+    // Add print-specific styles
+    doc.write(`
+        <style>
+            @media print {
+                body {
+                    margin: 0;
+                    padding: 2rem;
+                    background-color: white;
+                }
+                .printable-area {
+                    max-width: 100%;
+                    margin: 0 auto;
+                    overflow: hidden;
+                    page-break-after: avoid;
+                }
+            }
+        </style>
+    `);
+
     doc.write('</head><body style="background-color: white;">');
     doc.write(printableArea.innerHTML);
     doc.write('</body></html>');
