@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/sidebar";
 import { AppLogo } from "./icons";
 import { Button } from "./ui/button";
-import { LogOut, User, Gauge, Truck, Users, ShieldQuestion, ClipboardList, FileText, TrendingUp, Wallet, PiggyBank } from "lucide-react";
+import { LogOut, User, Gauge, Truck, Users, ShieldQuestion, ClipboardList, FileText, TrendingUp, Wallet, PiggyBank, Banknote } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 
 export function DashboardSidebar() {
@@ -27,6 +27,7 @@ export function DashboardSidebar() {
         { href: "/dashboard/admin/users", label: "User Management", icon: Users },
         { href: "/dashboard/admin/bookings", label: "Booking Management", icon: ClipboardList },
         { href: "/dashboard/admin/invoices", label: "Invoices", icon: FileText },
+        { href: "/dashboard/admin/payroll", label: "Payroll", icon: Banknote },
         { href: "/dashboard/admin/expenses", label: "Expense Management", icon: Wallet },
         { href: "/dashboard/admin/revolving-fund", label: "Revolving Fund", icon: PiggyBank },
         { href: "/dashboard/admin/financials", label: "Financials", icon: TrendingUp },
