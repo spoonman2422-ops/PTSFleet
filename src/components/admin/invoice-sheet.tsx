@@ -20,33 +20,7 @@ type InvoiceSheetProps = {
 export function InvoiceSheet({ isOpen, onOpenChange, invoice, booking, client }: InvoiceSheetProps) {
   
   const handlePrint = () => {
-    const printContent = document.getElementById('printable-invoice-area');
-    if (printContent) {
-        // Temporarily hide all other elements
-        const originalBodyStyle = document.body.style.visibility;
-        const originalParentStyle = (printContent.parentNode as HTMLElement).style.visibility;
-
-        // Hide all body children
-        Array.from(document.body.children).forEach(child => {
-            if (child !== printContent.closest('[data-radix-portal]')) {
-                (child as HTMLElement).style.visibility = 'hidden';
-            }
-        });
-        
-        // Make the sheet and its parents visible
-        let current = printContent.parentElement;
-        while(current && current !== document.body) {
-            (current as HTMLElement).style.visibility = 'visible';
-             current = current.parentElement;
-        }
-
-        window.print();
-
-        // Restore visibility
-        Array.from(document.body.children).forEach(child => {
-             (child as HTMLElement).style.visibility = '';
-        });
-    }
+    window.print();
   };
 
   if (!invoice || !booking || !client) {
@@ -54,12 +28,12 @@ export function InvoiceSheet({ isOpen, onOpenChange, invoice, booking, client }:
   }
 
   const invoiceCreationDate = invoice.dateIssued ? parseISO(invoice.dateIssued) : new Date();
-  const totalAmount = invoice.grossSales; // For display purposes, the total is the gross sales. Taxes are itemized.
+  const totalAmount = invoice.grossSales;
 
   return (
     <Sheet open={isOpen} onOpenChange={onOpenChange}>
       <SheetContent className="sm:max-w-2xl overflow-y-auto no-print">
-        <div id="printable-invoice-area">
+        <div id="printable-invoice-area" className="printable-area">
           <SheetHeader className="p-6">
             <div className="flex justify-between items-start">
               <div>
