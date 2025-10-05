@@ -22,32 +22,30 @@ export function InvoiceSheet({ isOpen, onOpenChange, invoice, booking, client }:
   const handlePrint = () => {
     const printContent = document.getElementById('printable-invoice-area');
     if (printContent) {
-        const originalContents = document.body.innerHTML;
-        const printHtml = printContent.innerHTML;
+        // Temporarily hide all other elements
+        const originalBodyStyle = document.body.style.visibility;
+        const originalParentStyle = (printContent.parentNode as HTMLElement).style.visibility;
+
+        // Hide all body children
+        Array.from(document.body.children).forEach(child => {
+            if (child !== printContent.closest('[data-radix-portal]')) {
+                (child as HTMLElement).style.visibility = 'hidden';
+            }
+        });
         
-        document.body.innerHTML = `
-            <html>
-                <head>
-                    <title>Print Invoice</title>
-                    <link rel="stylesheet" href="/globals.css" type="text/css" />
-                    <style>
-                        @media print {
-                            body { -webkit-print-color-adjust: exact; }
-                            .no-print { display: none; }
-                        }
-                    </style>
-                </head>
-                <body>
-                    ${printHtml}
-                </body>
-            </html>
-        `;
-        
+        // Make the sheet and its parents visible
+        let current = printContent.parentElement;
+        while(current && current !== document.body) {
+            (current as HTMLElement).style.visibility = 'visible';
+             current = current.parentElement;
+        }
+
         window.print();
-        document.body.innerHTML = originalContents;
-        // The sheet closing needs to be re-bound after we restore content
-        onOpenChange(false);
-        window.location.reload(); 
+
+        // Restore visibility
+        Array.from(document.body.children).forEach(child => {
+             (child as HTMLElement).style.visibility = '';
+        });
     }
   };
 
@@ -60,7 +58,7 @@ export function InvoiceSheet({ isOpen, onOpenChange, invoice, booking, client }:
 
   return (
     <Sheet open={isOpen} onOpenChange={onOpenChange}>
-      <SheetContent className="sm:max-w-2xl overflow-y-auto">
+      <SheetContent className="sm:max-w-2xl overflow-y-auto no-print">
         <div id="printable-invoice-area">
           <SheetHeader className="p-6">
             <div className="flex justify-between items-start">
