@@ -48,18 +48,16 @@ export function CashAdvanceTable({ data, users, isLoading }: CashAdvanceTablePro
         cell: ({ row }) => <span>{format(parseISO(row.getValue('date')), 'PP')}</span>,
       },
       {
-        accessorKey: 'driverId',
+        id: 'driverName',
+        accessorFn: row => {
+            const driver = users.find(u => u.id === row.driverId);
+            return driver?.name || 'Unknown';
+        },
         header: ({ column }) => <DataTableColumnHeader column={column} title="Driver" />,
         cell: ({ row }) => {
-          const driverId = row.getValue('driverId') as string;
-          const driver = users.find((u) => u.id === driverId);
-          return <span className="font-medium">{driver?.name || 'Unknown'}</span>;
+          const driverName = row.getValue('driverName') as string;
+          return <span className="font-medium">{driverName}</span>;
         },
-        accessorFn: (row) => {
-            const driver = users.find(u => u.id === row.driverId);
-            return driver?.name || '';
-        },
-        filterFn: 'includesString'
       },
       {
         accessorKey: 'amount',
@@ -111,9 +109,9 @@ export function CashAdvanceTable({ data, users, isLoading }: CashAdvanceTablePro
         <div className="py-4">
             <Input
               placeholder="Filter by driver name..."
-              value={(table.getColumn('driverId')?.getFilterValue() as string) ?? ''}
+              value={(table.getColumn('driverName')?.getFilterValue() as string) ?? ''}
               onChange={(event) =>
-                table.getColumn('driverId')?.setFilterValue(event.target.value)
+                table.getColumn('driverName')?.setFilterValue(event.target.value)
               }
               className="max-w-sm"
             />
