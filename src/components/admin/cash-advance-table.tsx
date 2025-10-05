@@ -90,6 +90,11 @@ export function CashAdvanceTable({ data, users, isLoading }: CashAdvanceTablePro
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    initialState: {
+        pagination: {
+            pageSize: 5,
+        }
+    }
   });
 
   if (isLoading) {
