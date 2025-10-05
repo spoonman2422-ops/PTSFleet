@@ -2,8 +2,8 @@
 "use client";
 
 import { useState, useMemo } from 'react';
-import { useCollection } from '@/firebase';
-import type { Booking, User } from '@/lib/types';
+import { useCollection, useFirestore } from '@/firebase';
+import type { Booking, User, CashAdvance } from '@/lib/types';
 import {
   startOfWeek,
   endOfWeek,
@@ -21,11 +21,15 @@ import { Calendar as CalendarIcon } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { DriverPayrollCard } from '@/components/admin/driver-payroll-card';
+import { AddCashAdvanceForm } from '@/components/admin/add-cash-advance-form';
+import { CashAdvanceTable } from '@/components/admin/cash-advance-table';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 
 export default function PayrollPage() {
   const [date, setDate] = useState<Date>(new Date());
   const { data: bookings, isLoading: isLoadingBookings } = useCollection<Booking>('bookings');
   const { data: users, isLoading: isLoadingUsers } = useCollection<User>('users');
+  const { data: cashAdvances, isLoading: isLoadingCashAdvances } = useCollection<CashAdvance>('cashAdvances');
 
   const weekStart = startOfWeek(date, { weekStartsOn: 1 });
   const weekEnd = endOfWeek(date, { weekStartsOn: 1 });
@@ -44,13 +48,21 @@ export default function PayrollPage() {
           end: weekEnd,
         })
     );
+    
+    const weeklyCashAdvances = (cashAdvances || []).filter(
+      ca => ca.date && isWithinInterval(parseISO(ca.date), { start: weekStart, end: weekEnd })
+    );
 
     const payrollByDriver = drivers.map((driver) => {
       const driverBookings = deliveredBookings.filter(
         (b) => b.driverId === driver.id
       );
+      
+      const driverCashAdvances = weeklyCashAdvances.filter(ca => ca.driverId === driver.id);
+      
+      const totalCashAdvance = driverCashAdvances.reduce((sum, ca) => sum + ca.amount, 0);
 
-      if (driverBookings.length === 0) {
+      if (driverBookings.length === 0 && driverCashAdvances.length === 0) {
         return null;
       }
 
@@ -62,14 +74,24 @@ export default function PayrollPage() {
       return {
         driver,
         bookings: driverBookings,
+        cashAdvances: driverCashAdvances,
         totalPay,
+        totalCashAdvance,
+        netPay: totalPay - totalCashAdvance,
       };
-    }).filter(Boolean) as { driver: User, bookings: Booking[], totalPay: number }[];
+    }).filter(Boolean) as { 
+        driver: User, 
+        bookings: Booking[], 
+        cashAdvances: CashAdvance[],
+        totalPay: number, 
+        totalCashAdvance: number,
+        netPay: number
+    }[];
 
     return payrollByDriver;
-  }, [bookings, drivers, weekStart, weekEnd]);
+  }, [bookings, drivers, cashAdvances, weekStart, weekEnd]);
   
-  const isLoading = isLoadingBookings || isLoadingUsers;
+  const isLoading = isLoadingBookings || isLoadingUsers || isLoadingCashAdvances;
 
   return (
     <div className="flex flex-col gap-6">
@@ -77,7 +99,7 @@ export default function PayrollPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Driver Payroll</h1>
           <p className="text-muted-foreground">
-            Calculate and view driver payrolls on a weekly basis.
+            Calculate weekly payrolls and manage driver cash advances.
           </p>
         </div>
         <Popover>
@@ -106,34 +128,56 @@ export default function PayrollPage() {
         </Popover>
       </div>
 
-      {isLoading ? (
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-           <div className="h-64 bg-muted rounded-lg animate-pulse" />
-           <div className="h-64 bg-muted rounded-lg animate-pulse" />
-           <div className="h-64 bg-muted rounded-lg animate-pulse" />
+      <div className="grid lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-1 flex flex-col gap-6">
+          <AddCashAdvanceForm drivers={drivers} />
+          <Card>
+            <CardHeader>
+                <CardTitle>Cash Advance History</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <CashAdvanceTable 
+                    data={cashAdvances || []} 
+                    users={users || []} 
+                    isLoading={isLoadingCashAdvances || isLoadingUsers}
+                />
+            </CardContent>
+          </Card>
         </div>
-      ) : weeklyPayrollData.length > 0 ? (
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {weeklyPayrollData.map((data) => (
-            <DriverPayrollCard
-              key={data.driver.id}
-              driver={data.driver}
-              bookings={data.bookings}
-              totalPay={data.totalPay}
-              weekStart={weekStart}
-              weekEnd={weekEnd}
-            />
-          ))}
+        <div className="lg:col-span-2">
+            {isLoading ? (
+                <div className="grid md:grid-cols-2 gap-6">
+                <div className="h-64 bg-muted rounded-lg animate-pulse" />
+                <div className="h-64 bg-muted rounded-lg animate-pulse" />
+                </div>
+            ) : weeklyPayrollData.length > 0 ? (
+                <div className="grid md:grid-cols-1 lg:grid-cols-2 gap-6">
+                {weeklyPayrollData.map((data) => (
+                    <DriverPayrollCard
+                        key={data.driver.id}
+                        driver={data.driver}
+                        bookings={data.bookings}
+                        cashAdvances={data.cashAdvances}
+                        totalPay={data.totalPay}
+                        totalCashAdvance={data.totalCashAdvance}
+                        netPay={data.netPay}
+                        weekStart={weekStart}
+                        weekEnd={weekEnd}
+                    />
+                ))}
+                </div>
+            ) : (
+                <div className="text-center py-16 border-2 border-dashed rounded-lg h-full flex items-center justify-center">
+                    <div>
+                        <h2 className="text-xl font-semibold">No Payroll Data</h2>
+                        <p className="text-muted-foreground mt-2">
+                            There are no delivered bookings or cash advances for the selected week.
+                        </p>
+                    </div>
+                </div>
+            )}
         </div>
-      ) : (
-        <div className="text-center py-16 border-2 border-dashed rounded-lg">
-          <h2 className="text-xl font-semibold">No Completed Bookings</h2>
-          <p className="text-muted-foreground mt-2">
-            There are no delivered bookings for the selected week.
-          </p>
-        </div>
-      )}
+      </div>
     </div>
   );
 }
-

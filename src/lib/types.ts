@@ -94,3 +94,11 @@ export interface RevolvingFundContribution {
   contributionDate: string;
   addedBy: string;
 }
+
+export interface CashAdvance {
+  id: string;
+  driverId: string;
+  amount: number;
+  date: string;
+  addedBy: string;
+}

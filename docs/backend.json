@@ -164,6 +164,31 @@
         }
       },
       "required": ["contributorName", "amount", "contributionDate", "addedBy"]
+    },
+    "CashAdvance": {
+      "title": "Cash Advance",
+      "description": "A record of a cash advance given to a driver.",
+      "type": "object",
+      "properties": {
+        "driverId": {
+          "type": "string",
+          "description": "The ID of the driver receiving the advance."
+        },
+        "amount": {
+          "type": "number",
+          "description": "The amount of the cash advance."
+        },
+        "date": {
+          "type": "string",
+          "format": "date",
+          "description": "The date the advance was given."
+        },
+        "addedBy": {
+          "type": "string",
+          "description": "The ID of the admin who logged this advance."
+        }
+      },
+      "required": ["driverId", "amount", "date", "addedBy"]
     }
   },
   "auth": {
@@ -205,6 +230,12 @@
         "$ref": "#/entities/RevolvingFundContribution"
       },
       "description": "A collection of all revolving fund contributions from owners."
+    },
+    "/cashAdvances/{caId}": {
+      "schema": {
+        "$ref": "#/entities/CashAdvance"
+      },
+      "description": "A collection of all cash advances given to drivers."
     }
   }
 }
