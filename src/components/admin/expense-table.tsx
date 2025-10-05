@@ -31,14 +31,17 @@ import type { Expense, User } from "@/lib/types"
 import { format, parseISO } from "date-fns"
 import { DataTableColumnHeader } from "../ui/data-table-column-header"
 import { Skeleton } from "../ui/skeleton"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../ui/dropdown-menu"
+import { Edit, MoreHorizontal } from "lucide-react"
 
 type ExpenseTableProps = {
     data: Expense[];
     users: User[];
     isLoading: boolean;
+    onEdit: (expense: Expense) => void;
 }
 
-export function ExpenseTable({ data, users, isLoading }: ExpenseTableProps) {
+export function ExpenseTable({ data, users, isLoading, onEdit }: ExpenseTableProps) {
   const [sorting, setSorting] = React.useState<SortingState>([])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
   const [globalFilter, setGlobalFilter] = React.useState("")
@@ -92,7 +95,29 @@ export function ExpenseTable({ data, users, isLoading }: ExpenseTableProps) {
         return user?.name || "Unknown";
       }
     },
-  ], [users]);
+     {
+      id: "actions",
+      cell: ({ row }) => {
+        const expense = row.original;
+        return (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0">
+                <span className="sr-only">Open menu</span>
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => onEdit(expense)}>
+                <Edit className="mr-2 h-4 w-4" />
+                Edit
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        );
+      },
+    },
+  ], [users, onEdit]);
 
   const table = useReactTable({
     data,

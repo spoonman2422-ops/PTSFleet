@@ -4,10 +4,6 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useFirestore } from "@/firebase";
-import { useUser } from "@/context/user-context";
-import { addDoc, collection } from "firebase/firestore";
-import { useToast } from "@/hooks/use-toast";
 import {
   Form,
   FormControl,
@@ -29,7 +25,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Checkbox } from "@/components/ui/checkbox";
-import { CalendarIcon } from "lucide-react";
+import { CalendarIcon, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Textarea } from "../ui/textarea";
@@ -51,67 +47,17 @@ const expenseSchema = z.object({
 
 type ExpenseFormValues = z.infer<typeof expenseSchema>;
 
-export function ExpenseForm() {
-  const firestore = useFirestore();
-  const { user } = useUser();
-  const { toast } = useToast();
+type ExpenseFormProps = {
+    onSubmit: (data: ExpenseFormValues) => void;
+    defaultValues: Partial<ExpenseFormValues>;
+    isSubmitting: boolean;
+};
 
+export function ExpenseForm({ onSubmit, defaultValues, isSubmitting }: ExpenseFormProps) {
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(expenseSchema),
-    defaultValues: {
-      category: undefined,
-      description: "",
-      amount: 0,
-      vatIncluded: false,
-      dateIncurred: undefined,
-      paidBy: undefined,
-      notes: "",
-    },
+    defaultValues,
   });
-
-  const onSubmit = async (data: ExpenseFormValues) => {
-    if (!firestore || !user) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "You must be logged in to add an expense.",
-      });
-      return;
-    }
-
-    const vatRate = 0.12;
-    const inputVat = data.vatIncluded ? data.amount * vatRate : 0;
-
-    try {
-      await addDoc(collection(firestore, "expenses"), {
-        ...data,
-        addedBy: user.id,
-        dateIncurred: format(data.dateIncurred, "yyyy-MM-dd"),
-        vatRate,
-        inputVat,
-      });
-      toast({
-        title: "Expense Saved",
-        description: "The new expense has been logged successfully.",
-      });
-      form.reset({
-        category: undefined,
-        description: "",
-        amount: 0,
-        vatIncluded: false,
-        dateIncurred: undefined,
-        paidBy: undefined,
-        notes: "",
-      });
-    } catch (error) {
-      console.error("Error adding expense: ", error);
-      toast({
-        variant: "destructive",
-        title: "Something went wrong",
-        description: "Could not save the expense. Please try again.",
-      });
-    }
-  };
 
   return (
     <Form {...form}>
@@ -223,7 +169,7 @@ export function ExpenseForm() {
                         selected={field.value}
                         onSelect={field.onChange}
                         disabled={(date) =>
-                            date > new Date() || date < new Date("1900-01-01")
+                            date > new Date() || date < new Date("2020-01-01")
                         }
                         initialFocus
                         />
@@ -272,8 +218,9 @@ export function ExpenseForm() {
         />
 
         <div className="flex justify-end pt-4">
-            <Button type="submit" disabled={form.formState.isSubmitting}>
-                {form.formState.isSubmitting ? 'Saving...' : 'Save Expense'}
+            <Button type="submit" disabled={isSubmitting} className="w-full">
+                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                {isSubmitting ? 'Saving...' : 'Save Expense'}
             </Button>
         </div>
       </form>
