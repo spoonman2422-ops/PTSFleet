@@ -116,10 +116,10 @@ export default function AdminBookingsPage() {
             if (vatRegistered) {
                 // Business is VAT-registered
                 vatAmount = grossSales * 0.12;
-                percentageTaxAmount = 0; // Not applicable
+                percentageTaxAmount = 0; // Not applicable for VAT-registered
             } else {
                 // Business is NON-VAT registered
-                vatAmount = 0; // Not applicable
+                vatAmount = 0; // Not applicable for NON-VAT
                 // The 3% percentage tax is NOT applicable if the 8% flat income tax is chosen
                 percentageTaxAmount = incomeTaxOption === 'graduated' ? grossSales * 0.03 : 0;
             }
