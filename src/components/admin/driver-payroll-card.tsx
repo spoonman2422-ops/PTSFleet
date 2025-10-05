@@ -71,6 +71,9 @@ export function DriverPayrollCard({
                     overflow: hidden;
                     page-break-after: avoid;
                 }
+                .no-print {
+                    display: none !important;
+                }
             }
         </style>
     `);
@@ -127,7 +130,7 @@ export function DriverPayrollCard({
             <span>Total Pay</span>
             <span className="text-primary">{formatCurrency(totalPay)}</span>
           </div>
-          <Button onClick={handlePrint} className="w-full" variant="outline">
+          <Button onClick={handlePrint} className="w-full no-print" variant="outline">
             <Printer className="mr-2 h-4 w-4" />
             Print Payslip
           </Button>
