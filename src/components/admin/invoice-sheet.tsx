@@ -20,7 +20,45 @@ type InvoiceSheetProps = {
 export function InvoiceSheet({ isOpen, onOpenChange, invoice, booking, client }: InvoiceSheetProps) {
   
   const handlePrint = () => {
-    window.print();
+    const printableArea = document.getElementById('printable-invoice-area');
+    if (!printableArea) return;
+
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'absolute';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = 'none';
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow?.document;
+    if (!doc) return;
+
+    doc.open();
+    doc.write('<html><head><title>Print Invoice</title>');
+    
+    // Copy all stylesheets from the parent document
+    Array.from(document.styleSheets).forEach(styleSheet => {
+      if (styleSheet.href) {
+        doc.write(`<link rel="stylesheet" href="${styleSheet.href}">`);
+      } else if (styleSheet.cssRules) {
+        doc.write('<style>');
+        doc.write(Array.from(styleSheet.cssRules).map(rule => rule.cssText).join('\n'));
+        doc.write('</style>');
+      }
+    });
+
+    doc.write('</head><body style="background-color: white;">');
+    doc.write(printableArea.innerHTML);
+    doc.write('</body></html>');
+    doc.close();
+
+    iframe.contentWindow?.focus();
+    iframe.contentWindow?.print();
+    
+    // Clean up the iframe after printing
+    setTimeout(() => {
+        document.body.removeChild(iframe);
+    }, 1000);
   };
 
   if (!invoice || !booking || !client) {
@@ -32,7 +70,7 @@ export function InvoiceSheet({ isOpen, onOpenChange, invoice, booking, client }:
 
   return (
     <Sheet open={isOpen} onOpenChange={onOpenChange}>
-      <SheetContent className="sm:max-w-2xl overflow-y-auto no-print">
+      <SheetContent className="sm:max-w-2xl overflow-y-auto">
         <div id="printable-invoice-area" className="printable-area">
           <SheetHeader className="p-6">
             <div className="flex justify-between items-start">
@@ -125,7 +163,7 @@ export function InvoiceSheet({ isOpen, onOpenChange, invoice, booking, client }:
             </div>
           </div>
         </div>
-        <SheetFooter className="p-6 pt-0 border-t-0 no-print">
+        <SheetFooter className="p-6 pt-0 border-t">
             <Button variant="outline" onClick={handlePrint}>
                 <Printer className="mr-2 h-4 w-4" />
                 Print Invoice
