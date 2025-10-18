@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
-import type { Booking, BookingStatus, User } from '@/lib/types';
+import type { Booking, BookingStatus, User, Expense } from '@/lib/types';
 import { BookingTable } from '@/components/dispatcher/booking-table';
 import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
@@ -42,7 +42,7 @@ export default function DispatcherPage() {
   const createExpenseFromBooking = async (
     bookingData: Omit<Booking, 'status' | 'id'>,
     bookingId: string, 
-    category: "driver/helper rate" | "toll" | "fuel" | "others",
+    category: Expense['category'],
     amount: number
   ) => {
     if (!firestore || !user || amount <= 0) return;
@@ -103,7 +103,7 @@ export default function DispatcherPage() {
     await createExpenseFromBooking(dataToSave, id, "driver/helper rate", dataToSave.driverRate);
     await createExpenseFromBooking(dataToSave, id, "toll", dataToSave.expectedExpenses.tollFee);
     await createExpenseFromBooking(dataToSave, id, "fuel", dataToSave.expectedExpenses.fuel);
-    await createExpenseFromBooking(dataToSave, id, "others", dataToSave.expectedExpenses.others);
+    await createExpenseFromBooking(dataToSave, id, "client representation", dataToSave.expectedExpenses.others);
 
     setIsDialogOpen(false);
   };
