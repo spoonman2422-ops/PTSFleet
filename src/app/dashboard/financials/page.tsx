@@ -1,4 +1,5 @@
 
+
       
 "use client";
 
@@ -156,26 +157,14 @@ export default function FinancialsPage() {
   }, [invoices, expenses, taxFilter]);
 
  const cashOnHandData = useMemo(() => {
-    if (!invoices || !expenses || !contributions || !bookings) {
-        return { totalNetCollections: 0, totalExpenses: 0, totalRevolvingFund: 0, cashOnHand: 0 };
+    if (!invoices || !expenses || !contributions) {
+        return { totalCollections: 0, totalExpenses: 0, totalRevolvingFund: 0, cashOnHand: 0 };
     }
     const startDate = getStartDate(cashOnHandFilter);
 
-    const paidInvoices = (invoices || [])
-        .filter(inv => inv.status === 'Paid' && inv.dateIssued && isAfter(parseISO(inv.dateIssued), startDate));
-    
-    const totalNetCollections = paidInvoices.reduce((sum, inv) => {
-        const booking = bookings.find(b => b.id === inv.bookingId);
-        if (!booking) return sum;
-
-        const bookingExpenses = (booking.driverRate || 0) +
-                                (booking.expectedExpenses?.tollFee || 0) +
-                                (booking.expectedExpenses?.fuel || 0) +
-                                (booking.expectedExpenses?.others || 0);
-
-        const netFromBooking = booking.bookingRate - bookingExpenses;
-        return sum + netFromBooking;
-    }, 0);
+    const totalCollections = (invoices || [])
+        .filter(inv => inv.status === 'Paid' && inv.dateIssued && isAfter(parseISO(inv.dateIssued), startDate))
+        .reduce((sum, inv) => sum + inv.grossSales, 0);
 
     const totalExpensesFromLog = (expenses || [])
         .filter(exp => exp.dateIncurred && isAfter(parseISO(exp.dateIncurred), startDate))
@@ -185,17 +174,15 @@ export default function FinancialsPage() {
         .filter(c => c.contributionDate && isAfter(parseISO(c.contributionDate), startDate))
         .reduce((sum, c) => sum + c.amount, 0);
     
-    // Cash on hand is the net profit from paid bookings, plus owner contributions, minus all other expenses.
-    // The expenses from bookings are assumed to be part of the `totalExpensesFromLog` already.
-    const cashOnHand = totalNetCollections + totalRevolvingFund - totalExpensesFromLog;
+    const cashOnHand = totalCollections + totalRevolvingFund - totalExpensesFromLog;
 
     return { 
         totalRevolvingFund, 
-        totalNetCollections, 
+        totalCollections, 
         totalExpenses: totalExpensesFromLog, 
         cashOnHand 
     };
-}, [invoices, expenses, contributions, bookings, cashOnHandFilter]);
+}, [invoices, expenses, contributions, cashOnHandFilter]);
   
   const vehicleProfitabilityData = useMemo(() => {
     if (!bookings) return [];
@@ -276,7 +263,7 @@ export default function FinancialsPage() {
                   {upcomingCollections.map(booking => (
                     <TableRow key={booking.id}>
                       <TableCell>
-                        <div className="font-medium">#{(booking.id || '').substring(0,7)}</div>
+                        <div className="font-medium">#{(booking.id || '').substring(0,7).toUpperCase()}</div>
                         <div className="text-xs text-muted-foreground">{format(parseISO(booking.collectionDate), 'PP')}</div>
                       </TableCell>
                       <TableCell>{booking.clientId}</TableCell>
@@ -310,8 +297,8 @@ export default function FinancialsPage() {
                         {outstandingPayments.map(({ invoice, booking }) => (
                             <TableRow key={invoice.id}>
                                 <TableCell>
-                                    <div className="font-medium">Inv #{invoice.id.substring(0, 7)}</div>
-                                    <div className="text-xs text-muted-foreground">Book #{(booking?.id || '').substring(0,7)}</div>
+                                    <div className="font-medium">Inv #{invoice.id.substring(0, 7).toUpperCase()}</div>
+                                    <div className="text-xs text-muted-foreground">Book #{(booking?.id || '').substring(0,7).toUpperCase()}</div>
                                 </TableCell>
                                 <TableCell>{booking?.clientId || invoice.clientId}</TableCell>
                                 <TableCell className="text-right text-red-600 font-medium">
@@ -384,8 +371,8 @@ export default function FinancialsPage() {
                           <span className="font-medium text-green-600">+{formatCurrency(cashOnHandData.totalRevolvingFund)}</span>
                       </div>
                       <div className="flex justify-between items-center">
-                          <span className="text-muted-foreground">Total Net Collections</span>
-                          <span className="font-medium text-green-600">+{formatCurrency(cashOnHandData.totalNetCollections)}</span>
+                          <span className="text-muted-foreground">Total Collections</span>
+                          <span className="font-medium text-green-600">+{formatCurrency(cashOnHandData.totalCollections)}</span>
                       </div>
                       <div className="flex justify-between items-center">
                           <span className="text-muted-foreground">Total Expenses</span>
@@ -444,7 +431,7 @@ export default function FinancialsPage() {
                         {profitTrackerData.map(booking => (
                             <TableRow key={booking.id}>
                             <TableCell>
-                                <div className="font-medium">#{(booking.id || '').substring(0, 7)}</div>
+                                <div className="font-medium">#{(booking.id || '').substring(0, 7).toUpperCase()}</div>
                             </TableCell>
                             <TableCell>{booking.clientId}</TableCell>
                             <TableCell>{format(parseISO(booking.dueDate), 'PP')}</TableCell>
@@ -628,6 +615,8 @@ export default function FinancialsPage() {
     </div>
   );
 }
+
+    
 
     
 
