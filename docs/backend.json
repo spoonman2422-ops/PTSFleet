@@ -50,6 +50,7 @@
         "dueDate": { "type": "string", "format": "date" },
         "bookingRate": { "type": "number" },
         "driverRate": { "type": "number" },
+        "vehicleType": { "type": "string", "enum": ["6-Wheel", "AUV"] },
         "expectedExpenses": {
           "type": "object",
           "properties": {
@@ -61,7 +62,7 @@
         "status": { "type": "string", "enum": ["pending", "in-progress", "completed", "cancelled"] },
         "proofOfDeliveryUrl": { "type": "string", "format": "uri" }
       },
-      "required": ["clientId", "pickupLocation", "dropoffLocation", "bookingDate", "status", "bookingRate"]
+      "required": ["clientId", "pickupLocation", "dropoffLocation", "bookingDate", "status", "bookingRate", "vehicleType"]
     },
     "UserProfile": {
         "title": "User Profile",

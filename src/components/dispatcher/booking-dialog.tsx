@@ -30,7 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type { Booking, User, Vehicle } from '@/lib/types';
+import type { Booking, User, Vehicle, VehicleType } from '@/lib/types';
 import { format, parseISO } from 'date-fns';
 import { Separator } from '../ui/separator';
 
@@ -43,6 +43,7 @@ const bookingSchema = z.object({
   collectionDate: z.string().min(1, "Collection date is required"),
   dueDate: z.string().min(1, "Due date is required"),
   driverId: z.string().nullable(),
+  vehicleType: z.enum(['6-Wheel', 'AUV']),
   bookingRate: z.coerce.number().min(0, 'Booking rate must be a positive number'),
   driverRate: z.coerce.number().min(0, 'Driver rate must be a positive number'),
   expectedExpenses: z.object({
@@ -60,7 +61,7 @@ type BookingDialogProps = {
   onSave: (data: Omit<Booking, 'status' | 'id'>, id: string) => void;
   booking: Booking | null;
   drivers: User[];
-  vehicles: Vehicle[]; // Keep this for future use if needed
+  vehicles: Vehicle[];
 };
 
 const UNASSIGNED_VALUE = "unassigned";
@@ -86,6 +87,7 @@ export function BookingDialog({
       collectionDate: '',
       dueDate: '',
       driverId: null,
+      vehicleType: '6-Wheel',
       bookingRate: 0,
       driverRate: 0,
       expectedExpenses: {
@@ -126,6 +128,7 @@ export function BookingDialog({
           collectionDate: '',
           dueDate: '',
           driverId: null,
+          vehicleType: '6-Wheel',
           bookingRate: 0,
           driverRate: 0,
           expectedExpenses: {
@@ -139,7 +142,6 @@ export function BookingDialog({
   }, [booking, form, isOpen]);
 
   const onSubmit = (data: BookingFormValues) => {
-    // We can now be sure data.id exists because of the schema validation.
     const submissionId = data.id!; 
     const dataToSave = {
       ...data,
@@ -259,32 +261,55 @@ export function BookingDialog({
                 />
               </div>
 
-              <FormField
-                control={form.control}
-                name="driverId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Assign Driver</FormLabel>
-                    <Select 
-                      onValueChange={(value) => field.onChange(value === UNASSIGNED_VALUE ? null : value)} 
-                      value={field.value ?? UNASSIGNED_VALUE}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a driver" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value={UNASSIGNED_VALUE}>Unassigned</SelectItem>
-                        {drivers.map(driver => (
-                          <SelectItem key={driver.id} value={driver.id}>{driver.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 <FormField
+                    control={form.control}
+                    name="driverId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Assign Driver</FormLabel>
+                        <Select 
+                          onValueChange={(value) => field.onChange(value === UNASSIGNED_VALUE ? null : value)} 
+                          value={field.value ?? UNASSIGNED_VALUE}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a driver" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value={UNASSIGNED_VALUE}>Unassigned</SelectItem>
+                            {drivers.map(driver => (
+                              <SelectItem key={driver.id} value={driver.id}>{driver.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                      control={form.control}
+                      name="vehicleType"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Vehicle Type</FormLabel>
+                          <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select a vehicle type" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="6-Wheel">6-Wheel</SelectItem>
+                              <SelectItem value="AUV">AUV</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+              </div>
 
               <Separator />
 

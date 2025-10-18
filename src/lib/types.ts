@@ -5,6 +5,7 @@ export type UserRole = 'Admin' | 'Dispatcher' | 'Driver';
 
 export type BookingStatus = 'pending' | 'En Route' | 'Pending Verification' | 'Delivered' | 'cancelled';
 export type InvoiceStatus = 'Paid' | 'Unpaid' | 'Overdue';
+export type VehicleType = '6-Wheel' | 'AUV';
 
 export interface User {
   id: string;
@@ -34,6 +35,7 @@ export interface Booking {
   dueDate: string;
   bookingRate: number;
   driverRate: number;
+  vehicleType: VehicleType;
   expectedExpenses: {
     tollFee: number;
     fuel: number;
