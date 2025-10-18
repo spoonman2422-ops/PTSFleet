@@ -157,7 +157,7 @@ export default function FinancialsPage() {
 
   const cashOnHandData = useMemo(() => {
     if (!invoices || !expenses || !contributions || !bookings) {
-        return { totalCollections: 0, totalExpenses: 0, totalRevolvingFund: 0, cashOnHand: 0 };
+        return { totalNetCollections: 0, totalExpenses: 0, totalRevolvingFund: 0, cashOnHand: 0 };
     }
     const startDate = getStartDate(cashOnHandFilter);
 
@@ -177,7 +177,7 @@ export default function FinancialsPage() {
         return sum + netFromBooking;
     }, 0);
 
-    const totalExpenses = (expenses || [])
+    const totalExpensesFromLog = (expenses || [])
         .filter(exp => exp.dateIncurred && isAfter(parseISO(exp.dateIncurred), startDate))
         .reduce((sum, exp) => sum + exp.amount, 0);
     
@@ -185,19 +185,14 @@ export default function FinancialsPage() {
         .filter(c => c.contributionDate && isAfter(parseISO(c.contributionDate), startDate))
         .reduce((sum, c) => sum + c.amount, 0);
     
-    // Here we consider totalExpenses already includes the ones from bookings,
-    // so we use totalNetCollections which is gross sales - booking-specific expenses.
-    // If expenses from bookings are NOT in the main expenses list, we need to adjust.
-    // Based on previous work, booking expenses ARE added to the expenses collection.
-    // So `totalExpenses` is the grand total.
-    // The cash inflow is from collections (gross) and revolving fund.
-    const totalCashIn = paidInvoices.reduce((sum, inv) => sum + inv.grossSales, 0) + totalRevolvingFund;
-    const cashOnHand = totalCashIn - totalExpenses;
+    // Cash on hand is the net profit from paid bookings, plus owner contributions, minus all other expenses.
+    // The expenses from bookings are assumed to be part of the `totalExpensesFromLog` already.
+    const cashOnHand = totalNetCollections + totalRevolvingFund - totalExpensesFromLog;
 
     return { 
         totalRevolvingFund, 
-        totalCollections: paidInvoices.reduce((sum, inv) => sum + inv.grossSales, 0), 
-        totalExpenses, 
+        totalNetCollections, 
+        totalExpenses: totalExpensesFromLog, 
         cashOnHand 
     };
 }, [invoices, expenses, contributions, bookings, cashOnHandFilter]);
@@ -389,8 +384,8 @@ export default function FinancialsPage() {
                           <span className="font-medium text-green-600">+{formatCurrency(cashOnHandData.totalRevolvingFund)}</span>
                       </div>
                       <div className="flex justify-between items-center">
-                          <span className="text-muted-foreground">Total Collections (Gross)</span>
-                          <span className="font-medium text-green-600">+{formatCurrency(cashOnHandData.totalCollections)}</span>
+                          <span className="text-muted-foreground">Total Net Collections</span>
+                          <span className="font-medium text-green-600">+{formatCurrency(cashOnHandData.totalNetCollections)}</span>
                       </div>
                       <div className="flex justify-between items-center">
                           <span className="text-muted-foreground">Total Expenses</span>
@@ -633,6 +628,8 @@ export default function FinancialsPage() {
     </div>
   );
 }
+
+    
 
     
 
