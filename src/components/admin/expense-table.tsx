@@ -33,6 +33,7 @@ import { DataTableColumnHeader } from "../ui/data-table-column-header"
 import { Skeleton } from "../ui/skeleton"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../ui/dropdown-menu"
 import { Edit, MoreHorizontal } from "lucide-react"
+import { Separator } from "../ui/separator"
 
 type ExpenseTableProps = {
     data: Expense[];
@@ -137,6 +138,13 @@ export function ExpenseTable({ data, users, isLoading, onEdit }: ExpenseTablePro
     },
   })
 
+  const totalExpenses = React.useMemo(() => {
+    return table.getFilteredRowModel().rows.reduce((total, row) => {
+        return total + (row.original.amount || 0);
+    }, 0);
+  }, [table.getFilteredRowModel().rows]);
+
+
   if (isLoading) {
     return (
         <div className="space-y-4">
@@ -203,6 +211,9 @@ export function ExpenseTable({ data, users, isLoading, onEdit }: ExpenseTablePro
         </Table>
       </div>
       <div className="flex items-center justify-end space-x-2 py-4">
+        <div className="flex-1 text-muted-foreground text-sm">
+          {table.getFilteredRowModel().rows.length} row(s).
+        </div>
         <Button
           variant="outline"
           size="sm"
@@ -220,6 +231,18 @@ export function ExpenseTable({ data, users, isLoading, onEdit }: ExpenseTablePro
           Next
         </Button>
       </div>
+       <Separator className="my-4" />
+        <div className="flex justify-end text-right">
+            <div>
+                <p className="text-muted-foreground">Total Expenses (Filtered)</p>
+                <p className="font-bold text-xl">
+                    {new Intl.NumberFormat("en-PH", {
+                        style: "currency",
+                        currency: "PHP",
+                    }).format(totalExpenses)}
+                </p>
+            </div>
+        </div>
     </div>
   )
 }
