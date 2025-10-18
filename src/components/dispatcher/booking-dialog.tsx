@@ -31,7 +31,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import type { Booking, User, Vehicle, VehicleType } from '@/lib/types';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, addDays } from 'date-fns';
 import { Separator } from '../ui/separator';
 
 const bookingSchema = z.object({
@@ -99,6 +99,27 @@ export function BookingDialog({
   });
   
   const watchedValues = useWatch({ control: form.control });
+  const watchedBookingDate = useWatch({ control: form.control, name: 'bookingDate' });
+
+  useEffect(() => {
+    // Only auto-populate if it's a new booking and the booking date changes
+    if (!isEditMode && watchedBookingDate) {
+        try {
+            const date = parseISO(watchedBookingDate);
+            const futureDate = addDays(date, 14);
+            const formattedFutureDate = format(futureDate, "yyyy-MM-dd");
+            
+            // To avoid overriding user's manual changes, we could check if they are empty
+            // but for this logic, we'll just set it. The user can change it.
+            form.setValue('collectionDate', formattedFutureDate, { shouldValidate: true });
+            form.setValue('dueDate', formattedFutureDate, { shouldValidate: true });
+
+        } catch (error) {
+            // Invalid date string, do nothing
+        }
+    }
+  }, [watchedBookingDate, isEditMode, form]);
+
 
   const netMargin =
     (Number(watchedValues.bookingRate) || 0) -
