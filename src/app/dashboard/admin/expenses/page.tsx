@@ -9,10 +9,21 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useCollection, useFirestore } from "@/firebase";
 import { useUser } from "@/context/user-context";
 import { useToast } from "@/hooks/use-toast";
-import { addDoc, collection, doc, updateDoc } from "firebase/firestore";
+import { addDoc, collection, doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { format } from "date-fns";
 import type { Expense, User } from "@/lib/types";
 import { PlusCircle } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
 
 export default function ExpensesPage() {
   const { data: expenses, isLoading: isLoadingExpenses } = useCollection<Expense>("expenses");
@@ -20,6 +31,8 @@ export default function ExpensesPage() {
   
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+  const [deletingExpense, setDeletingExpense] = useState<Expense | null>(null);
+  const [isAlertOpen, setIsAlertOpen] = useState(false);
 
   const firestore = useFirestore();
   const { user } = useUser();
@@ -33,6 +46,32 @@ export default function ExpensesPage() {
   const handleEdit = (expense: Expense) => {
     setEditingExpense(expense);
     setIsDialogOpen(true);
+  };
+
+  const handleOpenDeleteDialog = (expense: Expense) => {
+    setDeletingExpense(expense);
+    setIsAlertOpen(true);
+  };
+
+  const handleDeleteExpense = async () => {
+    if (!deletingExpense || !firestore) return;
+
+    try {
+      await deleteDoc(doc(firestore, "expenses", deletingExpense.id));
+      toast({
+        title: "Expense Deleted",
+        description: "The expense has been successfully removed.",
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error Deleting Expense",
+        description: error.message || "An unexpected error occurred.",
+      });
+    } finally {
+      setIsAlertOpen(false);
+      setDeletingExpense(null);
+    }
   };
 
   const handleSaveExpense = async (data: Omit<Expense, 'id' | 'addedBy' | 'inputVat' | 'vatRate'>, id?: string) => {
@@ -99,6 +138,7 @@ export default function ExpensesPage() {
                   users={users || []} 
                   isLoading={isLoading} 
                   onEdit={handleEdit}
+                  onDelete={handleOpenDeleteDialog}
               />
           </CardContent>
         </Card>
@@ -110,6 +150,23 @@ export default function ExpensesPage() {
         onSave={handleSaveExpense}
         expense={editingExpense}
       />
+
+      <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
+        <AlertDialogContent>
+        <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+            This action cannot be undone. This will permanently delete the expense: <span className="font-bold">{deletingExpense?.description}</span>.
+            </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteExpense} className="bg-destructive hover:bg-destructive/90">
+            Delete
+            </AlertDialogAction>
+        </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

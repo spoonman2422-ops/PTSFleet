@@ -31,8 +31,8 @@ import type { Expense, User } from "@/lib/types"
 import { format, parseISO } from "date-fns"
 import { DataTableColumnHeader } from "../ui/data-table-column-header"
 import { Skeleton } from "../ui/skeleton"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../ui/dropdown-menu"
-import { Edit, MoreHorizontal } from "lucide-react"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "../ui/dropdown-menu"
+import { Edit, MoreHorizontal, Trash2 } from "lucide-react"
 import { Separator } from "../ui/separator"
 
 type ExpenseTableProps = {
@@ -40,9 +40,10 @@ type ExpenseTableProps = {
     users: User[];
     isLoading: boolean;
     onEdit: (expense: Expense) => void;
+    onDelete: (expense: Expense) => void;
 }
 
-export function ExpenseTable({ data, users, isLoading, onEdit }: ExpenseTableProps) {
+export function ExpenseTable({ data, users, isLoading, onEdit, onDelete }: ExpenseTableProps) {
   const [sorting, setSorting] = React.useState<SortingState>([
       { id: "dateIncurred", desc: true }
   ])
@@ -110,12 +111,20 @@ export function ExpenseTable({ data, users, isLoading, onEdit }: ExpenseTablePro
                 <Edit className="mr-2 h-4 w-4" />
                 Edit
               </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem 
+                onClick={() => onDelete(expense)}
+                className="text-destructive focus:text-destructive"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         );
       },
     },
-  ], [users, onEdit, isLoading]);
+  ], [users, onEdit, onDelete, isLoading]);
 
   const table = useReactTable({
     data,
