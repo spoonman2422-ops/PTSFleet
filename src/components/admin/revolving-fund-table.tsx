@@ -24,14 +24,18 @@ import { Skeleton } from '../ui/skeleton';
 import { DataTableColumnHeader } from '../ui/data-table-column-header';
 import type { RevolvingFundContribution, User } from '@/lib/types';
 import { Input } from '../ui/input';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../ui/dropdown-menu';
+import { Button } from '../ui/button';
+import { Edit, MoreHorizontal } from 'lucide-react';
 
 type RevolvingFundTableProps = {
   data: RevolvingFundContribution[];
   users: User[];
   isLoading: boolean;
+  onEdit: (contribution: RevolvingFundContribution) => void;
 };
 
-export function RevolvingFundTable({ data, users, isLoading }: RevolvingFundTableProps) {
+export function RevolvingFundTable({ data, users, isLoading, onEdit }: RevolvingFundTableProps) {
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [globalFilter, setGlobalFilter] = React.useState('');
 
@@ -61,16 +65,39 @@ export function RevolvingFundTable({ data, users, isLoading }: RevolvingFundTabl
       },
       {
         id: 'addedByName',
-        accessorFn: (row) => users?.find(u => u.id === row.addedBy)?.name || 'Unknown',
+        accessorFn: (row) => users?.find(u => u.id === row.addedBy)?.name,
         header: ({ column }) => <DataTableColumnHeader column={column} title="Logged By" />,
         cell: ({ row }) => {
             const userName = row.getValue("addedByName") as string;
-            // While users are loading, this might be unknown. Show skeleton if so.
-            return isLoading ? <Skeleton className="h-5 w-24" /> : <span>{userName}</span>;
+            return (isLoading || !userName) ? <Skeleton className="h-5 w-24" /> : <span>{userName}</span>;
+        },
+      },
+      {
+        id: "actions",
+        cell: ({ row }) => {
+          const contribution = row.original;
+          return (
+            <div className="text-right">
+                <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="h-8 w-8 p-0">
+                    <span className="sr-only">Open menu</span>
+                    <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => onEdit(contribution)}>
+                    <Edit className="mr-2 h-4 w-4" />
+                    Edit
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+                </DropdownMenu>
+            </div>
+          );
         },
       },
     ],
-    [users, isLoading]
+    [users, isLoading, onEdit]
   );
 
   const table = useReactTable({

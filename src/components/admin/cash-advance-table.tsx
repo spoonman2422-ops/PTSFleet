@@ -27,14 +27,18 @@ import { DataTableColumnHeader } from '../ui/data-table-column-header';
 import type { CashAdvance, User } from '@/lib/types';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../ui/dropdown-menu';
+import { Edit, MoreHorizontal } from 'lucide-react';
+
 
 type CashAdvanceTableProps = {
   data: CashAdvance[];
   users: User[];
   isLoading: boolean;
+  onEdit: (cashAdvance: CashAdvance) => void;
 };
 
-export function CashAdvanceTable({ data, users, isLoading }: CashAdvanceTableProps) {
+export function CashAdvanceTable({ data, users, isLoading, onEdit }: CashAdvanceTableProps) {
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: 'date', desc: true }
   ]);
@@ -51,12 +55,12 @@ export function CashAdvanceTable({ data, users, isLoading }: CashAdvanceTablePro
         id: 'driverName',
         accessorFn: row => {
             const driver = users.find(u => u.id === row.driverId);
-            return driver?.name || 'Unknown';
+            return driver?.name;
         },
         header: ({ column }) => <DataTableColumnHeader column={column} title="Driver" />,
         cell: ({ row }) => {
           const driverName = row.getValue('driverName') as string;
-           return isLoading ? <Skeleton className="h-5 w-24" /> : <span className="font-medium">{driverName}</span>;
+           return (isLoading || !driverName) ? <Skeleton className="h-5 w-24" /> : <span className="font-medium">{driverName}</span>;
         },
       },
       {
@@ -70,9 +74,33 @@ export function CashAdvanceTable({ data, users, isLoading }: CashAdvanceTablePro
           }).format(amount);
           return <div className="text-right font-medium">{formatted}</div>;
         },
-      }
+      },
+       {
+        id: "actions",
+        cell: ({ row }) => {
+          const cashAdvance = row.original;
+          return (
+            <div className="text-right">
+                <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="h-8 w-8 p-0">
+                    <span className="sr-only">Open menu</span>
+                    <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => onEdit(cashAdvance)}>
+                    <Edit className="mr-2 h-4 w-4" />
+                    Edit
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+                </DropdownMenu>
+            </div>
+          );
+        },
+      },
     ],
-    [users, isLoading]
+    [users, isLoading, onEdit]
   );
 
   const table = useReactTable({

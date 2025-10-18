@@ -24,12 +24,24 @@ import { DriverPayrollCard } from '@/components/admin/driver-payroll-card';
 import { AddCashAdvanceForm } from '@/components/admin/add-cash-advance-form';
 import { CashAdvanceTable } from '@/components/admin/cash-advance-table';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { doc, updateDoc, addDoc, collection } from 'firebase/firestore';
+import { useToast } from '@/hooks/use-toast';
+import { useUser } from '@/context/user-context';
+import { CashAdvanceDialog } from '@/components/admin/cash-advance-dialog';
+
 
 export default function PayrollPage() {
   const [date, setDate] = useState<Date>(new Date());
   const { data: bookings, isLoading: isLoadingBookings } = useCollection<Booking>('bookings');
   const { data: users, isLoading: isLoadingUsers } = useCollection<User>('users');
   const { data: cashAdvances, isLoading: isLoadingCashAdvances } = useCollection<CashAdvance>('cashAdvances');
+  
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingCashAdvance, setEditingCashAdvance] = useState<CashAdvance | null>(null);
+
+  const firestore = useFirestore();
+  const { toast } = useToast();
+  const { user } = useUser();
 
   const weekStart = startOfWeek(date, { weekStartsOn: 1 });
   const weekEnd = endOfWeek(date, { weekStartsOn: 1 });
@@ -37,6 +49,44 @@ export default function PayrollPage() {
   const drivers = useMemo(() => {
     return (users || []).filter((user) => user.role === 'Driver');
   }, [users]);
+
+  const handleAddNewCashAdvance = async (data: Omit<CashAdvance, 'id' | 'addedBy'>) => {
+    if (!firestore || !user) {
+        toast({ variant: "destructive", title: "Error", description: "Not authenticated." });
+        return;
+    }
+    await addDoc(collection(firestore, 'cashAdvances'), {
+        ...data,
+        addedBy: user.id,
+    });
+    toast({ title: "Cash Advance Added", description: "The cash advance has been logged." });
+  };
+
+  const handleEditCashAdvance = (ca: CashAdvance) => {
+    setEditingCashAdvance(ca);
+    setIsDialogOpen(true);
+  };
+  
+  const handleSaveCashAdvance = async (data: Omit<CashAdvance, 'id' | 'addedBy'>, id?: string) => {
+    if (!firestore || !user) {
+      toast({ variant: "destructive", title: "Error", description: "Not authenticated." });
+      return;
+    }
+
+    const dataToSave = {
+      ...data,
+      date: format(new Date(data.date), "yyyy-MM-dd"),
+    };
+    
+    if (id) {
+        const docRef = doc(firestore, 'cashAdvances', id);
+        await updateDoc(docRef, dataToSave);
+        toast({ title: "Cash Advance Updated", description: "The cash advance has been updated." });
+    }
+    
+    setIsDialogOpen(false);
+  };
+
 
   const weeklyPayrollData = useMemo(() => {
     const deliveredBookings = (bookings || []).filter(
@@ -94,6 +144,7 @@ export default function PayrollPage() {
   const isLoading = isLoadingBookings || isLoadingUsers || isLoadingCashAdvances;
 
   return (
+    <>
     <div className="flex flex-col gap-6">
       <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
         <div>
@@ -130,7 +181,7 @@ export default function PayrollPage() {
 
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-1 flex flex-col gap-6">
-          <AddCashAdvanceForm drivers={drivers} />
+          <AddCashAdvanceForm drivers={drivers} onSave={handleAddNewCashAdvance} />
           <Card>
             <CardHeader>
                 <CardTitle>Cash Advance History</CardTitle>
@@ -140,6 +191,7 @@ export default function PayrollPage() {
                     data={cashAdvances || []} 
                     users={users || []} 
                     isLoading={isLoadingCashAdvances || isLoadingUsers}
+                    onEdit={handleEditCashAdvance}
                 />
             </CardContent>
           </Card>
@@ -179,5 +231,13 @@ export default function PayrollPage() {
         </div>
       </div>
     </div>
+    <CashAdvanceDialog
+        isOpen={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        onSave={handleSaveCashAdvance}
+        cashAdvance={editingCashAdvance}
+        drivers={drivers}
+    />
+    </>
   );
 }

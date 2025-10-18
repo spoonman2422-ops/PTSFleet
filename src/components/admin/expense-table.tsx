@@ -42,7 +42,9 @@ type ExpenseTableProps = {
 }
 
 export function ExpenseTable({ data, users, isLoading, onEdit }: ExpenseTableProps) {
-  const [sorting, setSorting] = React.useState<SortingState>([])
+  const [sorting, setSorting] = React.useState<SortingState>([
+      { id: "dateIncurred", desc: true }
+  ])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
   const [globalFilter, setGlobalFilter] = React.useState("")
   const [columnVisibility, setColumnVisibility] =
@@ -83,11 +85,11 @@ export function ExpenseTable({ data, users, isLoading, onEdit }: ExpenseTablePro
     },
     {
       id: "addedByName",
-      accessorFn: (row) => users?.find(u => u.id === row.addedBy)?.name || 'Unknown',
+      accessorFn: (row) => users?.find(u => u.id === row.addedBy)?.name,
       header: ({ column }) => <DataTableColumnHeader column={column} title="Added By" />,
       cell: ({ row }) => {
         const userName = row.getValue("addedByName") as string;
-        return isLoading ? <Skeleton className="h-5 w-24" /> : <span>{userName}</span>;
+        return (isLoading || !userName) ? <Skeleton className="h-5 w-24" /> : <span>{userName}</span>;
       },
     },
      {

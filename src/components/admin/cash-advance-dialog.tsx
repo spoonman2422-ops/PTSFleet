@@ -1,18 +1,20 @@
 
 "use client";
 
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useToast } from '@/hooks/use-toast';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 import {
   Form,
   FormControl,
@@ -21,6 +23,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -28,13 +31,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { CalendarIcon, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { User, CashAdvance } from '@/lib/types';
+
 
 const cashAdvanceSchema = z.object({
   driverId: z.string().min(1, 'Driver is required.'),
@@ -46,13 +48,17 @@ const cashAdvanceSchema = z.object({
 
 type CashAdvanceFormValues = z.infer<typeof cashAdvanceSchema>;
 
-type AddCashAdvanceFormProps = {
-    drivers: User[];
-    onSave: (data: Omit<CashAdvance, 'id' | 'addedBy'>) => Promise<void>;
-}
+type CashAdvanceDialogProps = {
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSave: (data: Omit<CashAdvance, 'id' | 'addedBy'>, id?: string) => Promise<void>;
+  cashAdvance: CashAdvance | null;
+  drivers: User[];
+};
 
-export function AddCashAdvanceForm({ drivers, onSave }: AddCashAdvanceFormProps) {
-  const { toast } = useToast();
+export function CashAdvanceDialog({ isOpen, onOpenChange, onSave, cashAdvance, drivers }: CashAdvanceDialogProps) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const isEditMode = !!cashAdvance;
 
   const form = useForm<CashAdvanceFormValues>({
     resolver: zodResolver(cashAdvanceSchema),
@@ -60,31 +66,46 @@ export function AddCashAdvanceForm({ drivers, onSave }: AddCashAdvanceFormProps)
       driverId: undefined,
       amount: 0,
       date: new Date(),
-    },
+    }
   });
 
-  const onSubmit = async (data: CashAdvanceFormValues) => {
-    await onSave({
-      ...data,
-      date: format(data.date, 'yyyy-MM-dd'),
-    });
-    form.reset({
-        driverId: undefined,
-        amount: 0,
-        date: new Date()
-    });
-  };
+  useEffect(() => {
+    if (isOpen) {
+      if (isEditMode && cashAdvance) {
+        form.reset({
+          driverId: cashAdvance.driverId,
+          amount: cashAdvance.amount,
+          date: cashAdvance.date ? parseISO(cashAdvance.date) : new Date(),
+        });
+      } else {
+        form.reset({
+            driverId: undefined,
+            amount: 0,
+            date: new Date(),
+        });
+      }
+    }
+  }, [isOpen, isEditMode, cashAdvance, form]);
 
+  const handleSubmit = async (data: CashAdvanceFormValues) => {
+    setIsSubmitting(true);
+    await onSave(data, cashAdvance?.id);
+    setIsSubmitting(false);
+  };
+  
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Log Cash Advance</CardTitle>
-        <CardDescription>Record a new cash advance for a driver.</CardDescription>
-      </CardHeader>
-      <CardContent>
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>{isEditMode ? 'Edit Cash Advance' : 'Log New Cash Advance'}</DialogTitle>
+          <DialogDescription>
+            {isEditMode ? "Update the details of the cash advance." : 'Fill in the details to record a new cash advance.'}
+          </DialogDescription>
+        </DialogHeader>
+
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <FormField
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6 pt-4">
+             <FormField
               control={form.control}
               name="driverId"
               render={({ field }) => (
@@ -154,13 +175,18 @@ export function AddCashAdvanceForm({ drivers, onSave }: AddCashAdvanceFormProps)
                 </FormItem>
               )}
             />
-            <Button type="submit" disabled={form.formState.isSubmitting} className="w-full">
-              {form.formState.isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              {form.formState.isSubmitting ? 'Saving...' : 'Save Advance'}
-            </Button>
+            <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                    Cancel
+                </Button>
+                <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    {isSubmitting ? 'Saving...' : 'Save'}
+                </Button>
+            </DialogFooter>
           </form>
         </Form>
-      </CardContent>
-    </Card>
+      </DialogContent>
+    </Dialog>
   );
 }
