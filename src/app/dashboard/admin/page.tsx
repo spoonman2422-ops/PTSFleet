@@ -1,21 +1,155 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ShieldCheck } from "lucide-react";
+
+"use client";
+
+import { useState } from "react";
+import {
+  collection,
+  getDocs,
+  writeBatch,
+} from "firebase/firestore";
+import { useFirestore } from "@/firebase";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { ShieldCheck, Trash2, Loader2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { useToast } from "@/hooks/use-toast";
 
 export default function AdminPage() {
+  const firestore = useFirestore();
+  const { toast } = useToast();
+  const [isResetting, setIsResetting] = useState(false);
+
+  const handleResetData = async () => {
+    if (!firestore) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Firestore is not available.",
+      });
+      return;
+    }
+
+    setIsResetting(true);
+    try {
+      const collectionsToDelete = [
+        "bookings",
+        "invoices",
+        "expenses",
+        "cashAdvances",
+        "revolvingFundContributions",
+      ];
+      
+      const batch = writeBatch(firestore);
+
+      for (const collectionName of collectionsToDelete) {
+        const collectionRef = collection(firestore, collectionName);
+        const querySnapshot = await getDocs(collectionRef);
+        
+        // Handling subcollections for bookings (messages)
+        if (collectionName === "bookings") {
+            for (const doc of querySnapshot.docs) {
+                const messagesRef = collection(firestore, `bookings/${doc.id}/messages`);
+                const messagesSnapshot = await getDocs(messagesRef);
+                messagesSnapshot.forEach(messageDoc => {
+                    batch.delete(messageDoc.ref);
+                });
+                batch.delete(doc.ref);
+            }
+        } else {
+             querySnapshot.forEach((doc) => {
+                batch.delete(doc.ref);
+             });
+        }
+      }
+
+      await batch.commit();
+
+      toast({
+        title: "Application Data Reset",
+        description: "All transactional data has been successfully cleared.",
+      });
+    } catch (error: any) {
+      console.error("Error resetting data: ", error);
+      toast({
+        variant: "destructive",
+        title: "Reset Failed",
+        description: error.message || "An unexpected error occurred.",
+      });
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-6">
       <h1 className="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <ShieldCheck className="h-6 w-6" />
-            <span>Admin Panel</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p>Welcome, Admin. This is where administrative controls and system overview will be displayed.</p>
-        </CardContent>
-      </Card>
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ShieldCheck className="h-6 w-6" />
+              <span>Admin Panel</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p>Welcome, Admin. This is where administrative controls and system overview will be displayed.</p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-destructive/50">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="h-6 w-6" />
+              <span>Data Management</span>
+            </CardTitle>
+            <CardDescription>
+                Use these actions to manage application data. These actions are irreversible.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" disabled={isResetting}>
+                  {isResetting ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="mr-2 h-4 w-4" />
+                  )}
+                  {isResetting ? "Resetting..." : "Reset Application Data"}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action cannot be undone. This will permanently delete all bookings, invoices, expenses, cash advances, and fund contributions. 
+                    <strong className="font-bold"> User accounts will not be deleted.</strong>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleResetData}
+                    className="bg-destructive hover:bg-destructive/90"
+                  >
+                    Yes, delete all data
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
