@@ -8,15 +8,25 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { FileText, Printer, MoreHorizontal } from 'lucide-react';
+import { FileText, Printer, MoreHorizontal, Trash2 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import { InvoiceSheet } from '@/components/admin/invoice-sheet';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { doc, updateDoc } from 'firebase/firestore';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 
 const statusConfig: Record<InvoiceStatus, { variant: 'secondary' | 'default' | 'destructive', className: string }> = {
@@ -37,6 +47,9 @@ export default function InvoicesPage() {
     const [isSheetOpen, setIsSheetOpen] = useState(false);
     const [filterStatus, setFilterStatus] = useState<InvoiceStatus | 'All'>('All');
     const [searchQuery, setSearchQuery] = useState('');
+    const [deletingInvoice, setDeletingInvoice] = useState<Invoice | null>(null);
+    const [isAlertOpen, setIsAlertOpen] = useState(false);
+
 
     const { toast } = useToast();
 
@@ -87,6 +100,34 @@ export default function InvoicesPage() {
                 title: 'Error updating status',
                 description: (error as Error).message,
             });
+        }
+    };
+
+    const handleOpenDeleteDialog = (invoice: Invoice) => {
+        setDeletingInvoice(invoice);
+        setIsAlertOpen(true);
+    };
+
+    const handleDeleteInvoice = async () => {
+        if (!deletingInvoice || !firestore) return;
+
+        try {
+            const invoiceRef = doc(firestore, 'invoices', deletingInvoice.id);
+            await deleteDoc(invoiceRef);
+
+            toast({
+                title: 'Invoice Deleted',
+                description: `Invoice #${deletingInvoice.id.substring(0, 7)} has been permanently deleted.`,
+            });
+        } catch (error: any) {
+            toast({
+                variant: 'destructive',
+                title: 'Failed to delete invoice',
+                description: error.message || 'An unknown error occurred.',
+            });
+        } finally {
+            setIsAlertOpen(false);
+            setDeletingInvoice(null);
         }
     };
     
@@ -185,6 +226,7 @@ export default function InvoicesPage() {
                                                             </Button>
                                                         </DropdownMenuTrigger>
                                                         <DropdownMenuContent>
+                                                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
                                                             <DropdownMenuItem onClick={() => handleUpdateStatus(invoice.id, 'Paid')} disabled={invoice.status === 'Paid'}>
                                                                 Mark as Paid
                                                             </DropdownMenuItem>
@@ -193,6 +235,11 @@ export default function InvoicesPage() {
                                                             </DropdownMenuItem>
                                                             <DropdownMenuItem onClick={() => handleUpdateStatus(invoice.id, 'Overdue')} disabled={invoice.status === 'Overdue'}>
                                                                 Mark as Overdue
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuSeparator />
+                                                            <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10" onClick={() => handleOpenDeleteDialog(invoice)}>
+                                                                <Trash2 className="mr-2 h-4 w-4" />
+                                                                Delete
                                                             </DropdownMenuItem>
                                                         </DropdownMenuContent>
                                                     </DropdownMenu>
@@ -222,6 +269,23 @@ export default function InvoicesPage() {
                     client={selectedClient}
                  />
             )}
+             <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
+                <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                    This action cannot be undone. This will permanently delete the invoice{' '}
+                    <span className="font-bold">#{deletingInvoice?.id.substring(0, 7).toUpperCase()}</span>.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDeleteInvoice} className="bg-destructive hover:bg-destructive/90">
+                    Delete
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </>
     );
 }
