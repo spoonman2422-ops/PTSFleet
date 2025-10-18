@@ -29,6 +29,7 @@ type BookingTableProps = {
   isLoading: boolean;
   onEdit: (booking: Booking) => void;
   onUpdateStatus: (bookingId: string, status: BookingStatus) => void;
+  onDelete: (booking: Booking) => void;
   filterStatus: BookingStatus | 'All';
   setFilterStatus: (status: BookingStatus | 'All') => void;
   onRowClick: (bookingId: string) => void;
@@ -48,7 +49,7 @@ const statusConfig: Record<BookingStatus, { variant: 'secondary' | 'default' | '
 
 const bookingStatuses: (BookingStatus | 'All')[] = ['All', 'pending', 'En Route', 'Pending Verification', 'Delivered', 'cancelled'];
 
-export function BookingTable({ bookings, isLoading, onEdit, onUpdateStatus, filterStatus, setFilterStatus, onRowClick, selectedBookingId, users, searchQuery, setSearchQuery }: BookingTableProps) {
+export function BookingTable({ bookings, isLoading, onEdit, onUpdateStatus, onDelete, filterStatus, setFilterStatus, onRowClick, selectedBookingId, users, searchQuery, setSearchQuery }: BookingTableProps) {
   return (
     <div className="border rounded-lg bg-card text-card-foreground shadow-sm flex-1 flex flex-col">
         <div className="p-4 border-b flex flex-col sm:flex-row gap-4 justify-between sm:items-center">
@@ -133,7 +134,7 @@ export function BookingTable({ bookings, isLoading, onEdit, onUpdateStatus, filt
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <BookingTableActions booking={booking} onEdit={onEdit} onUpdateStatus={onUpdateStatus} />
+                    <BookingTableActions booking={booking} onEdit={onEdit} onUpdateStatus={onUpdateStatus} onDelete={onDelete} />
                   </TableCell>
                 </TableRow>
               );
@@ -151,3 +152,5 @@ export function BookingTable({ bookings, isLoading, onEdit, onUpdateStatus, filt
     </div>
   );
 }
+
+    

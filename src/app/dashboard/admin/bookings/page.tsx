@@ -10,11 +10,22 @@ import { BookingDialog } from '@/components/dispatcher/booking-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { MessageBoard } from '@/components/message-board';
 import { useFirestore, useCollection } from '@/firebase';
-import { addDoc, collection, serverTimestamp, doc, setDoc, updateDoc } from 'firebase/firestore';
+import { addDoc, collection, serverTimestamp, doc, setDoc, updateDoc, deleteDoc, getDocs, writeBatch } from 'firebase/firestore';
 import { useUser } from '@/context/user-context';
 import { vehicles } from '@/lib/data';
 import { format } from 'date-fns';
 import { Input } from '@/components/ui/input';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+
 
 export default function AdminBookingsPage() {
   const firestore = useFirestore();
@@ -27,6 +38,8 @@ export default function AdminBookingsPage() {
   const [selectedBookingId, setSelectedBookingId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const { user } = useUser();
+  const [deletingBooking, setDeletingBooking] = useState<Booking | null>(null);
+  const [isAlertOpen, setIsAlertOpen] = useState(false);
 
   const { toast } = useToast();
 
@@ -39,6 +52,50 @@ export default function AdminBookingsPage() {
     setEditingBooking(booking);
     setIsDialogOpen(true);
   };
+
+  const handleOpenDeleteDialog = (booking: Booking) => {
+    setDeletingBooking(booking);
+    setIsAlertOpen(true);
+  };
+
+  const handleDeleteBooking = async () => {
+    if (!deletingBooking || !firestore) return;
+
+    try {
+      // Delete subcollection first
+      const messagesPath = `bookings/${deletingBooking.id}/messages`;
+      const messagesSnapshot = await getDocs(collection(firestore, messagesPath));
+      const batch = writeBatch(firestore);
+      messagesSnapshot.forEach(doc => {
+        batch.delete(doc.ref);
+      });
+      await batch.commit();
+
+      // Then delete the booking document itself
+      const bookingRef = doc(firestore, 'bookings', deletingBooking.id!);
+      await deleteDoc(bookingRef);
+
+      toast({
+        title: 'Booking Deleted',
+        description: `Booking #${deletingBooking.id!.substring(0, 7)} and all its messages have been deleted.`,
+      });
+
+      if (selectedBookingId === deletingBooking.id) {
+          setSelectedBookingId(null);
+      }
+
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Failed to delete booking',
+        description: error.message || 'An unknown error occurred.',
+      });
+    } finally {
+      setIsAlertOpen(false);
+      setDeletingBooking(null);
+    }
+  };
+
 
   const createExpenseFromBooking = async (
     bookingData: Omit<Booking, 'status' | 'id'>,
@@ -256,6 +313,7 @@ export default function AdminBookingsPage() {
           isLoading={isLoadingBookings || isLoadingUsers}
           onEdit={handleEdit}
           onUpdateStatus={handleUpdateStatus}
+          onDelete={handleOpenDeleteDialog}
           filterStatus={filterStatus}
           setFilterStatus={setFilterStatus}
           onRowClick={handleRowClick}
@@ -285,10 +343,26 @@ export default function AdminBookingsPage() {
         drivers={drivers}
         vehicles={vehicles}
       />
+
+      <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
+        <AlertDialogContent>
+        <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+            This action cannot be undone. This will permanently delete booking{' '}
+            <span className="font-bold">#{(deletingBooking?.id || '').substring(0, 7).toUpperCase()}</span> and all its associated messages.
+            </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteBooking} className="bg-destructive hover:bg-destructive/90">
+            Delete
+            </AlertDialogAction>
+        </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
-
-    
 
     

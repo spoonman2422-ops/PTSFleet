@@ -13,16 +13,17 @@ import {
   DropdownMenuSubContent
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { MoreHorizontal, Edit, Truck, CheckCircle2, XCircle, Package, Clock } from "lucide-react";
+import { MoreHorizontal, Edit, Truck, CheckCircle2, XCircle, Package, Clock, Trash2 } from "lucide-react";
 import type { Booking, BookingStatus } from "@/lib/types";
 
 type BookingTableActionsProps = {
   booking: Booking;
   onEdit: (booking: Booking) => void;
   onUpdateStatus: (bookingId: string, status: BookingStatus) => void;
+  onDelete: (booking: Booking) => void;
 };
 
-export function BookingTableActions({ booking, onEdit, onUpdateStatus }: BookingTableActionsProps) {
+export function BookingTableActions({ booking, onEdit, onUpdateStatus, onDelete }: BookingTableActionsProps) {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -43,33 +44,39 @@ export function BookingTableActions({ booking, onEdit, onUpdateStatus }: Booking
                 <span>Change Status</span>
             </DropdownMenuSubTrigger>
             <DropdownMenuSubContent>
-                <DropdownMenuItem onClick={() => onUpdateStatus(booking.id, 'pending')} disabled={booking.status === 'pending'}>
+                <DropdownMenuItem onClick={() => onUpdateStatus(booking.id!, 'pending')} disabled={booking.status === 'pending'}>
                     <Package className="mr-2 h-4 w-4"/>
                     Pending
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onUpdateStatus(booking.id, 'En Route')} disabled={booking.status === 'En Route'}>
+                <DropdownMenuItem onClick={() => onUpdateStatus(booking.id!, 'En Route')} disabled={booking.status === 'En Route'}>
                     <Truck className="mr-2 h-4 w-4"/>
                     En Route
                 </DropdownMenuItem>
-                 <DropdownMenuItem onClick={() => onUpdateStatus(booking.id, 'Pending Verification')} disabled={booking.status === 'Pending Verification'}>
+                 <DropdownMenuItem onClick={() => onUpdateStatus(booking.id!, 'Pending Verification')} disabled={booking.status === 'Pending Verification'}>
                     <Clock className="mr-2 h-4 w-4"/>
                     Pending Verification
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => onUpdateStatus(booking.id, 'Delivered')} disabled={booking.status === 'Delivered'}>
+                <DropdownMenuItem onClick={() => onUpdateStatus(booking.id!, 'Delivered')} disabled={booking.status === 'Delivered'}>
                     <CheckCircle2 className="mr-2 h-4 w-4"/>
                     Delivered
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onUpdateStatus(booking.id!, 'cancelled')} disabled={booking.status === 'cancelled'}>
+                    <XCircle className="mr-2 h-4 w-4"/>
+                    Cancelled
                 </DropdownMenuItem>
             </DropdownMenuSubContent>
         </DropdownMenuSub>
         <DropdownMenuSeparator />
         <DropdownMenuItem
           className="text-destructive focus:text-destructive focus:bg-destructive/10"
-          onClick={() => onUpdateStatus(booking.id, 'cancelled')}
+          onClick={() => onDelete(booking)}
         >
-          <XCircle className="mr-2 h-4 w-4" />
-          <span>Cancel Booking</span>
+          <Trash2 className="mr-2 h-4 w-4" />
+          <span>Delete Booking</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
 }
+
+    
