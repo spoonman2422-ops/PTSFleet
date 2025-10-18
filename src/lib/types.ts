@@ -77,7 +77,8 @@ export interface Message {
 
 export interface Expense {
   id: string;
-  category: "fuel" | "maintenance" | "toll" | "office" | "staff" | "permits" | "vehicle parts" | "pms" | "change oil" | "client representation" | "driver/helper rate";
+  bookingId?: string;
+  category: "fuel" | "maintenance" | "toll" | "office" | "staff" | "permits" | "vehicle parts" | "pms" | "change oil" | "client representation" | "driver rate";
   description: string;
   amount: number;
   vatIncluded: boolean;

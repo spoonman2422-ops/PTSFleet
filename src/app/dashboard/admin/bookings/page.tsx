@@ -10,7 +10,7 @@ import { BookingDialog } from '@/components/dispatcher/booking-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { MessageBoard } from '@/components/message-board';
 import { useFirestore, useCollection } from '@/firebase';
-import { addDoc, collection, serverTimestamp, doc, setDoc, updateDoc, deleteDoc, getDocs, writeBatch } from 'firebase/firestore';
+import { addDoc, collection, serverTimestamp, doc, setDoc, updateDoc, deleteDoc, getDocs, writeBatch, query, where } from 'firebase/firestore';
 import { useUser } from '@/context/user-context';
 import { vehicles } from '@/lib/data';
 import { format } from 'date-fns';
@@ -62,22 +62,32 @@ export default function AdminBookingsPage() {
     if (!deletingBooking || !firestore) return;
 
     try {
-      // Delete subcollection first
+      const batch = writeBatch(firestore);
+
+      // 1. Delete associated expenses
+      const expensesQuery = query(collection(firestore, "expenses"), where("bookingId", "==", deletingBooking.id));
+      const expensesSnapshot = await getDocs(expensesQuery);
+      expensesSnapshot.forEach(doc => {
+        batch.delete(doc.ref);
+      });
+
+      // 2. Delete messages subcollection
       const messagesPath = `bookings/${deletingBooking.id}/messages`;
       const messagesSnapshot = await getDocs(collection(firestore, messagesPath));
-      const batch = writeBatch(firestore);
       messagesSnapshot.forEach(doc => {
         batch.delete(doc.ref);
       });
+      
+      // 3. Delete the booking document itself
+      const bookingRef = doc(firestore, 'bookings', deletingBooking.id!);
+      batch.delete(bookingRef);
+
       await batch.commit();
 
-      // Then delete the booking document itself
-      const bookingRef = doc(firestore, 'bookings', deletingBooking.id!);
-      await deleteDoc(bookingRef);
 
       toast({
         title: 'Booking Deleted',
-        description: `Booking #${deletingBooking.id!.substring(0, 7)} and all its messages have been deleted.`,
+        description: `Booking #${deletingBooking.id!.substring(0, 7)} and all associated data have been deleted.`,
       });
 
       if (selectedBookingId === deletingBooking.id) {
@@ -106,6 +116,7 @@ export default function AdminBookingsPage() {
     if (!firestore || !user || !amount || amount <= 0) return;
 
     const expenseData = {
+      bookingId,
       category,
       description: `Mobilization Expense for Booking #${bookingId.substring(0,7)}`,
       amount: amount,
@@ -137,6 +148,18 @@ export default function AdminBookingsPage() {
     const isEditing = !!editingBooking;
     const bookingRef = doc(firestore, 'bookings', id);
 
+    // --- Delete old expenses before creating new ones ---
+    if (isEditing) {
+      const expensesQuery = query(collection(firestore, "expenses"), where("bookingId", "==", id));
+      const expensesSnapshot = await getDocs(expensesQuery);
+      const batch = writeBatch(firestore);
+      expensesSnapshot.forEach(doc => {
+          batch.delete(doc.ref);
+      });
+      await batch.commit();
+    }
+    // --- End of delete logic ---
+
     if (isEditing) {
       await updateDoc(bookingRef, dataToSave);
       toast({ title: "Booking Updated", description: `Booking #${id.substring(0, 7)} has been successfully updated.` });
@@ -156,7 +179,7 @@ export default function AdminBookingsPage() {
     }
 
     // Create expense entries for both new and updated bookings
-    await createExpenseFromBooking(dataToSave, id, "driver/helper rate", dataToSave.driverRate);
+    await createExpenseFromBooking(dataToSave, id, "driver rate", dataToSave.driverRate);
     await createExpenseFromBooking(dataToSave, id, "toll", dataToSave.expectedExpenses.tollFee);
     await createExpenseFromBooking(dataToSave, id, "fuel", dataToSave.expectedExpenses.fuel);
     await createExpenseFromBooking(dataToSave, id, "client representation", dataToSave.expectedExpenses.others);
@@ -350,7 +373,7 @@ export default function AdminBookingsPage() {
             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
             <AlertDialogDescription>
             This action cannot be undone. This will permanently delete booking{' '}
-            <span className="font-bold">#{(deletingBooking?.id || '').substring(0, 7).toUpperCase()}</span> and all its associated messages.
+            <span className="font-bold">#{(deletingBooking?.id || '').substring(0, 7).toUpperCase()}</span> and all its associated data.
             </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
@@ -364,5 +387,3 @@ export default function AdminBookingsPage() {
     </div>
   );
 }
-
-    
