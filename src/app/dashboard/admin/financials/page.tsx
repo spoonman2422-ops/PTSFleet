@@ -269,7 +269,7 @@ export default function FinancialsPage() {
                   {upcomingCollections.map(booking => (
                     <TableRow key={booking.id}>
                       <TableCell>
-                        <div className="font-medium">#{booking.id?.substring(0,7)}</div>
+                        <div className="font-medium">#{(booking.id || '').substring(0,7)}</div>
                         <div className="text-xs text-muted-foreground">{format(parseISO(booking.collectionDate), 'PP')}</div>
                       </TableCell>
                       <TableCell>{booking.clientId}</TableCell>
@@ -303,8 +303,8 @@ export default function FinancialsPage() {
                         {outstandingPayments.map(({ invoice, booking }) => (
                             <TableRow key={invoice.id}>
                                 <TableCell>
-                                    <div className="font-medium">Inv #{invoice.id.substring(0, 4)}</div>
-                                    <div className="text-xs text-muted-foreground">Book #{booking?.id.substring(0,4)}</div>
+                                    <div className="font-medium">Inv #{invoice.id.substring(0, 7)}</div>
+                                    <div className="text-xs text-muted-foreground">Book #{(booking?.id || '').substring(0,7)}</div>
                                 </TableCell>
                                 <TableCell>{booking?.clientId || invoice.clientId}</TableCell>
                                 <TableCell className="text-right text-red-600 font-medium">
@@ -332,7 +332,7 @@ export default function FinancialsPage() {
                         {completedCollections.slice(0, 5).map(({ invoice, booking }) => (
                             <div key={invoice.id} className="flex justify-between items-center">
                                 <div>
-                                    <p className="font-medium">#{invoice.id.substring(0, 4)}</p>
+                                    <p className="font-medium">#{invoice.id.substring(0, 7)}</p>
                                     <p className="text-sm text-muted-foreground">{booking?.clientId || invoice.clientId}</p>
                                 </div>
                                 <div className="text-right">
@@ -437,7 +437,7 @@ export default function FinancialsPage() {
                         {profitTrackerData.map(booking => (
                             <TableRow key={booking.id}>
                             <TableCell>
-                                <div className="font-medium">#{booking.id?.substring(0, 7)}</div>
+                                <div className="font-medium">#{(booking.id || '').substring(0, 7)}</div>
                             </TableCell>
                             <TableCell>{booking.clientId}</TableCell>
                             <TableCell>{format(parseISO(booking.dueDate), 'PP')}</TableCell>

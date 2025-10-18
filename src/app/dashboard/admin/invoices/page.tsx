@@ -79,7 +79,7 @@ export default function InvoicesPage() {
             await updateDoc(invoiceRef, { status });
             toast({
                 title: 'Invoice Status Updated',
-                description: `Invoice #${invoiceId.substring(0,4)} has been marked as ${status}.`,
+                description: `Invoice #${invoiceId.substring(0,7)} has been marked as ${status}.`,
             });
         } catch (error) {
             toast({

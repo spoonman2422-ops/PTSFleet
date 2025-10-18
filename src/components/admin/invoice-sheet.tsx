@@ -140,7 +140,7 @@ export function InvoiceSheet({ isOpen, onOpenChange, invoice, booking, client }:
                   <td className="py-4">
                     <p className="font-medium">Transport Services</p>
                     <p className="text-muted-foreground text-xs">
-                        Booking ID: #{booking.id?.substring(0,7).toUpperCase()}<br/>
+                        Booking ID: #{(booking.id || '').substring(0,7).toUpperCase()}<br/>
                         Route: {booking.pickupLocation} to {booking.dropoffLocation}<br/>
                         Date: {format(parseISO(booking.bookingDate), 'PP')}
                     </p>
