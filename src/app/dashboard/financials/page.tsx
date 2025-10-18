@@ -156,14 +156,26 @@ export default function FinancialsPage() {
   }, [invoices, expenses, taxFilter]);
 
   const cashOnHandData = useMemo(() => {
-    if (!invoices || !expenses || !contributions) {
+    if (!invoices || !expenses || !contributions || !bookings) {
         return { totalCollections: 0, totalExpenses: 0, totalRevolvingFund: 0, cashOnHand: 0 };
     }
     const startDate = getStartDate(cashOnHandFilter);
 
-    const totalCollections = (invoices || [])
-        .filter(inv => inv.status === 'Paid' && inv.dateIssued && isAfter(parseISO(inv.dateIssued), startDate))
-        .reduce((sum, inv) => sum + inv.grossSales, 0);
+    const paidInvoices = (invoices || [])
+        .filter(inv => inv.status === 'Paid' && inv.dateIssued && isAfter(parseISO(inv.dateIssued), startDate));
+    
+    const totalNetCollections = paidInvoices.reduce((sum, inv) => {
+        const booking = bookings.find(b => b.id === inv.bookingId);
+        if (!booking) return sum;
+
+        const bookingExpenses = (booking.driverRate || 0) +
+                                (booking.expectedExpenses?.tollFee || 0) +
+                                (booking.expectedExpenses?.fuel || 0) +
+                                (booking.expectedExpenses?.others || 0);
+
+        const netFromBooking = booking.bookingRate - bookingExpenses;
+        return sum + netFromBooking;
+    }, 0);
 
     const totalExpenses = (expenses || [])
         .filter(exp => exp.dateIncurred && isAfter(parseISO(exp.dateIncurred), startDate))
@@ -173,10 +185,22 @@ export default function FinancialsPage() {
         .filter(c => c.contributionDate && isAfter(parseISO(c.contributionDate), startDate))
         .reduce((sum, c) => sum + c.amount, 0);
     
-    const cashOnHand = totalRevolvingFund + totalCollections - totalExpenses;
+    // Here we consider totalExpenses already includes the ones from bookings,
+    // so we use totalNetCollections which is gross sales - booking-specific expenses.
+    // If expenses from bookings are NOT in the main expenses list, we need to adjust.
+    // Based on previous work, booking expenses ARE added to the expenses collection.
+    // So `totalExpenses` is the grand total.
+    // The cash inflow is from collections (gross) and revolving fund.
+    const totalCashIn = paidInvoices.reduce((sum, inv) => sum + inv.grossSales, 0) + totalRevolvingFund;
+    const cashOnHand = totalCashIn - totalExpenses;
 
-    return { totalRevolvingFund, totalCollections, totalExpenses, cashOnHand };
-  }, [invoices, expenses, contributions, cashOnHandFilter]);
+    return { 
+        totalRevolvingFund, 
+        totalCollections: paidInvoices.reduce((sum, inv) => sum + inv.grossSales, 0), 
+        totalExpenses, 
+        cashOnHand 
+    };
+}, [invoices, expenses, contributions, bookings, cashOnHandFilter]);
   
   const vehicleProfitabilityData = useMemo(() => {
     if (!bookings) return [];
@@ -365,7 +389,7 @@ export default function FinancialsPage() {
                           <span className="font-medium text-green-600">+{formatCurrency(cashOnHandData.totalRevolvingFund)}</span>
                       </div>
                       <div className="flex justify-between items-center">
-                          <span className="text-muted-foreground">Total Collections</span>
+                          <span className="text-muted-foreground">Total Collections (Gross)</span>
                           <span className="font-medium text-green-600">+{formatCurrency(cashOnHandData.totalCollections)}</span>
                       </div>
                       <div className="flex justify-between items-center">
@@ -609,6 +633,8 @@ export default function FinancialsPage() {
     </div>
   );
 }
+
+    
 
     
 
