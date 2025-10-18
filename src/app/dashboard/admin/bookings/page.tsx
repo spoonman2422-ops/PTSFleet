@@ -40,7 +40,7 @@ export default function AdminBookingsPage() {
     setIsDialogOpen(true);
   };
 
-  const handleSaveBooking = async (bookingData: Omit<Booking, 'id' | 'status'>, id?: string) => {
+  const handleSaveBooking = async (bookingData: Omit<Booking, 'status'>, id: string) => {
     if (!firestore) return;
     
     const dataToSave = {
@@ -52,25 +52,26 @@ export default function AdminBookingsPage() {
         fuel: Number(bookingData.expectedExpenses.fuel) || 0,
         others: Number(bookingData.expectedExpenses.others) || 0,
       }
-    }
+    };
+    
+    const isEditing = !!editingBooking;
+    const bookingRef = doc(firestore, 'bookings', id);
 
-    if (id) {
+    if (isEditing) {
       // Update existing booking
-      const bookingRef = doc(firestore, 'bookings', id);
       await updateDoc(bookingRef, dataToSave);
-
       toast({ title: "Booking Updated", description: `Booking #${id.substring(0, 4)} has been successfully updated.` });
       if(bookingData.driverId) {
         toast({ title: "Driver Notified", description: `A notification has been sent for the updated assignment.` });
       }
     } else {
-      // Create new booking
+      // Create new booking with user-provided ID
       const newBooking: Omit<Booking, 'id'> = {
         ...dataToSave,
         status: 'pending',
       };
-      const docRef = await addDoc(collection(firestore, 'bookings'), newBooking);
-      toast({ title: "Booking Created", description: `A new booking #${docRef.id.substring(0,4)} has been created.` });
+      await setDoc(bookingRef, newBooking);
+      toast({ title: "Booking Created", description: `A new booking #${id.substring(0,4)} has been created.` });
        if(newBooking.driverId) {
         toast({ title: "Driver Notified", description: `A notification has been sent to the assigned driver.` });
       }
@@ -187,7 +188,7 @@ export default function AdminBookingsPage() {
         filtered = filtered.filter(booking => {
             const driver = users?.find(u => u.id === booking.driverId);
             return (
-                (booking.id && booking.id.substring(0, 4).toLowerCase().includes(lowercasedQuery)) ||
+                (booking.id && booking.id.toLowerCase().includes(lowercasedQuery)) ||
                 (booking.clientId && booking.clientId.toLowerCase().includes(lowercasedQuery)) ||
                 (driver && driver.name && driver.name.toLowerCase().includes(lowercasedQuery)) ||
                 (booking.pickupLocation && booking.pickupLocation.toLowerCase().includes(lowercasedQuery)) ||

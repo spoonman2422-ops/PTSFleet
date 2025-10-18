@@ -39,7 +39,7 @@ export default function DispatcherPage() {
     setIsDialogOpen(true);
   };
 
-  const handleSaveBooking = async (bookingData: Omit<Booking, 'id' | 'status'>, id?: string) => {
+  const handleSaveBooking = async (bookingData: Omit<Booking, 'status'>, id: string) => {
     if (!firestore) return;
     
     const dataToSave = {
@@ -51,25 +51,26 @@ export default function DispatcherPage() {
         fuel: Number(bookingData.expectedExpenses.fuel) || 0,
         others: Number(bookingData.expectedExpenses.others) || 0,
       }
-    }
+    };
+    
+    const isEditing = !!editingBooking;
+    const bookingRef = doc(firestore, 'bookings', id);
 
-    if (id) {
+    if (isEditing) {
       // Update existing booking
-      const bookingRef = doc(firestore, 'bookings', id);
       await updateDoc(bookingRef, dataToSave);
-
       toast({ title: "Booking Updated", description: `Booking #${id.substring(0, 4)} has been successfully updated.` });
       if(bookingData.driverId) {
         toast({ title: "Driver Notified", description: `A notification has been sent for the updated assignment.` });
       }
     } else {
-      // Create new booking
+      // Create new booking with user-provided ID
       const newBooking: Omit<Booking, 'id'> = {
         ...dataToSave,
         status: 'pending',
       };
-      const docRef = await addDoc(collection(firestore, 'bookings'), newBooking);
-      toast({ title: "Booking Created", description: `A new booking #${docRef.id.substring(0,4)} has been created.` });
+      await setDoc(bookingRef, newBooking);
+      toast({ title: "Booking Created", description: `A new booking #${id.substring(0,4)} has been created.` });
        if(newBooking.driverId) {
         toast({ title: "Driver Notified", description: `A notification has been sent to the assigned driver.` });
       }

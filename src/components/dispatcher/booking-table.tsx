@@ -115,7 +115,7 @@ export function BookingTable({ bookings, isLoading, onEdit, onUpdateStatus, filt
                   )}
                 >
                   <TableCell>
-                      <div className="font-medium">#{booking.id.substring(0, 4).toUpperCase()}</div>
+                      <div className="font-medium">{booking.id.toUpperCase()}</div>
                       <div className="text-xs text-muted-foreground">{format(new Date(booking.bookingDate), "PP")}</div>
                   </TableCell>
                   <TableCell>{booking.clientId}</TableCell>

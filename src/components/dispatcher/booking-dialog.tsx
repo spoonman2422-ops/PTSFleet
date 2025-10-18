@@ -35,6 +35,7 @@ import { format, parseISO } from 'date-fns';
 import { Separator } from '../ui/separator';
 
 const bookingSchema = z.object({
+  id: z.string().optional(),
   clientId: z.string().min(1, 'Client ID is required'),
   pickupLocation: z.string().min(1, 'Pickup location is required'),
   dropoffLocation: z.string().min(1, 'Dropoff location is required'),
@@ -56,7 +57,7 @@ type BookingFormValues = z.infer<typeof bookingSchema>;
 type BookingDialogProps = {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (data: Omit<Booking, 'id' | 'status'>, id?: string) => void;
+  onSave: (data: Omit<Booking, 'status'>, id: string) => void;
   booking: Booking | null;
   drivers: User[];
   vehicles: Vehicle[]; // Keep this for future use if needed
@@ -72,9 +73,15 @@ export function BookingDialog({
   drivers,
   vehicles,
 }: BookingDialogProps) {
+  const isEditMode = !!booking;
+
   const form = useForm<BookingFormValues>({
-    resolver: zodResolver(bookingSchema),
+    resolver: zodResolver(bookingSchema.refine(data => isEditMode || (data.id && data.id.length > 0), {
+      message: "Booking ID is required.",
+      path: ["id"],
+    })),
     defaultValues: {
+      id: '',
       clientId: '',
       pickupLocation: '',
       dropoffLocation: '',
@@ -103,6 +110,7 @@ export function BookingDialog({
 
   useEffect(() => {
     const defaultVals = {
+      id: '',
       clientId: '',
       pickupLocation: '',
       dropoffLocation: '',
@@ -134,7 +142,14 @@ export function BookingDialog({
   }, [booking, form, isOpen]);
 
   const onSubmit = (data: BookingFormValues) => {
-    onSave({ ...data, driverId: data.driverId === UNASSIGNED_VALUE ? null : data.driverId }, booking?.id);
+    // We can now be sure data.id exists because of the schema validation.
+    const submissionId = data.id!; 
+    const dataToSave = {
+      ...data,
+      driverId: data.driverId === UNASSIGNED_VALUE ? null : data.driverId,
+    };
+    delete dataToSave.id; // Don't save the id as a field in the document
+    onSave(dataToSave, submissionId);
   };
 
   return (
@@ -149,6 +164,21 @@ export function BookingDialog({
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-6">
+              {!isEditMode && (
+                <FormField
+                  control={form.control}
+                  name="id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Booking ID</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter a unique booking ID" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
               <FormField
                 control={form.control}
                 name="clientId"
