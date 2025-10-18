@@ -8,7 +8,6 @@ import {
   writeBatch,
   query,
   where,
-  addDoc,
   doc,
 } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
@@ -106,8 +105,16 @@ export default function AdminPage() {
     try {
         const batch = writeBatch(firestore);
         
-        // 1. Delete all expenses linked to a booking
-        const expensesQuery = query(collection(firestore, "expenses"), where("bookingId", "!=", null));
+        // 1. Delete all expenses that could have been created from a booking
+        const categoriesToDelete: Expense['category'][] = [
+          "driver rate", 
+          "driver/helper rate", 
+          "toll", 
+          "fuel", 
+          "client representation"
+        ];
+        
+        const expensesQuery = query(collection(firestore, "expenses"), where("category", "in", categoriesToDelete));
         const expensesSnapshot = await getDocs(expensesQuery);
         let deletedCount = 0;
         expensesSnapshot.forEach(doc => {
