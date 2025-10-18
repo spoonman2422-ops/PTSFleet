@@ -86,12 +86,12 @@ export function ExpenseTable({ data, users, isLoading, onEdit }: ExpenseTablePro
       header: ({ column }) => <DataTableColumnHeader column={column} title="Added By" />,
       cell: ({ row }) => {
         const userId = row.getValue("addedBy") as string;
-        const user = users.find(u => u.id === userId);
+        const user = users?.find(u => u.id === userId);
         return <span>{user?.name || "Unknown"}</span>;
       },
       accessorFn: (row) => {
         const userId = row.addedBy;
-        const user = users.find(u => u.id === userId);
+        const user = users?.find(u => u.id === userId);
         return user?.name || "Unknown";
       }
     },

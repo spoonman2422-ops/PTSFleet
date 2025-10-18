@@ -35,7 +35,7 @@ import { format, parseISO } from 'date-fns';
 import { Separator } from '../ui/separator';
 
 const bookingSchema = z.object({
-  id: z.string().optional(),
+  id: z.string().min(1, 'Booking ID is required.'),
   clientId: z.string().min(1, 'Client ID is required'),
   pickupLocation: z.string().min(1, 'Pickup location is required'),
   dropoffLocation: z.string().min(1, 'Dropoff location is required'),
@@ -57,7 +57,7 @@ type BookingFormValues = z.infer<typeof bookingSchema>;
 type BookingDialogProps = {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (data: Omit<Booking, 'status'>, id: string) => void;
+  onSave: (data: Omit<Booking, 'status' | 'id'>, id: string) => void;
   booking: Booking | null;
   drivers: User[];
   vehicles: Vehicle[]; // Keep this for future use if needed
@@ -76,10 +76,7 @@ export function BookingDialog({
   const isEditMode = !!booking;
 
   const form = useForm<BookingFormValues>({
-    resolver: zodResolver(bookingSchema.refine(data => isEditMode || (data.id && data.id.length > 0), {
-      message: "Booking ID is required.",
-      path: ["id"],
-    })),
+    resolver: zodResolver(bookingSchema),
     defaultValues: {
       id: '',
       clientId: '',
@@ -109,35 +106,35 @@ export function BookingDialog({
      (Number(watchedValues.expectedExpenses?.others) || 0));
 
   useEffect(() => {
-    const defaultVals = {
-      id: '',
-      clientId: '',
-      pickupLocation: '',
-      dropoffLocation: '',
-      bookingDate: '',
-      collectionDate: '',
-      dueDate: '',
-      driverId: null,
-      bookingRate: 0,
-      driverRate: 0,
-      expectedExpenses: {
-        tollFee: 0,
-        fuel: 0,
-        others: 0,
-      },
-    };
-
-    if (booking) {
-      form.reset({
-        ...defaultVals,
-        ...booking,
-        bookingDate: booking.bookingDate ? format(parseISO(booking.bookingDate), "yyyy-MM-dd") : '',
-        collectionDate: booking.collectionDate ? format(parseISO(booking.collectionDate), "yyyy-MM-dd") : '',
-        dueDate: booking.dueDate ? format(parseISO(booking.dueDate), "yyyy-MM-dd") : '',
-        driverId: booking.driverId || null,
-      });
-    } else {
-      form.reset(defaultVals);
+    if (isOpen) {
+      if (booking) {
+        form.reset({
+          ...booking,
+          id: booking.id || '',
+          bookingDate: booking.bookingDate ? format(parseISO(booking.bookingDate), "yyyy-MM-dd") : '',
+          collectionDate: booking.collectionDate ? format(parseISO(booking.collectionDate), "yyyy-MM-dd") : '',
+          dueDate: booking.dueDate ? format(parseISO(booking.dueDate), "yyyy-MM-dd") : '',
+          driverId: booking.driverId || null,
+        });
+      } else {
+        form.reset({
+          id: '',
+          clientId: '',
+          pickupLocation: '',
+          dropoffLocation: '',
+          bookingDate: '',
+          collectionDate: '',
+          dueDate: '',
+          driverId: null,
+          bookingRate: 0,
+          driverRate: 0,
+          expectedExpenses: {
+            tollFee: 0,
+            fuel: 0,
+            others: 0,
+          },
+        });
+      }
     }
   }, [booking, form, isOpen]);
 
@@ -148,8 +145,8 @@ export function BookingDialog({
       ...data,
       driverId: data.driverId === UNASSIGNED_VALUE ? null : data.driverId,
     };
-    delete dataToSave.id; // Don't save the id as a field in the document
-    onSave(dataToSave, submissionId);
+    const { id, ...rest } = dataToSave;
+    onSave(rest, submissionId);
   };
 
   return (
@@ -164,21 +161,19 @@ export function BookingDialog({
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-6">
-              {!isEditMode && (
-                <FormField
+              <FormField
                   control={form.control}
                   name="id"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Booking ID</FormLabel>
                       <FormControl>
-                        <Input placeholder="Enter a unique booking ID" {...field} />
+                        <Input placeholder="Enter a unique booking ID" {...field} readOnly={isEditMode}/>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-              )}
               <FormField
                 control={form.control}
                 name="clientId"

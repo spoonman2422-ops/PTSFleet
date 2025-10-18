@@ -63,11 +63,11 @@ export function RevolvingFundTable({ data, users, isLoading }: RevolvingFundTabl
         accessorKey: 'addedBy',
         header: ({ column }) => <DataTableColumnHeader column={column} title="Logged By" />,
         cell: ({ row }) => {
-          const userId = row.getValue('addedBy') as string;
-          const user = users.find((u) => u.id === userId);
-          return <span>{user?.name || 'Unknown'}</span>;
+          const userId = row.getValue("addedBy") as string;
+          const user = users?.find(u => u.id === userId);
+          return <span>{user?.name || "Unknown"}</span>;
         },
-        accessorFn: (row) => users.find(u => u.id === row.addedBy)?.name || ''
+        accessorFn: (row) => users?.find(u => u.id === row.addedBy)?.name || ''
       },
     ],
     [users]

@@ -70,7 +70,7 @@ export function BookingTable({ bookings, isLoading, onEdit, onUpdateStatus, filt
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Booking</TableHead>
+            <TableHead>Booking ID</TableHead>
             <TableHead>Client</TableHead>
             <TableHead>Route</TableHead>
             <TableHead>Driver</TableHead>
@@ -93,13 +93,13 @@ export function BookingTable({ bookings, isLoading, onEdit, onUpdateStatus, filt
           ) : bookings.length > 0 ? (
             bookings.map(booking => {
               if (!booking.id || !booking.status) return null;
-              const driver = booking.driverId ? users.find(u => u.id === booking.driverId) : null;
+              const driver = booking.driverId ? users?.find(u => u.id === booking.driverId) : null;
               const currentStatusConfig = statusConfig[booking.status];
               if (!currentStatusConfig) {
                   // Gracefully handle unknown statuses to prevent crashes
                   return (
                      <TableRow key={booking.id}>
-                        <TableCell colSpan={5}>Invalid booking status: {booking.status}</TableCell>
+                        <TableCell colSpan={6}>Invalid booking status: {booking.status}</TableCell>
                      </TableRow>
                   )
               }
@@ -115,7 +115,7 @@ export function BookingTable({ bookings, isLoading, onEdit, onUpdateStatus, filt
                   )}
                 >
                   <TableCell>
-                      <div className="font-medium">{booking.id.toUpperCase()}</div>
+                      <div className="font-medium">{booking.id.substring(0, 7).toUpperCase()}</div>
                       <div className="text-xs text-muted-foreground">{format(new Date(booking.bookingDate), "PP")}</div>
                   </TableCell>
                   <TableCell>{booking.clientId}</TableCell>

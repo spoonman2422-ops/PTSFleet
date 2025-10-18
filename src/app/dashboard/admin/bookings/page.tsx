@@ -40,7 +40,7 @@ export default function AdminBookingsPage() {
     setIsDialogOpen(true);
   };
 
-  const handleSaveBooking = async (bookingData: Omit<Booking, 'status'>, id: string) => {
+  const handleSaveBooking = async (bookingData: Omit<Booking, 'status' | 'id'>, id: string) => {
     if (!firestore) return;
     
     const dataToSave = {
@@ -60,7 +60,7 @@ export default function AdminBookingsPage() {
     if (isEditing) {
       // Update existing booking
       await updateDoc(bookingRef, dataToSave);
-      toast({ title: "Booking Updated", description: `Booking #${id.substring(0, 4)} has been successfully updated.` });
+      toast({ title: "Booking Updated", description: `Booking #${id.substring(0, 7)} has been successfully updated.` });
       if(bookingData.driverId) {
         toast({ title: "Driver Notified", description: `A notification has been sent for the updated assignment.` });
       }
@@ -71,7 +71,7 @@ export default function AdminBookingsPage() {
         status: 'pending',
       };
       await setDoc(bookingRef, newBooking);
-      toast({ title: "Booking Created", description: `A new booking #${id.substring(0,4)} has been created.` });
+      toast({ title: "Booking Created", description: `A new booking #${id.substring(0,7)} has been created.` });
        if(newBooking.driverId) {
         toast({ title: "Driver Notified", description: `A notification has been sent to the assigned driver.` });
       }

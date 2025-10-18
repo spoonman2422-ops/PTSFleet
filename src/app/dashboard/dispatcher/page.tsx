@@ -39,7 +39,7 @@ export default function DispatcherPage() {
     setIsDialogOpen(true);
   };
 
-  const handleSaveBooking = async (bookingData: Omit<Booking, 'status'>, id: string) => {
+  const handleSaveBooking = async (bookingData: Omit<Booking, 'status' | 'id'>, id: string) => {
     if (!firestore) return;
     
     const dataToSave = {
@@ -59,7 +59,7 @@ export default function DispatcherPage() {
     if (isEditing) {
       // Update existing booking
       await updateDoc(bookingRef, dataToSave);
-      toast({ title: "Booking Updated", description: `Booking #${id.substring(0, 4)} has been successfully updated.` });
+      toast({ title: "Booking Updated", description: `Booking #${id.substring(0, 7)} has been successfully updated.` });
       if(bookingData.driverId) {
         toast({ title: "Driver Notified", description: `A notification has been sent for the updated assignment.` });
       }
@@ -70,7 +70,7 @@ export default function DispatcherPage() {
         status: 'pending',
       };
       await setDoc(bookingRef, newBooking);
-      toast({ title: "Booking Created", description: `A new booking #${id.substring(0,4)} has been created.` });
+      toast({ title: "Booking Created", description: `A new booking #${id.substring(0,7)} has been created.` });
        if(newBooking.driverId) {
         toast({ title: "Driver Notified", description: `A notification has been sent to the assigned driver.` });
       }
@@ -187,7 +187,7 @@ export default function DispatcherPage() {
         filtered = filtered.filter(booking => {
             const driver = users?.find(u => u.id === booking.driverId);
             return (
-                (booking.id && booking.id.substring(0, 4).toLowerCase().includes(lowercasedQuery)) ||
+                (booking.id && booking.id.substring(0, 7).toLowerCase().includes(lowercasedQuery)) ||
                 (booking.clientId && booking.clientId.toLowerCase().includes(lowercasedQuery)) ||
                 (driver && driver.name && driver.name.toLowerCase().includes(lowercasedQuery)) ||
                 (booking.pickupLocation && booking.pickupLocation.toLowerCase().includes(lowercasedQuery)) ||
