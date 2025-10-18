@@ -1,9 +1,10 @@
 
+      
 "use client";
 
 import { useMemo, useState } from 'react';
 import { useCollection } from '@/firebase';
-import type { Booking, Invoice, Expense, RevolvingFundContribution, User, Vehicle } from '@/lib/types';
+import type { Booking, Invoice, Expense, RevolvingFundContribution, User, Vehicle, VehicleType } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -178,28 +179,18 @@ export default function FinancialsPage() {
   }, [invoices, expenses, contributions, cashOnHandFilter]);
   
   const vehicleProfitabilityData = useMemo(() => {
-    if (!bookings || !users || !vehicles) return [];
+    if (!bookings) return [];
 
     const startDate = getStartDate(vehicleProfitFilter);
     const deliveredBookings = bookings.filter(b => 
       b.status === 'Delivered' && 
       b.completionDate && 
       isAfter(parseISO(b.completionDate), startDate) &&
-      b.driverId
+      b.vehicleType
     );
 
-    // Simple mapping: assume first 3 drivers map to first 3 vehicles
-    const driverVehicleMap: Record<string, Vehicle | undefined> = {};
-    const drivers = users.filter(u => u.role === 'Driver');
-    drivers.forEach((driver, index) => {
-        if(vehicles[index]){
-            driverVehicleMap[driver.id] = vehicles[index];
-        }
-    });
-
-    const profitByVehicle: Record<string, {
-        vehicle: Vehicle;
-        driver?: User;
+    const profitByVehicleType: Record<string, {
+        vehicleType: VehicleType;
         totalBookings: number;
         totalRevenue: number;
         totalCosts: number;
@@ -207,15 +198,12 @@ export default function FinancialsPage() {
     }> = {};
 
     for (const booking of deliveredBookings) {
-        if (!booking.driverId) continue;
+        const vehicleType = booking.vehicleType;
+        if (!vehicleType) continue;
 
-        const vehicle = driverVehicleMap[booking.driverId];
-        if (!vehicle) continue;
-
-        if (!profitByVehicle[vehicle.id]) {
-            profitByVehicle[vehicle.id] = {
-                vehicle,
-                driver: users.find(u => u.id === booking.driverId),
+        if (!profitByVehicleType[vehicleType]) {
+            profitByVehicleType[vehicleType] = {
+                vehicleType,
                 totalBookings: 0,
                 totalRevenue: 0,
                 totalCosts: 0,
@@ -226,14 +214,14 @@ export default function FinancialsPage() {
         const costs = booking.driverRate + (booking.expectedExpenses?.fuel || 0) + (booking.expectedExpenses?.tollFee || 0) + (booking.expectedExpenses?.others || 0);
         const profit = booking.bookingRate - costs;
 
-        profitByVehicle[vehicle.id].totalBookings += 1;
-        profitByVehicle[vehicle.id].totalRevenue += booking.bookingRate;
-        profitByVehicle[vehicle.id].totalCosts += costs;
-        profitByVehicle[vehicle.id].netProfit += profit;
+        profitByVehicleType[vehicleType].totalBookings += 1;
+        profitByVehicleType[vehicleType].totalRevenue += booking.bookingRate;
+        profitByVehicleType[vehicleType].totalCosts += costs;
+        profitByVehicleType[vehicleType].netProfit += profit;
     }
 
-    return Object.values(profitByVehicle).sort((a, b) => b.netProfit - a.netProfit);
-}, [bookings, users, vehicles, vehicleProfitFilter]);
+    return Object.values(profitByVehicleType).sort((a, b) => b.netProfit - a.netProfit);
+}, [bookings, vehicleProfitFilter]);
 
   const isLoading = isLoadingBookings || isLoadingInvoices || isLoadingExpenses || isLoadingContributions || isLoadingUsers;
 
@@ -568,7 +556,7 @@ export default function FinancialsPage() {
                 <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
                     <CardTitle className="flex items-center gap-2 text-lg">
                         <Truck className="h-5 w-5 text-cyan-500" />
-                        <span>Profitability by Vehicle</span>
+                        <span>Profitability by Vehicle Type</span>
                     </CardTitle>
                     <Select value={vehicleProfitFilter} onValueChange={(value) => setVehicleProfitFilter(value as FinancialFilter)}>
                         <SelectTrigger className="w-full sm:w-[180px]">
@@ -589,8 +577,7 @@ export default function FinancialsPage() {
                     <Table>
                         <TableHeader>
                         <TableRow>
-                            <TableHead>Vehicle</TableHead>
-                            <TableHead>Driver</TableHead>
+                            <TableHead>Vehicle Type</TableHead>
                             <TableHead className="text-center">Bookings</TableHead>
                             <TableHead className="text-right">Total Revenue</TableHead>
                             <TableHead className="text-right">Total Costs</TableHead>
@@ -599,12 +586,10 @@ export default function FinancialsPage() {
                         </TableHeader>
                         <TableBody>
                         {vehicleProfitabilityData.map(item => (
-                            <TableRow key={item.vehicle.id}>
+                            <TableRow key={item.vehicleType}>
                                 <TableCell>
-                                    <div className="font-medium">{item.vehicle.make} {item.vehicle.model}</div>
-                                    <div className="text-xs text-muted-foreground">{item.vehicle.licensePlate}</div>
+                                    <div className="font-medium">{item.vehicleType}</div>
                                 </TableCell>
-                                <TableCell>{item.driver?.name || 'N/A'}</TableCell>
                                 <TableCell className="text-center">{item.totalBookings}</TableCell>
                                 <TableCell className="text-right">{formatCurrency(item.totalRevenue)}</TableCell>
                                 <TableCell className="text-right">{formatCurrency(item.totalCosts)}</TableCell>
@@ -624,5 +609,7 @@ export default function FinancialsPage() {
     </div>
   );
 }
+
+    
 
     

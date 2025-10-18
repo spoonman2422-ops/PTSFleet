@@ -1,4 +1,5 @@
 
+      
 "use client";
 
 import { useMemo, useState } from 'react';
@@ -188,7 +189,7 @@ export default function FinancialsPage() {
       b.vehicleType
     );
 
-    const profitByVehicle: Record<string, {
+    const profitByVehicleType: Record<string, {
         vehicleType: VehicleType;
         totalBookings: number;
         totalRevenue: number;
@@ -200,8 +201,8 @@ export default function FinancialsPage() {
         const vehicleType = booking.vehicleType;
         if (!vehicleType) continue;
 
-        if (!profitByVehicle[vehicleType]) {
-            profitByVehicle[vehicleType] = {
+        if (!profitByVehicleType[vehicleType]) {
+            profitByVehicleType[vehicleType] = {
                 vehicleType,
                 totalBookings: 0,
                 totalRevenue: 0,
@@ -213,13 +214,13 @@ export default function FinancialsPage() {
         const costs = booking.driverRate + (booking.expectedExpenses?.fuel || 0) + (booking.expectedExpenses?.tollFee || 0) + (booking.expectedExpenses?.others || 0);
         const profit = booking.bookingRate - costs;
 
-        profitByVehicle[vehicleType].totalBookings += 1;
-        profitByVehicle[vehicleType].totalRevenue += booking.bookingRate;
-        profitByVehicle[vehicleType].totalCosts += costs;
-        profitByVehicle[vehicleType].netProfit += profit;
+        profitByVehicleType[vehicleType].totalBookings += 1;
+        profitByVehicleType[vehicleType].totalRevenue += booking.bookingRate;
+        profitByVehicleType[vehicleType].totalCosts += costs;
+        profitByVehicleType[vehicleType].netProfit += profit;
     }
 
-    return Object.values(profitByVehicle).sort((a, b) => b.netProfit - a.netProfit);
+    return Object.values(profitByVehicleType).sort((a, b) => b.netProfit - a.netProfit);
 }, [bookings, vehicleProfitFilter]);
 
   const isLoading = isLoadingBookings || isLoadingInvoices || isLoadingExpenses || isLoadingContributions || isLoadingUsers;
@@ -608,3 +609,7 @@ export default function FinancialsPage() {
     </div>
   );
 }
+
+    
+
+    
