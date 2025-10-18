@@ -3,12 +3,12 @@
 
 import { useMemo, useState } from 'react';
 import { useCollection } from '@/firebase';
-import type { Booking, Invoice, Expense } from '@/lib/types';
+import type { Booking, Invoice, Expense, RevolvingFundContribution } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { addDays, isBefore, isAfter, parseISO, differenceInDays, startOfWeek, startOfMonth, startOfYear, format } from 'date-fns';
-import { TrendingUp, AlertTriangle, CalendarCheck2, Briefcase, Wallet, CheckCircle, LandPlot } from 'lucide-react';
+import { TrendingUp, AlertTriangle, CalendarCheck2, Briefcase, Wallet, CheckCircle, LandPlot, HandCoins } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
@@ -20,10 +20,13 @@ export default function FinancialsPage() {
   const { data: bookings, isLoading: isLoadingBookings } = useCollection<Booking>('bookings');
   const { data: invoices, isLoading: isLoadingInvoices } = useCollection<Invoice>('invoices');
   const { data: expenses, isLoading: isLoadingExpenses } = useCollection<Expense>('expenses');
+  const { data: contributions, isLoading: isLoadingContributions } = useCollection<RevolvingFundContribution>('revolvingFundContributions');
+
 
   const [profitFilter, setProfitFilter] = useState<FinancialFilter>('Overall');
   const [expenseFilter, setExpenseFilter] = useState<FinancialFilter>('Overall');
   const [taxFilter, setTaxFilter] = useState<FinancialFilter>('Overall');
+  const [cashOnHandFilter, setCashOnHandFilter] = useState<FinancialFilter>('Overall');
 
 
   const now = new Date();
@@ -33,7 +36,7 @@ export default function FinancialsPage() {
     const today = new Date();
     switch(filter) {
         case 'Weekly':
-            return startOfWeek(today);
+            return startOfWeek(today, { weekStartsOn: 1 });
         case 'Monthly':
             return startOfMonth(today);
         case 'Annual':
@@ -147,8 +150,31 @@ export default function FinancialsPage() {
       incomeTax,
     }
   }, [invoices, expenses, taxFilter]);
+
+  const cashOnHandData = useMemo(() => {
+    if (!invoices || !expenses || !contributions) {
+        return { totalCollections: 0, totalExpenses: 0, totalRevolvingFund: 0, cashOnHand: 0 };
+    }
+    const startDate = getStartDate(cashOnHandFilter);
+
+    const totalCollections = (invoices || [])
+        .filter(inv => inv.status === 'Paid' && inv.dateIssued && isAfter(parseISO(inv.dateIssued), startDate))
+        .reduce((sum, inv) => sum + inv.grossSales, 0);
+
+    const totalExpenses = (expenses || [])
+        .filter(exp => exp.dateIncurred && isAfter(parseISO(exp.dateIncurred), startDate))
+        .reduce((sum, exp) => sum + exp.amount, 0);
+    
+    const totalRevolvingFund = (contributions || [])
+        .filter(c => c.contributionDate && isAfter(parseISO(c.contributionDate), startDate))
+        .reduce((sum, c) => sum + c.amount, 0);
+    
+    const cashOnHand = totalRevolvingFund + totalCollections - totalExpenses;
+
+    return { totalRevolvingFund, totalCollections, totalExpenses, cashOnHand };
+  }, [invoices, expenses, contributions, cashOnHandFilter]);
   
-  const isLoading = isLoadingBookings || isLoadingInvoices || isLoadingExpenses;
+  const isLoading = isLoadingBookings || isLoadingInvoices || isLoadingExpenses || isLoadingContributions;
 
   const formatCurrency = (amount: number) => new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(amount);
 
@@ -265,10 +291,10 @@ export default function FinancialsPage() {
             <CardHeader>
                  <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
                     <CardTitle className="flex items-center gap-2 text-lg">
-                        <LandPlot className="h-5 w-5 text-orange-500" />
-                        <span>Tax Summary</span>
+                        <HandCoins className="h-5 w-5 text-purple-500" />
+                        <span>Cash on Hand</span>
                     </CardTitle>
-                    <Select value={taxFilter} onValueChange={(value) => setTaxFilter(value as FinancialFilter)}>
+                    <Select value={cashOnHandFilter} onValueChange={(value) => setCashOnHandFilter(value as FinancialFilter)}>
                         <SelectTrigger className="w-full sm:w-[180px]">
                             <SelectValue placeholder="Filter by period" />
                         </SelectTrigger>
@@ -283,29 +309,28 @@ export default function FinancialsPage() {
             </CardHeader>
             <CardContent>
                 {isLoading ? <Skeleton className="h-40 w-full" /> : (
-                  <div className="space-y-4 text-sm">
+                  <div className="space-y-2">
+                    <div className="space-y-4 text-sm">
                       <div className="flex justify-between items-center">
-                          <span className="text-muted-foreground">Output VAT (from Sales)</span>
-                          <span className="font-medium">{formatCurrency(taxSummaryData.outputVat)}</span>
-                      </div>
-                      <div className="flex justify-between items-center">
-                          <span className="text-muted-foreground">Input VAT (from Expenses)</span>
-                          <span className="font-medium text-green-600">-{formatCurrency(taxSummaryData.inputVat)}</span>
-                      </div>
-                      <Separator />
-                       <div className="flex justify-between items-center font-bold">
-                          <span>VAT Payable</span>
-                          <span>{formatCurrency(taxSummaryData.vatPayable)}</span>
-                      </div>
-                       <Separator />
-                       <div className="flex justify-between items-center pt-2">
-                          <span className="text-muted-foreground">Percentage Tax (Non-VAT)</span>
-                          <span className="font-medium">{formatCurrency(taxSummaryData.percentageTax)}</span>
+                          <span className="text-muted-foreground">Total Revolving Fund</span>
+                          <span className="font-medium text-green-600">+{formatCurrency(cashOnHandData.totalRevolvingFund)}</span>
                       </div>
                       <div className="flex justify-between items-center">
-                          <span className="text-muted-foreground">Income Tax</span>
-                          <span className="font-medium">{formatCurrency(taxSummaryData.incomeTax)}</span>
+                          <span className="text-muted-foreground">Total Collections</span>
+                          <span className="font-medium text-green-600">+{formatCurrency(cashOnHandData.totalCollections)}</span>
                       </div>
+                      <div className="flex justify-between items-center">
+                          <span className="text-muted-foreground">Total Expenses</span>
+                          <span className="font-medium text-red-600">-{formatCurrency(cashOnHandData.totalExpenses)}</span>
+                      </div>
+                    </div>
+                    <Separator className="my-4"/>
+                    <div className="flex justify-between items-center text-lg font-bold pt-2">
+                        <span>Net Cash on Hand</span>
+                        <span className={cashOnHandData.cashOnHand >= 0 ? 'text-primary' : 'text-destructive'}>
+                            {formatCurrency(cashOnHandData.cashOnHand)}
+                        </span>
+                    </div>
                   </div>
                 )}
             </CardContent>
@@ -313,9 +338,9 @@ export default function FinancialsPage() {
 
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         
-        <Card>
+        <Card className="xl:col-span-1">
             <CardHeader>
                 <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
                     <CardTitle className="flex items-center gap-2 text-lg">
@@ -369,7 +394,7 @@ export default function FinancialsPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="xl:col-span-1">
             <CardHeader>
                 <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
                     <CardTitle className="flex items-center gap-2 text-lg">
@@ -425,7 +450,59 @@ export default function FinancialsPage() {
              ) : <p className="text-sm text-muted-foreground text-center py-10">No expenses logged for this period.</p>}
           </CardContent>
         </Card>
+        
+        <Card className="xl:col-span-1">
+            <CardHeader>
+                 <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                        <LandPlot className="h-5 w-5 text-orange-500" />
+                        <span>Tax Summary</span>
+                    </CardTitle>
+                    <Select value={taxFilter} onValueChange={(value) => setTaxFilter(value as FinancialFilter)}>
+                        <SelectTrigger className="w-full sm:w-[180px]">
+                            <SelectValue placeholder="Filter by period" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="Overall">Overall</SelectItem>
+                            <SelectItem value="Annual">This Year</SelectItem>
+                            <SelectItem value="Monthly">This Month</SelectItem>
+                            <SelectItem value="Weekly">This Week</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+            </CardHeader>
+            <CardContent>
+                {isLoading ? <Skeleton className="h-40 w-full" /> : (
+                  <div className="space-y-4 text-sm">
+                      <div className="flex justify-between items-center">
+                          <span className="text-muted-foreground">Output VAT (from Sales)</span>
+                          <span className="font-medium">{formatCurrency(taxSummaryData.outputVat)}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                          <span className="text-muted-foreground">Input VAT (from Expenses)</span>
+                          <span className="font-medium text-green-600">-{formatCurrency(taxSummaryData.inputVat)}</span>
+                      </div>
+                      <Separator />
+                       <div className="flex justify-between items-center font-bold">
+                          <span>VAT Payable</span>
+                          <span>{formatCurrency(taxSummaryData.vatPayable)}</span>
+                      </div>
+                       <Separator />
+                       <div className="flex justify-between items-center pt-2">
+                          <span className="text-muted-foreground">Percentage Tax (Non-VAT)</span>
+                          <span className="font-medium">{formatCurrency(taxSummaryData.percentageTax)}</span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                          <span className="text-muted-foreground">Income Tax</span>
+                          <span className="font-medium">{formatCurrency(taxSummaryData.incomeTax)}</span>
+                      </div>
+                  </div>
+                )}
+            </CardContent>
+        </Card>
       </div>
     </div>
   );
 }
+
+    
