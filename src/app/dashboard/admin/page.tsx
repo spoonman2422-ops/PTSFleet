@@ -9,6 +9,7 @@ import {
   query,
   where,
   addDoc,
+  doc,
 } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
