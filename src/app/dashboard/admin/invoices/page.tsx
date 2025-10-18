@@ -58,7 +58,8 @@ export default function InvoicesPage() {
                  const client = users?.find(u => u.id === invoice.clientId);
                  const clientNameMatch = client?.name.toLowerCase().includes(lowercasedQuery) ?? invoice.clientId.toLowerCase().includes(lowercasedQuery);
                  const invoiceIdMatch = invoice.id.substring(0, 7).toLowerCase().includes(lowercasedQuery);
-                 return clientNameMatch || invoiceIdMatch;
+                 const bookingIdMatch = invoice.bookingId.substring(0, 7).toLowerCase().includes(lowercasedQuery);
+                 return clientNameMatch || invoiceIdMatch || bookingIdMatch;
             });
         }
         return filtered;
@@ -125,7 +126,7 @@ export default function InvoicesPage() {
                                 </TabsList>
                             </Tabs>
                              <Input
-                                placeholder="Search by client or invoice #"
+                                placeholder="Search by client, invoice, or booking..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 className="max-w-sm"
@@ -137,6 +138,7 @@ export default function InvoicesPage() {
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Invoice #</TableHead>
+                                    <TableHead>Booking ID</TableHead>
                                     <TableHead>Client</TableHead>
                                     <TableHead>Due Date</TableHead>
                                     <TableHead>Gross Sales</TableHead>
@@ -148,6 +150,7 @@ export default function InvoicesPage() {
                                 {isLoading ? (
                                     Array.from({ length: 5 }).map((_, i) => (
                                         <TableRow key={i}>
+                                            <TableCell><Skeleton className="h-5 w-20" /></TableCell>
                                             <TableCell><Skeleton className="h-5 w-20" /></TableCell>
                                             <TableCell><Skeleton className="h-5 w-24" /></TableCell>
                                             <TableCell><Skeleton className="h-5 w-24" /></TableCell>
@@ -161,6 +164,7 @@ export default function InvoicesPage() {
                                     return (
                                         <TableRow key={invoice.id}>
                                             <TableCell className="font-medium">#{invoice.id.substring(0, 7).toUpperCase()}</TableCell>
+                                            <TableCell className="font-mono text-xs">{invoice.bookingId.substring(0, 7).toUpperCase()}</TableCell>
                                             <TableCell>{client?.name || invoice.clientId}</TableCell>
                                             <TableCell>{format(parseISO(invoice.dueDate), 'PP')}</TableCell>
                                             <TableCell>{new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(invoice.grossSales)}</TableCell>
@@ -221,5 +225,3 @@ export default function InvoicesPage() {
         </>
     );
 }
-
-    
