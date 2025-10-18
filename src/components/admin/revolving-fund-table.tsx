@@ -60,17 +60,17 @@ export function RevolvingFundTable({ data, users, isLoading }: RevolvingFundTabl
         },
       },
       {
-        accessorKey: 'addedBy',
+        id: 'addedByName',
+        accessorFn: (row) => users?.find(u => u.id === row.addedBy)?.name || 'Unknown',
         header: ({ column }) => <DataTableColumnHeader column={column} title="Logged By" />,
         cell: ({ row }) => {
-          const userId = row.getValue("addedBy") as string;
-          const user = users?.find(u => u.id === userId);
-          return <span>{user?.name || "Unknown"}</span>;
+            const userName = row.getValue("addedByName") as string;
+            // While users are loading, this might be unknown. Show skeleton if so.
+            return isLoading ? <Skeleton className="h-5 w-24" /> : <span>{userName}</span>;
         },
-        accessorFn: (row) => users?.find(u => u.id === row.addedBy)?.name || ''
       },
     ],
-    [users]
+    [users, isLoading]
   );
 
   const table = useReactTable({

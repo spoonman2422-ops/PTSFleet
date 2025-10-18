@@ -82,18 +82,13 @@ export function ExpenseTable({ data, users, isLoading, onEdit }: ExpenseTablePro
         cell: ({ row }) => <span className="capitalize">{row.getValue("paidBy")}</span>,
     },
     {
-      accessorKey: "addedBy",
+      id: "addedByName",
+      accessorFn: (row) => users?.find(u => u.id === row.addedBy)?.name || 'Unknown',
       header: ({ column }) => <DataTableColumnHeader column={column} title="Added By" />,
       cell: ({ row }) => {
-        const userId = row.getValue("addedBy") as string;
-        const user = users?.find(u => u.id === userId);
-        return <span>{user?.name || "Unknown"}</span>;
+        const userName = row.getValue("addedByName") as string;
+        return isLoading ? <Skeleton className="h-5 w-24" /> : <span>{userName}</span>;
       },
-      accessorFn: (row) => {
-        const userId = row.addedBy;
-        const user = users?.find(u => u.id === userId);
-        return user?.name || "Unknown";
-      }
     },
      {
       id: "actions",
@@ -117,7 +112,7 @@ export function ExpenseTable({ data, users, isLoading, onEdit }: ExpenseTablePro
         );
       },
     },
-  ], [users, onEdit]);
+  ], [users, onEdit, isLoading]);
 
   const table = useReactTable({
     data,

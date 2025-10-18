@@ -56,7 +56,7 @@ export function CashAdvanceTable({ data, users, isLoading }: CashAdvanceTablePro
         header: ({ column }) => <DataTableColumnHeader column={column} title="Driver" />,
         cell: ({ row }) => {
           const driverName = row.getValue('driverName') as string;
-          return <span className="font-medium">{driverName}</span>;
+           return isLoading ? <Skeleton className="h-5 w-24" /> : <span className="font-medium">{driverName}</span>;
         },
       },
       {
@@ -72,7 +72,7 @@ export function CashAdvanceTable({ data, users, isLoading }: CashAdvanceTablePro
         },
       }
     ],
-    [users]
+    [users, isLoading]
   );
 
   const table = useReactTable({
