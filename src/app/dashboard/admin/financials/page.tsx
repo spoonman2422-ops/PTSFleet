@@ -3,15 +3,16 @@
 
 import { useMemo, useState } from 'react';
 import { useCollection } from '@/firebase';
-import type { Booking, Invoice, Expense, RevolvingFundContribution } from '@/lib/types';
+import type { Booking, Invoice, Expense, RevolvingFundContribution, User, Vehicle } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { addDays, isBefore, isAfter, parseISO, differenceInDays, startOfWeek, startOfMonth, startOfYear, format } from 'date-fns';
-import { TrendingUp, AlertTriangle, CalendarCheck2, Briefcase, Wallet, CheckCircle, LandPlot, HandCoins } from 'lucide-react';
+import { TrendingUp, AlertTriangle, CalendarCheck2, Briefcase, Wallet, CheckCircle, LandPlot, HandCoins, Truck } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import { vehicles } from '@/lib/data';
 
 
 type FinancialFilter = 'Overall' | 'Annual' | 'Monthly' | 'Weekly';
@@ -21,12 +22,14 @@ export default function FinancialsPage() {
   const { data: invoices, isLoading: isLoadingInvoices } = useCollection<Invoice>('invoices');
   const { data: expenses, isLoading: isLoadingExpenses } = useCollection<Expense>('expenses');
   const { data: contributions, isLoading: isLoadingContributions } = useCollection<RevolvingFundContribution>('revolvingFundContributions');
+  const { data: users, isLoading: isLoadingUsers } = useCollection<User>('users');
 
 
   const [profitFilter, setProfitFilter] = useState<FinancialFilter>('Overall');
   const [expenseFilter, setExpenseFilter] = useState<FinancialFilter>('Overall');
   const [taxFilter, setTaxFilter] = useState<FinancialFilter>('Overall');
   const [cashOnHandFilter, setCashOnHandFilter] = useState<FinancialFilter>('Overall');
+  const [vehicleProfitFilter, setVehicleProfitFilter] = useState<FinancialFilter>('Overall');
 
 
   const now = new Date();
@@ -174,7 +177,65 @@ export default function FinancialsPage() {
     return { totalRevolvingFund, totalCollections, totalExpenses, cashOnHand };
   }, [invoices, expenses, contributions, cashOnHandFilter]);
   
-  const isLoading = isLoadingBookings || isLoadingInvoices || isLoadingExpenses || isLoadingContributions;
+  const vehicleProfitabilityData = useMemo(() => {
+    if (!bookings || !users || !vehicles) return [];
+
+    const startDate = getStartDate(vehicleProfitFilter);
+    const deliveredBookings = bookings.filter(b => 
+      b.status === 'Delivered' && 
+      b.completionDate && 
+      isAfter(parseISO(b.completionDate), startDate) &&
+      b.driverId
+    );
+
+    // Simple mapping: assume first 3 drivers map to first 3 vehicles
+    const driverVehicleMap: Record<string, Vehicle | undefined> = {};
+    const drivers = users.filter(u => u.role === 'Driver');
+    drivers.forEach((driver, index) => {
+        if(vehicles[index]){
+            driverVehicleMap[driver.id] = vehicles[index];
+        }
+    });
+
+    const profitByVehicle: Record<string, {
+        vehicle: Vehicle;
+        driver?: User;
+        totalBookings: number;
+        totalRevenue: number;
+        totalCosts: number;
+        netProfit: number;
+    }> = {};
+
+    for (const booking of deliveredBookings) {
+        if (!booking.driverId) continue;
+
+        const vehicle = driverVehicleMap[booking.driverId];
+        if (!vehicle) continue;
+
+        if (!profitByVehicle[vehicle.id]) {
+            profitByVehicle[vehicle.id] = {
+                vehicle,
+                driver: users.find(u => u.id === booking.driverId),
+                totalBookings: 0,
+                totalRevenue: 0,
+                totalCosts: 0,
+                netProfit: 0
+            };
+        }
+
+        const costs = booking.driverRate + (booking.expectedExpenses?.fuel || 0) + (booking.expectedExpenses?.tollFee || 0) + (booking.expectedExpenses?.others || 0);
+        const profit = booking.bookingRate - costs;
+
+        profitByVehicle[vehicle.id].totalBookings += 1;
+        profitByVehicle[vehicle.id].totalRevenue += booking.bookingRate;
+        profitByVehicle[vehicle.id].totalCosts += costs;
+        profitByVehicle[vehicle.id].netProfit += profit;
+    }
+
+    return Object.values(profitByVehicle).sort((a, b) => b.netProfit - a.netProfit);
+}, [bookings, users, vehicles, vehicleProfitFilter]);
+
+  const isLoading = isLoadingBookings || isLoadingInvoices || isLoadingExpenses || isLoadingContributions || isLoadingUsers;
 
   const formatCurrency = (amount: number) => new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(amount);
 
@@ -501,8 +562,65 @@ export default function FinancialsPage() {
             </CardContent>
         </Card>
       </div>
+      
+      <Card>
+            <CardHeader>
+                <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                    <CardTitle className="flex items-center gap-2 text-lg">
+                        <Truck className="h-5 w-5 text-cyan-500" />
+                        <span>Profitability by Vehicle</span>
+                    </CardTitle>
+                    <Select value={vehicleProfitFilter} onValueChange={(value) => setVehicleProfitFilter(value as FinancialFilter)}>
+                        <SelectTrigger className="w-full sm:w-[180px]">
+                            <SelectValue placeholder="Filter by period" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="Overall">Overall</SelectItem>
+                            <SelectItem value="Annual">This Year</SelectItem>
+                            <SelectItem value="Monthly">This Month</SelectItem>
+                            <SelectItem value="Weekly">This Week</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+            </CardHeader>
+            <CardContent>
+                {isLoading ? <Skeleton className="h-60 w-full" /> : vehicleProfitabilityData.length > 0 ? (
+                <div className="max-h-96 overflow-y-auto">
+                    <Table>
+                        <TableHeader>
+                        <TableRow>
+                            <TableHead>Vehicle</TableHead>
+                            <TableHead>Driver</TableHead>
+                            <TableHead className="text-center">Bookings</TableHead>
+                            <TableHead className="text-right">Total Revenue</TableHead>
+                            <TableHead className="text-right">Total Costs</TableHead>
+                            <TableHead className="text-right">Net Profit</TableHead>
+                        </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                        {vehicleProfitabilityData.map(item => (
+                            <TableRow key={item.vehicle.id}>
+                                <TableCell>
+                                    <div className="font-medium">{item.vehicle.make} {item.vehicle.model}</div>
+                                    <div className="text-xs text-muted-foreground">{item.vehicle.licensePlate}</div>
+                                </TableCell>
+                                <TableCell>{item.driver?.name || 'N/A'}</TableCell>
+                                <TableCell className="text-center">{item.totalBookings}</TableCell>
+                                <TableCell className="text-right">{formatCurrency(item.totalRevenue)}</TableCell>
+                                <TableCell className="text-right">{formatCurrency(item.totalCosts)}</TableCell>
+                                <TableCell className="text-right font-medium">
+                                    <span className={item.netProfit >= 0 ? 'text-green-600' : 'text-red-600'}>
+                                        {formatCurrency(item.netProfit)}
+                                    </span>
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                        </TableBody>
+                    </Table>
+                </div>
+             ) : <p className="text-sm text-muted-foreground text-center py-10">No vehicle data to analyze for this period.</p>}
+          </CardContent>
+        </Card>
     </div>
   );
 }
-
-    
