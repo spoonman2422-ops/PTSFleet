@@ -39,8 +39,30 @@ export default function DispatcherPage() {
     setIsDialogOpen(true);
   };
 
+  const createExpenseFromBooking = async (
+    bookingData: Omit<Booking, 'status' | 'id'>, 
+    category: "driver/helper rate" | "toll" | "fuel" | "client representation",
+    amount: number
+  ) => {
+    if (!firestore || !user || amount <= 0) return;
+
+    const expenseData = {
+      category,
+      description: `Mobilization Expense for Booking #${bookingData.clientId}`,
+      amount: amount,
+      vatIncluded: false,
+      vatRate: 0,
+      inputVat: 0,
+      dateIncurred: bookingData.bookingDate,
+      paidBy: "PTS" as const,
+      addedBy: user.id,
+      notes: `Automatically generated from booking ${bookingData.clientId}`,
+    };
+    await addDoc(collection(firestore, "expenses"), expenseData);
+  };
+
   const handleSaveBooking = async (bookingData: Omit<Booking, 'status' | 'id'>, id: string) => {
-    if (!firestore) return;
+    if (!firestore || !user) return;
     
     const dataToSave = {
       ...bookingData,
@@ -74,6 +96,12 @@ export default function DispatcherPage() {
        if(newBooking.driverId) {
         toast({ title: "Driver Notified", description: `A notification has been sent to the assigned driver.` });
       }
+      
+      // Create expense entries
+      await createExpenseFromBooking(dataToSave, "driver/helper rate", dataToSave.driverRate);
+      await createExpenseFromBooking(dataToSave, "toll", dataToSave.expectedExpenses.tollFee);
+      await createExpenseFromBooking(dataToSave, "fuel", dataToSave.expectedExpenses.fuel);
+      await createExpenseFromBooking(dataToSave, "client representation", dataToSave.expectedExpenses.others);
     }
     setIsDialogOpen(false);
   };

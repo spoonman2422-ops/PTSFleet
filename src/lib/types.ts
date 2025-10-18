@@ -77,14 +77,14 @@ export interface Message {
 
 export interface Expense {
   id: string;
-  category: "fuel" | "maintenance" | "toll" | "office" | "staff" | "permits" | "vehicle parts" | "pms" | "change oil" | "client representation";
+  category: "fuel" | "maintenance" | "toll" | "office" | "staff" | "permits" | "vehicle parts" | "pms" | "change oil" | "client representation" | "driver/helper rate";
   description: string;
   amount: number;
   vatIncluded: boolean;
   vatRate: number;
   inputVat: number;
   dateIncurred: string;
-  paidBy: "cash" | "bank" | "credit";
+  paidBy: "cash" | "bank" | "credit" | "PTS";
   addedBy: string;
   notes?: string;
 }

@@ -30,8 +30,8 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Textarea } from "../ui/textarea";
 
-const expenseCategories = ["fuel", "maintenance", "toll", "office", "staff", "permits", "vehicle parts", "pms", "change oil", "client representation"] as const;
-const paymentMethods = ["cash", "bank", "credit"] as const;
+const expenseCategories = ["fuel", "maintenance", "toll", "office", "staff", "permits", "vehicle parts", "pms", "change oil", "client representation", "driver/helper rate"] as const;
+const paymentMethods = ["cash", "bank", "credit", "PTS"] as const;
 
 const expenseSchema = z.object({
   category: z.enum(expenseCategories, { required_error: "Category is required." }),

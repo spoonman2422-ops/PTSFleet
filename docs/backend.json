@@ -107,7 +107,7 @@
         "category": {
           "type": "string",
           "description": "The category of the expense.",
-          "enum": ["fuel", "maintenance", "toll", "office", "staff", "permits", "vehicle parts", "pms", "change oil", "client representation"]
+          "enum": ["fuel", "maintenance", "toll", "office", "staff", "permits", "vehicle parts", "pms", "change oil", "client representation", "driver/helper rate"]
         },
         "description": {
           "type": "string",
@@ -128,7 +128,7 @@
         "paidBy": {
           "type": "string",
           "description": "The payment method used for the expense.",
-          "enum": ["cash", "bank", "credit"]
+          "enum": ["cash", "bank", "credit", "PTS"]
         },
         "addedBy": {
           "type": "string",
