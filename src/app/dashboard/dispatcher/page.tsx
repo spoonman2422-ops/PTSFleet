@@ -45,11 +45,11 @@ export default function DispatcherPage() {
     category: Expense['category'],
     amount: number
   ) => {
-    if (!firestore || !user || amount <= 0) return;
+    if (!firestore || !user || !amount || amount <= 0) return;
 
     const expenseData = {
       category,
-      description: `Mobilization Expense for Booking #${bookingId}`,
+      description: `Mobilization Expense for Booking #${bookingId.substring(0,7)}`,
       amount: amount,
       vatIncluded: false,
       vatRate: 0,
@@ -57,7 +57,7 @@ export default function DispatcherPage() {
       dateIncurred: bookingData.bookingDate,
       paidBy: "PTS" as const,
       addedBy: user.id,
-      notes: `Automatically generated from booking ${bookingId}`,
+      notes: `Automatically generated from booking ${bookingId.substring(0,7)}`,
     };
     await addDoc(collection(firestore, "expenses"), expenseData);
   };
@@ -232,7 +232,10 @@ export default function DispatcherPage() {
     setSelectedBookingId(bookingId);
   };
   
-  const drivers = useMemo(() => (users || []).filter(u => u.role === 'Driver'), [users]);
+  const drivers = useMemo(() => {
+    if (!users) return [];
+    return users.filter(u => u.role === 'Driver');
+  }, [users]);
 
 
   return (
@@ -286,5 +289,7 @@ export default function DispatcherPage() {
     </div>
   );
 }
+
+    
 
     
