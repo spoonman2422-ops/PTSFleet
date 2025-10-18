@@ -40,15 +40,16 @@ export default function DispatcherPage() {
   };
 
   const createExpenseFromBooking = async (
-    bookingData: Omit<Booking, 'status' | 'id'>, 
-    category: "driver/helper rate" | "toll" | "fuel" | "client representation",
+    bookingData: Omit<Booking, 'status' | 'id'>,
+    bookingId: string, 
+    category: "driver/helper rate" | "toll" | "fuel" | "others",
     amount: number
   ) => {
     if (!firestore || !user || amount <= 0) return;
 
     const expenseData = {
       category,
-      description: `Mobilization Expense for Booking #${bookingData.clientId}`,
+      description: `Mobilization Expense for Booking #${bookingId}`,
       amount: amount,
       vatIncluded: false,
       vatRate: 0,
@@ -56,7 +57,7 @@ export default function DispatcherPage() {
       dateIncurred: bookingData.bookingDate,
       paidBy: "PTS" as const,
       addedBy: user.id,
-      notes: `Automatically generated from booking ${bookingData.clientId}`,
+      notes: `Automatically generated from booking ${bookingId}`,
     };
     await addDoc(collection(firestore, "expenses"), expenseData);
   };
@@ -96,13 +97,14 @@ export default function DispatcherPage() {
        if(newBooking.driverId) {
         toast({ title: "Driver Notified", description: `A notification has been sent to the assigned driver.` });
       }
-      
-      // Create expense entries
-      await createExpenseFromBooking(dataToSave, "driver/helper rate", dataToSave.driverRate);
-      await createExpenseFromBooking(dataToSave, "toll", dataToSave.expectedExpenses.tollFee);
-      await createExpenseFromBooking(dataToSave, "fuel", dataToSave.expectedExpenses.fuel);
-      await createExpenseFromBooking(dataToSave, "client representation", dataToSave.expectedExpenses.others);
     }
+    
+    // Create expense entries for both new and updated bookings
+    await createExpenseFromBooking(dataToSave, id, "driver/helper rate", dataToSave.driverRate);
+    await createExpenseFromBooking(dataToSave, id, "toll", dataToSave.expectedExpenses.tollFee);
+    await createExpenseFromBooking(dataToSave, id, "fuel", dataToSave.expectedExpenses.fuel);
+    await createExpenseFromBooking(dataToSave, id, "others", dataToSave.expectedExpenses.others);
+
     setIsDialogOpen(false);
   };
 
@@ -284,3 +286,5 @@ export default function DispatcherPage() {
     </div>
   );
 }
+
+    
