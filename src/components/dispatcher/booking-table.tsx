@@ -71,7 +71,7 @@ export function BookingTable({ bookings, isLoading, onEdit, onUpdateStatus, onDe
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Booking ID</TableHead>
+            <TableHead className="min-w-[150px]">Booking ID</TableHead>
             <TableHead>Client</TableHead>
             <TableHead>Route</TableHead>
             <TableHead>Driver</TableHead>
@@ -116,7 +116,7 @@ export function BookingTable({ bookings, isLoading, onEdit, onUpdateStatus, onDe
                   )}
                 >
                   <TableCell>
-                      <div className="font-medium">{booking.id.substring(0, 7).toUpperCase()}</div>
+                      <div className="font-mono text-xs">{booking.id}</div>
                       <div className="text-xs text-muted-foreground">{format(new Date(booking.bookingDate), "PP")}</div>
                   </TableCell>
                   <TableCell>{booking.clientId}</TableCell>
@@ -152,5 +152,3 @@ export function BookingTable({ bookings, isLoading, onEdit, onUpdateStatus, onDe
     </div>
   );
 }
-
-    
