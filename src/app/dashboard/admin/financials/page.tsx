@@ -383,7 +383,7 @@ export default function FinancialsPage() {
         <p className="text-muted-foreground">Monitor your collections, outstanding payments, and profitability.</p>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
@@ -586,8 +586,7 @@ export default function FinancialsPage() {
 
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         <Card className="xl:col-span-1">
             <CardHeader>
                 <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-2">
@@ -708,8 +707,10 @@ export default function FinancialsPage() {
              ) : <p className="text-sm text-muted-foreground text-center py-10">No expenses logged for this period.</p>}
           </CardContent>
         </Card>
-        
-        <Card className="xl:col-span-1">
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card>
             <CardHeader>
                  <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-2">
                     <div>
@@ -760,9 +761,8 @@ export default function FinancialsPage() {
                 )}
             </CardContent>
         </Card>
-      </div>
       
-      <Card>
+        <Card>
             <CardHeader>
                 <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-2">
                     <div>
@@ -824,6 +824,7 @@ export default function FinancialsPage() {
              ) : <p className="text-sm text-muted-foreground text-center py-10">No vehicle data to analyze for this period.</p>}
           </CardContent>
         </Card>
+      </div>
     </div>
      <FinancialReportDialog
         isOpen={isReportOpen}
