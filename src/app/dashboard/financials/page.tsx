@@ -1,6 +1,4 @@
 
-
-      
 "use client";
 
 import { useMemo, useState } from 'react';
@@ -10,14 +8,17 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { addDays, isBefore, isAfter, parseISO, differenceInDays, startOfWeek, startOfMonth, startOfYear, format } from 'date-fns';
-import { TrendingUp, AlertTriangle, CalendarCheck2, Briefcase, Wallet, CheckCircle, LandPlot, HandCoins, Truck } from 'lucide-react';
+import { TrendingUp, AlertTriangle, CalendarCheck2, Briefcase, Wallet, CheckCircle, LandPlot, HandCoins, Truck, Eye } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { vehicles } from '@/lib/data';
+import { Button } from '@/components/ui/button';
+import { FinancialReportDialog, ReportData } from '@/components/admin/financial-report-dialog';
 
 
 type FinancialFilter = 'Overall' | 'Annual' | 'Monthly' | 'Weekly';
+type ReportType = 'upcoming' | 'outstanding' | 'completed' | 'cash' | 'profit' | 'expense' | 'vehicle';
 
 export default function FinancialsPage() {
   const { data: bookings, isLoading: isLoadingBookings } = useCollection<Booking>('bookings');
@@ -26,6 +27,8 @@ export default function FinancialsPage() {
   const { data: contributions, isLoading: isLoadingContributions } = useCollection<RevolvingFundContribution>('revolvingFundContributions');
   const { data: users, isLoading: isLoadingUsers } = useCollection<User>('users');
 
+  const [isReportOpen, setIsReportOpen] = useState(false);
+  const [reportData, setReportData] = useState<ReportData | null>(null);
 
   const [profitFilter, setProfitFilter] = useState<FinancialFilter>('Overall');
   const [expenseFilter, setExpenseFilter] = useState<FinancialFilter>('Overall');
@@ -162,9 +165,10 @@ export default function FinancialsPage() {
     }
     const startDate = getStartDate(cashOnHandFilter);
 
-    const totalCollections = (invoices || [])
-        .filter(inv => inv.status === 'Paid' && inv.dateIssued && isAfter(parseISO(inv.dateIssued), startDate))
-        .reduce((sum, inv) => sum + inv.grossSales, 0);
+    const paidInvoices = (invoices || [])
+        .filter(inv => inv.status === 'Paid' && inv.dateIssued && isAfter(parseISO(inv.dateIssued), startDate));
+        
+    const totalCollections = paidInvoices.reduce((sum, inv) => sum + inv.grossSales, 0);
 
     const totalExpensesFromLog = (expenses || [])
         .filter(exp => exp.dateIncurred && isAfter(parseISO(exp.dateIncurred), startDate))
@@ -180,7 +184,10 @@ export default function FinancialsPage() {
         totalRevolvingFund, 
         totalCollections, 
         totalExpenses: totalExpensesFromLog, 
-        cashOnHand 
+        cashOnHand,
+        paidInvoices, // For report
+        expenses: totalExpensesFromLog, // For report
+        contributions: totalRevolvingFund // For report
     };
 }, [invoices, expenses, contributions, cashOnHandFilter]);
   
@@ -229,12 +236,110 @@ export default function FinancialsPage() {
     return Object.values(profitByVehicleType).sort((a, b) => b.netProfit - a.netProfit);
 }, [bookings, vehicleProfitFilter]);
 
+  const handleViewReport = (type: ReportType) => {
+    let data: ReportData = { title: '', headers: [], rows: [] };
+    
+    switch (type) {
+        case 'upcoming':
+            data = {
+                title: "Upcoming Collections Report",
+                headers: ["Booking ID", "Client", "Collection Date", "Amount"],
+                rows: upcomingCollections.map(b => [
+                    `#${(b.id || '').substring(0,7).toUpperCase()}`,
+                    b.clientId,
+                    format(parseISO(b.collectionDate), 'PP'),
+                    formatCurrency(b.bookingRate)
+                ])
+            };
+            break;
+        case 'outstanding':
+            data = {
+                title: "Outstanding Payments Report",
+                headers: ["Invoice ID", "Client", "Due Date", "Days Overdue", "Amount"],
+                rows: outstandingPayments.map(({invoice: i, booking: b}) => [
+                    `#${(i.id || '').substring(0,7).toUpperCase()}`,
+                    b?.clientId || i.clientId,
+                    format(parseISO(i.dueDate), 'PP'),
+                    `${differenceInDays(now, parseISO(i.dueDate))} days`,
+                    formatCurrency(i.grossSales)
+                ])
+            };
+            break;
+         case 'completed':
+            data = {
+                title: "Completed Collections Report",
+                headers: ["Invoice ID", "Client", "Paid Date", "Amount"],
+                rows: completedCollections.map(({ invoice: i, booking: b }) => [
+                    `#${(i.id || '').substring(0,7).toUpperCase()}`,
+                    b?.clientId || i.clientId,
+                    i.dateIssued ? format(parseISO(i.dateIssued), 'PP') : 'N/A',
+                    formatCurrency(i.grossSales)
+                ])
+            };
+            break;
+        case 'cash':
+            data = {
+                title: `Cash on Hand Report (${cashOnHandFilter})`,
+                headers: ["Date", "Description", "Type", "Amount"],
+                rows: [
+                    ...(cashOnHandData.paidInvoices || []).map(i => [format(parseISO(i.dateIssued), 'PP'), `Collection for Inv #${i.id.substring(0,7)}`, 'Collection', formatCurrency(i.grossSales)]),
+                    ...filteredExpenses.map(e => [format(parseISO(e.dateIncurred), 'PP'), e.description, 'Expense', `-${formatCurrency(e.amount)}`]),
+                    ...(contributions || []).filter(c => c.contributionDate && isAfter(parseISO(c.contributionDate), getStartDate(cashOnHandFilter))).map(c => [format(parseISO(c.contributionDate), 'PP'), `Contribution from ${c.contributorName}`, 'Revolving Fund', formatCurrency(c.amount)])
+                ].sort((a, b) => parseISO(b[0] as string).getTime() - parseISO(a[0] as string).getTime())
+            };
+            break;
+        case 'profit':
+             data = {
+                title: `Profit/Margin Report (${profitFilter})`,
+                headers: ["Booking ID", "Client", "Date", "Revenue", "Costs", "Profit"],
+                rows: profitTrackerData.map(b => [
+                    `#${(b.id || '').substring(0,7).toUpperCase()}`,
+                    b.clientId,
+                    format(parseISO(b.dueDate), 'PP'),
+                    formatCurrency(b.bookingRate),
+                    formatCurrency(b.bookingRate - b.profit),
+                    formatCurrency(b.profit)
+                ])
+            };
+            break;
+        case 'expense':
+            data = {
+                title: `Expense Report (${expenseFilter})`,
+                headers: ["Date", "Category", "Description", "Amount"],
+                rows: filteredExpenses.map(e => [
+                    format(parseISO(e.dateIncurred), 'PP'),
+                    e.category,
+                    e.description,
+                    formatCurrency(e.amount)
+                ])
+            };
+            break;
+        case 'vehicle':
+             data = {
+                title: `Vehicle Profitability Report (${vehicleProfitFilter})`,
+                headers: ["Vehicle Type", "Bookings", "Total Revenue", "Total Costs", "Net Profit"],
+                rows: vehicleProfitabilityData.map(v => [
+                    v.vehicleType,
+                    v.totalBookings.toString(),
+                    formatCurrency(v.totalRevenue),
+                    formatCurrency(v.totalCosts),
+                    formatCurrency(v.netProfit)
+                ])
+            };
+            break;
+
+    }
+    setReportData(data);
+    setIsReportOpen(true);
+  };
+
   const isLoading = isLoadingBookings || isLoadingInvoices || isLoadingExpenses || isLoadingContributions || isLoadingUsers;
 
   const formatCurrency = (amount: number) => new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(amount);
 
 
   return (
+    <>
     <div className="flex flex-col gap-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Financial Overview</h1>
@@ -246,11 +351,13 @@ export default function FinancialsPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
                 <CalendarCheck2 className="h-5 w-5 text-blue-500" />
-                <span>Upcoming Collections (Next 7 Days)</span>
+                <span>Upcoming Collections</span>
             </CardTitle>
+             <CardDescription>Next 7 days</CardDescription>
           </CardHeader>
           <CardContent>
             {isLoading ? <Skeleton className="h-40 w-full" /> : upcomingCollections.length > 0 ? (
+              <>
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -260,7 +367,7 @@ export default function FinancialsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {upcomingCollections.map(booking => (
+                  {upcomingCollections.slice(0,3).map(booking => (
                     <TableRow key={booking.id}>
                       <TableCell>
                         <div className="font-medium">#{(booking.id || '').substring(0,7).toUpperCase()}</div>
@@ -272,6 +379,10 @@ export default function FinancialsPage() {
                   ))}
                 </TableBody>
               </Table>
+              <Button variant="link" size="sm" className="w-full mt-2" onClick={() => handleViewReport('upcoming')}>
+                    <Eye className="mr-2 h-4 w-4" /> View Full Report
+                </Button>
+              </>
             ) : <p className="text-sm text-muted-foreground text-center py-10">No upcoming collections in the next 7 days.</p>}
           </CardContent>
         </Card>
@@ -282,9 +393,11 @@ export default function FinancialsPage() {
                 <AlertTriangle className="h-5 w-5 text-red-500" />
                 <span>Outstanding Payments</span>
             </CardTitle>
+            <CardDescription>All overdue invoices</CardDescription>
           </CardHeader>
           <CardContent>
              {isLoading ? <Skeleton className="h-40 w-full" /> : outstandingPayments.length > 0 ? (
+                <>
                  <Table>
                     <TableHeader>
                         <TableRow>
@@ -294,7 +407,7 @@ export default function FinancialsPage() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {outstandingPayments.map(({ invoice, booking }) => (
+                        {outstandingPayments.slice(0,3).map(({ invoice, booking }) => (
                             <TableRow key={invoice.id}>
                                 <TableCell>
                                     <div className="font-medium">Inv #{invoice.id.substring(0, 7).toUpperCase()}</div>
@@ -308,6 +421,10 @@ export default function FinancialsPage() {
                         ))}
                     </TableBody>
                  </Table>
+                 <Button variant="link" size="sm" className="w-full mt-2" onClick={() => handleViewReport('outstanding')}>
+                    <Eye className="mr-2 h-4 w-4" /> View Full Report
+                </Button>
+                </>
              ) : <p className="text-sm text-muted-foreground text-center py-10">No outstanding payments. Good job!</p>}
           </CardContent>
         </Card>
@@ -322,6 +439,7 @@ export default function FinancialsPage() {
             </CardHeader>
             <CardContent>
                 {isLoading ? <Skeleton className="h-40 w-full" /> : completedCollections.length > 0 ? (
+                    <>
                     <div className="space-y-4">
                         {completedCollections.slice(0, 5).map(({ invoice, booking }) => (
                             <div key={invoice.id} className="flex justify-between items-center">
@@ -338,20 +456,27 @@ export default function FinancialsPage() {
                             </div>
                         ))}
                     </div>
+                     <Button variant="link" size="sm" className="w-full mt-2" onClick={() => handleViewReport('completed')}>
+                        <Eye className="mr-2 h-4 w-4" /> View Full Report
+                    </Button>
+                    </>
                 ) : <p className="text-sm text-muted-foreground text-center py-10">No completed collections yet.</p>}
             </CardContent>
         </Card>
         
         <Card>
             <CardHeader>
-                 <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-                    <CardTitle className="flex items-center gap-2 text-lg">
-                        <HandCoins className="h-5 w-5 text-purple-500" />
-                        <span>Cash on Hand</span>
-                    </CardTitle>
+                 <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-2">
+                    <div>
+                        <CardTitle className="flex items-center gap-2 text-lg">
+                            <HandCoins className="h-5 w-5 text-purple-500" />
+                            <span>Cash on Hand</span>
+                        </CardTitle>
+                        <CardDescription>Net cash flow</CardDescription>
+                    </div>
                     <Select value={cashOnHandFilter} onValueChange={(value) => setCashOnHandFilter(value as FinancialFilter)}>
-                        <SelectTrigger className="w-full sm:w-[180px]">
-                            <SelectValue placeholder="Filter by period" />
+                        <SelectTrigger className="w-full sm:w-[130px]">
+                            <SelectValue placeholder="Filter" />
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="Overall">Overall</SelectItem>
@@ -397,14 +522,16 @@ export default function FinancialsPage() {
         
         <Card className="xl:col-span-1">
             <CardHeader>
-                <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-                    <CardTitle className="flex items-center gap-2 text-lg">
-                        <TrendingUp className="h-5 w-5 text-green-500" />
-                        <span>Profit/Margin Tracker</span>
-                    </CardTitle>
+                <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-2">
+                    <div>
+                        <CardTitle className="flex items-center gap-2 text-lg">
+                            <TrendingUp className="h-5 w-5 text-green-500" />
+                            <span>Profit/Margin Tracker</span>
+                        </CardTitle>
+                    </div>
                     <Select value={profitFilter} onValueChange={(value) => setProfitFilter(value as FinancialFilter)}>
-                        <SelectTrigger className="w-full sm:w-[180px]">
-                            <SelectValue placeholder="Filter by period" />
+                        <SelectTrigger className="w-full sm:w-[130px]">
+                            <SelectValue placeholder="Filter" />
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="Overall">Overall</SelectItem>
@@ -417,6 +544,7 @@ export default function FinancialsPage() {
             </CardHeader>
             <CardContent>
                 {isLoading ? <Skeleton className="h-40 w-full" /> : profitTrackerData.length > 0 ? (
+                <>
                 <div className="max-h-96 overflow-y-auto">
                     <Table>
                         <TableHeader>
@@ -428,7 +556,7 @@ export default function FinancialsPage() {
                         </TableRow>
                         </TableHeader>
                         <TableBody>
-                        {profitTrackerData.map(booking => (
+                        {profitTrackerData.slice(0, 7).map(booking => (
                             <TableRow key={booking.id}>
                             <TableCell>
                                 <div className="font-medium">#{(booking.id || '').substring(0, 7).toUpperCase()}</div>
@@ -445,20 +573,26 @@ export default function FinancialsPage() {
                         </TableBody>
                     </Table>
                 </div>
+                 <Button variant="link" size="sm" className="w-full mt-2" onClick={() => handleViewReport('profit')}>
+                    <Eye className="mr-2 h-4 w-4" /> View Full Report
+                </Button>
+                </>
              ) : <p className="text-sm text-muted-foreground text-center py-10">No delivered bookings to analyze for this period.</p>}
           </CardContent>
         </Card>
 
         <Card className="xl:col-span-1">
             <CardHeader>
-                <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-                    <CardTitle className="flex items-center gap-2 text-lg">
-                        <Wallet className="h-5 w-5 text-blue-500" />
-                        <span>Expense Tracker</span>
-                    </CardTitle>
+                <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-2">
+                    <div>
+                        <CardTitle className="flex items-center gap-2 text-lg">
+                            <Wallet className="h-5 w-5 text-blue-500" />
+                            <span>Expense Tracker</span>
+                        </CardTitle>
+                    </div>
                     <Select value={expenseFilter} onValueChange={(value) => setExpenseFilter(value as FinancialFilter)}>
-                        <SelectTrigger className="w-full sm:w-[180px]">
-                            <SelectValue placeholder="Filter by period" />
+                        <SelectTrigger className="w-full sm:w-[130px]">
+                            <SelectValue placeholder="Filter" />
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="Overall">Overall</SelectItem>
@@ -482,7 +616,7 @@ export default function FinancialsPage() {
                     </TableRow>
                     </TableHeader>
                     <TableBody>
-                    {filteredExpenses.map(expense => (
+                    {filteredExpenses.slice(0,5).map(expense => (
                         <TableRow key={expense.id}>
                             <TableCell>{format(parseISO(expense.dateIncurred), 'PP')}</TableCell>
                             <TableCell className="capitalize">{expense.category}</TableCell>
@@ -495,11 +629,14 @@ export default function FinancialsPage() {
                 </Table>
                 </div>
                 <Separator className="my-4" />
-                <div className="flex justify-end text-right">
+                <div className="flex justify-between items-center">
                     <div>
-                        <p className="text-muted-foreground">Total Expenses ({expenseFilter})</p>
+                        <p className="text-muted-foreground">Total ({expenseFilter})</p>
                         <p className="font-bold text-xl">{formatCurrency(totalExpenses)}</p>
                     </div>
+                    <Button variant="link" size="sm" onClick={() => handleViewReport('expense')}>
+                        <Eye className="mr-2 h-4 w-4" /> View Full Report
+                    </Button>
                 </div>
                 </>
              ) : <p className="text-sm text-muted-foreground text-center py-10">No expenses logged for this period.</p>}
@@ -508,14 +645,16 @@ export default function FinancialsPage() {
         
         <Card className="xl:col-span-1">
             <CardHeader>
-                 <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-                    <CardTitle className="flex items-center gap-2 text-lg">
-                        <LandPlot className="h-5 w-5 text-orange-500" />
-                        <span>Tax Summary</span>
-                    </CardTitle>
+                 <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-2">
+                    <div>
+                        <CardTitle className="flex items-center gap-2 text-lg">
+                            <LandPlot className="h-5 w-5 text-orange-500" />
+                            <span>Tax Summary</span>
+                        </CardTitle>
+                    </div>
                     <Select value={taxFilter} onValueChange={(value) => setTaxFilter(value as FinancialFilter)}>
-                        <SelectTrigger className="w-full sm:w-[180px]">
-                            <SelectValue placeholder="Filter by period" />
+                        <SelectTrigger className="w-full sm:w-[130px]">
+                            <SelectValue placeholder="Filter" />
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="Overall">Overall</SelectItem>
@@ -559,14 +698,16 @@ export default function FinancialsPage() {
       
       <Card>
             <CardHeader>
-                <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-                    <CardTitle className="flex items-center gap-2 text-lg">
-                        <Truck className="h-5 w-5 text-cyan-500" />
-                        <span>Profitability by Vehicle Type</span>
-                    </CardTitle>
+                <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-2">
+                    <div>
+                        <CardTitle className="flex items-center gap-2 text-lg">
+                            <Truck className="h-5 w-5 text-cyan-500" />
+                            <span>Profitability by Vehicle Type</span>
+                        </CardTitle>
+                    </div>
                     <Select value={vehicleProfitFilter} onValueChange={(value) => setVehicleProfitFilter(value as FinancialFilter)}>
-                        <SelectTrigger className="w-full sm:w-[180px]">
-                            <SelectValue placeholder="Filter by period" />
+                        <SelectTrigger className="w-full sm:w-[130px]">
+                            <SelectValue placeholder="Filter" />
                         </SelectTrigger>
                         <SelectContent>
                             <SelectItem value="Overall">Overall</SelectItem>
@@ -579,6 +720,7 @@ export default function FinancialsPage() {
             </CardHeader>
             <CardContent>
                 {isLoading ? <Skeleton className="h-60 w-full" /> : vehicleProfitabilityData.length > 0 ? (
+                <>
                 <div className="max-h-96 overflow-y-auto">
                     <Table>
                         <TableHeader>
@@ -609,19 +751,19 @@ export default function FinancialsPage() {
                         </TableBody>
                     </Table>
                 </div>
+                <Button variant="link" size="sm" className="w-full mt-2" onClick={() => handleViewReport('vehicle')}>
+                    <Eye className="mr-2 h-4 w-4" /> View Full Report
+                </Button>
+                </>
              ) : <p className="text-sm text-muted-foreground text-center py-10">No vehicle data to analyze for this period.</p>}
           </CardContent>
         </Card>
     </div>
+    <FinancialReportDialog
+        isOpen={isReportOpen}
+        onOpenChange={setIsReportOpen}
+        data={reportData}
+      />
+    </>
   );
 }
-
-    
-
-    
-
-    
-
-    
-
-    
