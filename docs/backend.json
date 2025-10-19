@@ -111,7 +111,7 @@
         "category": {
           "type": "string",
           "description": "The category of the expense.",
-          "enum": ["fuel", "maintenance", "toll", "office", "staff", "permits", "vehicle parts", "pms", "change oil", "client representation", "driver rate", "miscellaneous", "Vehicle Related Expense"]
+          "enum": ["fuel", "maintenance", "toll", "office", "staff", "permits", "vehicle parts", "pms", "change oil", "client representation", "driver rate", "miscellaneous", "Vehicle Related Expense", "driver payroll"]
         },
         "description": {
           "type": "string",
