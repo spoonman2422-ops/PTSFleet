@@ -60,9 +60,9 @@ export function FinancialReportDialog({ isOpen, onOpenChange, data }: FinancialR
         <style>
             @media print {
                 body { margin: 1.5rem; background-color: white; }
-                .printable-area { max-width: 100%; margin: 0 auto; overflow: hidden; page-break-after: avoid; }
+                .printable-area { max-width: 100%; margin: 0 auto; overflow: visible; page-break-after: avoid; }
                 .no-print { display: none !important; }
-                .report-scroll-area {
+                #printable-report-area { 
                     height: auto !important;
                     max-height: none !important;
                     overflow: visible !important;
@@ -86,8 +86,8 @@ export function FinancialReportDialog({ isOpen, onOpenChange, data }: FinancialR
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-4xl">
-        <div id="printable-report-area" className="printable-area">
+      <DialogContent className="sm:max-w-4xl max-h-[90vh] flex flex-col">
+        <div id="printable-report-area" className="printable-area flex-1 overflow-y-auto pr-6">
           <DialogHeader className="mb-4">
             <div className="flex justify-between items-start">
                 <div>
@@ -105,7 +105,7 @@ export function FinancialReportDialog({ isOpen, onOpenChange, data }: FinancialR
               </div>
             </div>
           </DialogHeader>
-          <ScrollArea className="max-h-[60vh] border rounded-md report-scroll-area">
+          <div className="border rounded-md">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -132,9 +132,9 @@ export function FinancialReportDialog({ isOpen, onOpenChange, data }: FinancialR
                 )}
               </TableBody>
             </Table>
-          </ScrollArea>
+          </div>
         </div>
-        <DialogFooter className="pt-4 no-print">
+        <DialogFooter className="pt-4 mt-auto no-print">
           <Button variant="outline" onClick={handlePrint}>
             <Printer className="mr-2 h-4 w-4" />
             Print Report
