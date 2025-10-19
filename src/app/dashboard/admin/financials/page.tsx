@@ -35,6 +35,7 @@ export default function FinancialsPage() {
   const [taxFilter, setTaxFilter] = useState<FinancialFilter>('Overall');
   const [cashOnHandFilter, setCashOnHandFilter] = useState<FinancialFilter>('Overall');
   const [vehicleProfitFilter, setVehicleProfitFilter] = useState<FinancialFilter>('Overall');
+  const [completedFilter, setCompletedFilter] = useState<FinancialFilter>('Overall');
 
 
   const now = new Date();
@@ -57,8 +58,8 @@ export default function FinancialsPage() {
 
 
   const upcomingCollections = useMemo(() => {
-    if (!bookings || !invoices) return [];
-    return bookings
+    if (!bookings || !invoices) return { data: [], totalAmount: 0, totalCount: 0 };
+    const data = bookings
       .filter(b => {
         const invoice = invoices.find(inv => inv.bookingId === b.id);
         if (invoice && invoice.status === 'Paid') {
@@ -67,12 +68,18 @@ export default function FinancialsPage() {
         return b.collectionDate && isAfter(parseISO(b.collectionDate), now) && isBefore(parseISO(b.collectionDate), nextSevenDays)
       })
       .sort((a, b) => parseISO(a.collectionDate).getTime() - parseISO(b.collectionDate).getTime());
+    
+    const totalAmount = data.reduce((sum, b) => sum + b.bookingRate, 0);
+    const totalCount = data.length;
+
+    return { data, totalAmount, totalCount };
   }, [bookings, invoices, now, nextSevenDays]);
   
   const completedCollections = useMemo(() => {
-    if (!invoices || !bookings) return [];
-    return invoices
-      .filter(inv => inv.status === 'Paid')
+    if (!invoices || !bookings) return { data: [], totalAmount: 0, totalCount: 0 };
+    const startDate = getStartDate(completedFilter);
+    const data = invoices
+      .filter(inv => inv.status === 'Paid' && inv.dateIssued && isAfter(parseISO(inv.dateIssued), startDate))
       .map(inv => {
         const booking = bookings.find(b => b.id === inv.bookingId);
         return { invoice: inv, booking };
@@ -82,12 +89,17 @@ export default function FinancialsPage() {
          const dateB = b.invoice.dateIssued ? parseISO(b.invoice.dateIssued).getTime() : 0;
          return dateB - dateA;
       });
-  }, [invoices, bookings]);
+
+    const totalAmount = data.reduce((sum, { invoice }) => sum + invoice.grossSales, 0);
+    const totalCount = data.length;
+    
+    return { data, totalAmount, totalCount };
+  }, [invoices, bookings, completedFilter]);
 
 
   const outstandingPayments = useMemo(() => {
-    if (!invoices || !bookings) return [];
-    return invoices
+    if (!invoices || !bookings) return { data: [], totalAmount: 0, totalCount: 0 };
+    const data = invoices
       .filter(inv => {
         if (!inv.dueDate) return false;
         const isPastDue = isBefore(parseISO(inv.dueDate), now);
@@ -98,18 +110,23 @@ export default function FinancialsPage() {
         return { invoice: inv, booking };
       })
       .sort((a, b) => parseISO(a.invoice.dueDate).getTime() - parseISO(b.invoice.dueDate).getTime());
+      
+    const totalAmount = data.reduce((sum, { invoice }) => sum + invoice.grossSales, 0);
+    const totalCount = data.length;
+
+    return { data, totalAmount, totalCount };
   }, [invoices, bookings, now]);
 
 
   const profitTrackerData = useMemo(() => {
-    if (!bookings) return [];
+    if (!bookings) return { data: [], totalProfit: 0 };
     
     const deliveredBookings = bookings
         .filter(b => b.status === 'Delivered' && b.dueDate);
     
     const startDate = getStartDate(profitFilter);
 
-    return deliveredBookings
+    const data = deliveredBookings
       .filter(booking => booking.dueDate && isAfter(parseISO(booking.dueDate), startDate))
       .map(booking => {
         const totalExpenses = (booking.expectedExpenses.tollFee || 0) + (booking.expectedExpenses.fuel || 0) + (booking.expectedExpenses.others || 0);
@@ -117,6 +134,10 @@ export default function FinancialsPage() {
         return { ...booking, profit };
       })
       .sort((a, b) => parseISO(b.dueDate).getTime() - parseISO(a.dueDate).getTime());
+    
+    const totalProfit = data.reduce((sum, b) => sum + b.profit, 0);
+
+    return { data, totalProfit };
   }, [bookings, profitFilter]);
 
   const filteredExpenses = useMemo(() => {
@@ -192,7 +213,7 @@ export default function FinancialsPage() {
 }, [invoices, expenses, contributions, cashOnHandFilter]);
 
   const vehicleProfitabilityData = useMemo(() => {
-    if (!bookings) return [];
+    if (!bookings) return { data: [], totalProfit: 0 };
 
     const startDate = getStartDate(vehicleProfitFilter);
     const deliveredBookings = bookings.filter(b => 
@@ -232,8 +253,11 @@ export default function FinancialsPage() {
         profitByVehicleType[vehicleType].totalCosts += costs;
         profitByVehicleType[vehicleType].netProfit += profit;
     }
+    
+    const data = Object.values(profitByVehicleType).sort((a, b) => b.netProfit - a.netProfit);
+    const totalProfit = data.reduce((sum, item) => sum + item.netProfit, 0);
 
-    return Object.values(profitByVehicleType).sort((a, b) => b.netProfit - a.netProfit);
+    return { data, totalProfit };
 }, [bookings, vehicleProfitFilter]);
 
   const handleViewReport = (type: ReportType) => {
@@ -244,7 +268,7 @@ export default function FinancialsPage() {
             data = {
                 title: "Upcoming Collections Report",
                 headers: ["Booking ID", "Client", "Collection Date", "Amount"],
-                rows: upcomingCollections.map(b => [
+                rows: upcomingCollections.data.map(b => [
                     `#${(b.id || '').substring(0,7).toUpperCase()}`,
                     b.clientId,
                     format(parseISO(b.collectionDate), 'PP'),
@@ -256,7 +280,7 @@ export default function FinancialsPage() {
             data = {
                 title: "Outstanding Payments Report",
                 headers: ["Invoice ID", "Client", "Due Date", "Days Overdue", "Amount"],
-                rows: outstandingPayments.map(({invoice: i, booking: b}) => [
+                rows: outstandingPayments.data.map(({invoice: i, booking: b}) => [
                     `#${(i.id || '').substring(0,7).toUpperCase()}`,
                     b?.clientId || i.clientId,
                     format(parseISO(i.dueDate), 'PP'),
@@ -269,7 +293,7 @@ export default function FinancialsPage() {
             data = {
                 title: "Completed Collections Report",
                 headers: ["Invoice ID", "Client", "Paid Date", "Amount"],
-                rows: completedCollections.map(({ invoice: i, booking: b }) => [
+                rows: completedCollections.data.map(({ invoice: i, booking: b }) => [
                     `#${(i.id || '').substring(0,7).toUpperCase()}`,
                     b?.clientId || i.clientId,
                     i.dateIssued ? format(parseISO(i.dateIssued), 'PP') : 'N/A',
@@ -292,7 +316,7 @@ export default function FinancialsPage() {
              data = {
                 title: `Profit/Margin Report (${profitFilter})`,
                 headers: ["Booking ID", "Client", "Date", "Revenue", "Costs", "Profit"],
-                rows: profitTrackerData.map(b => [
+                rows: profitTrackerData.data.map(b => [
                     `#${(b.id || '').substring(0,7).toUpperCase()}`,
                     b.clientId,
                     format(parseISO(b.dueDate), 'PP'),
@@ -318,7 +342,7 @@ export default function FinancialsPage() {
              data = {
                 title: `Vehicle Profitability Report (${vehicleProfitFilter})`,
                 headers: ["Vehicle Type", "Bookings", "Total Revenue", "Total Costs", "Net Profit"],
-                rows: vehicleProfitabilityData.map(v => [
+                rows: vehicleProfitabilityData.data.map(v => [
                     v.vehicleType,
                     v.totalBookings.toString(),
                     formatCurrency(v.totalRevenue),
@@ -355,35 +379,41 @@ export default function FinancialsPage() {
             </CardTitle>
              <CardDescription>Next 7 days</CardDescription>
           </CardHeader>
-          <CardContent>
-            {isLoading ? <Skeleton className="h-40 w-full" /> : upcomingCollections.length > 0 ? (
-              <>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Booking</TableHead>
-                      <TableHead>Client</TableHead>
-                      <TableHead className="text-right">Amount</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {upcomingCollections.slice(0,3).map(booking => (
-                      <TableRow key={booking.id}>
-                        <TableCell>
-                          <div className="font-medium">#{(booking.id || '').substring(0,7)}</div>
-                          <div className="text-xs text-muted-foreground">{format(parseISO(booking.collectionDate), 'PP')}</div>
-                        </TableCell>
-                        <TableCell>{booking.clientId}</TableCell>
-                        <TableCell className="text-right">₱{booking.bookingRate.toLocaleString()}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-                <Button variant="link" size="sm" className="w-full mt-2" onClick={() => handleViewReport('upcoming')}>
-                    <Eye className="mr-2 h-4 w-4" /> View Full Report
-                </Button>
-              </>
-            ) : <p className="text-sm text-muted-foreground text-center py-10">No upcoming collections in the next 7 days.</p>}
+          <CardContent className="flex flex-col gap-4">
+             {isLoading ? <Skeleton className="h-20 w-full" /> : (
+                <>
+                <div>
+                    <p className="text-2xl font-bold">{formatCurrency(upcomingCollections.totalAmount)}</p>
+                    <p className="text-xs text-muted-foreground">from {upcomingCollections.totalCount} booking(s)</p>
+                </div>
+                {upcomingCollections.data.length > 0 ? (
+                <>
+                    <Table>
+                    <TableHeader>
+                        <TableRow>
+                        <TableHead>Booking</TableHead>
+                        <TableHead className="text-right">Amount</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {upcomingCollections.data.slice(0,2).map(booking => (
+                        <TableRow key={booking.id}>
+                            <TableCell>
+                            <div className="font-medium">#{(booking.id || '').substring(0,7)}</div>
+                            <div className="text-xs text-muted-foreground">{booking.clientId}</div>
+                            </TableCell>
+                            <TableCell className="text-right">{formatCurrency(booking.bookingRate)}</TableCell>
+                        </TableRow>
+                        ))}
+                    </TableBody>
+                    </Table>
+                    <Button variant="link" size="sm" className="w-full mt-2" onClick={() => handleViewReport('upcoming')}>
+                        <Eye className="mr-2 h-4 w-4" /> View Full Report
+                    </Button>
+                </>
+                ) : <p className="text-sm text-muted-foreground text-center py-4">No upcoming collections.</p>}
+                </>
+             )}
           </CardContent>
         </Card>
 
@@ -395,72 +425,97 @@ export default function FinancialsPage() {
             </CardTitle>
             <CardDescription>All overdue invoices</CardDescription>
           </CardHeader>
-          <CardContent>
-             {isLoading ? <Skeleton className="h-40 w-full" /> : outstandingPayments.length > 0 ? (
+          <CardContent className="flex flex-col gap-4">
+             {isLoading ? <Skeleton className="h-20 w-full" /> : (
                 <>
-                 <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Details</TableHead>
-                            <TableHead>Client</TableHead>
-                            <TableHead className="text-right">Days Overdue</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {outstandingPayments.slice(0,3).map(({ invoice, booking }) => (
-                            <TableRow key={invoice.id}>
-                                <TableCell>
-                                    <div className="font-medium">Inv #{invoice.id.substring(0, 7).toUpperCase()}</div>
-                                    <div className="text-xs text-muted-foreground">Book #{(booking?.id || '').substring(0,7).toUpperCase()}</div>
-                                </TableCell>
-                                <TableCell>{booking?.clientId || invoice.clientId}</TableCell>
-                                <TableCell className="text-right text-red-600 font-medium">
-                                    {differenceInDays(now, parseISO(invoice.dueDate))} days
-                                </TableCell>
+                <div>
+                    <p className="text-2xl font-bold">{formatCurrency(outstandingPayments.totalAmount)}</p>
+                    <p className="text-xs text-muted-foreground">from {outstandingPayments.totalCount} invoice(s)</p>
+                </div>
+                {outstandingPayments.data.length > 0 ? (
+                    <>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Details</TableHead>
+                                <TableHead className="text-right">Days Overdue</TableHead>
                             </TableRow>
-                        ))}
-                    </TableBody>
-                 </Table>
-                 <Button variant="link" size="sm" className="w-full mt-2" onClick={() => handleViewReport('outstanding')}>
-                    <Eye className="mr-2 h-4 w-4" /> View Full Report
-                </Button>
+                        </TableHeader>
+                        <TableBody>
+                            {outstandingPayments.data.slice(0,2).map(({ invoice, booking }) => (
+                                <TableRow key={invoice.id}>
+                                    <TableCell>
+                                        <div className="font-medium">Inv #{invoice.id.substring(0, 7).toUpperCase()}</div>
+                                        <div className="text-xs text-muted-foreground">{booking?.clientId || invoice.clientId}</div>
+                                    </TableCell>
+                                    <TableCell className="text-right text-red-600 font-medium">
+                                        {differenceInDays(now, parseISO(invoice.dueDate))}
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                    <Button variant="link" size="sm" className="w-full mt-2" onClick={() => handleViewReport('outstanding')}>
+                        <Eye className="mr-2 h-4 w-4" /> View Full Report
+                    </Button>
+                    </>
+                ) : <p className="text-sm text-muted-foreground text-center py-4">No outstanding payments. Good job!</p>}
                 </>
-             ) : <p className="text-sm text-muted-foreground text-center py-10">No outstanding payments. Good job!</p>}
+             )}
           </CardContent>
         </Card>
 
         <Card>
             <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                    <CheckCircle className="h-5 w-5 text-green-500"/>
-                    <span>Completed Collections</span>
-                </CardTitle>
-                <CardDescription>Recently paid invoices.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                {isLoading ? <Skeleton className="h-40 w-full" /> : completedCollections.length > 0 ? (
-                    <>
-                    <div className="space-y-4">
-                        {completedCollections.slice(0, 5).map(({ invoice, booking }) => (
-                            <div key={invoice.id} className="flex justify-between items-center">
-                                <div>
-                                    <p className="font-medium">#{invoice.id.substring(0, 7)}</p>
-                                    <p className="text-sm text-muted-foreground">{booking?.clientId || invoice.clientId}</p>
-                                </div>
-                                <div className="text-right">
-                                    <p className="font-semibold text-green-600">+{formatCurrency(invoice.grossSales)}</p>
-                                    <p className="text-xs text-muted-foreground">
-                                        {invoice.dateIssued ? format(parseISO(invoice.dateIssued), 'PP') : ''}
-                                    </p>
-                                </div>
-                            </div>
-                        ))}
+                <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-2">
+                    <div>
+                        <CardTitle className="flex items-center gap-2 text-lg">
+                            <CheckCircle className="h-5 w-5 text-green-500"/>
+                            <span>Completed Collections</span>
+                        </CardTitle>
                     </div>
-                     <Button variant="link" size="sm" className="w-full mt-2" onClick={() => handleViewReport('completed')}>
-                        <Eye className="mr-2 h-4 w-4" /> View Full Report
-                    </Button>
+                     <Select value={completedFilter} onValueChange={(value) => setCompletedFilter(value as FinancialFilter)}>
+                        <SelectTrigger className="w-full sm:w-[130px] h-8 text-xs">
+                            <SelectValue placeholder="Filter" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="Overall">Overall</SelectItem>
+                            <SelectItem value="Annual">This Year</SelectItem>
+                            <SelectItem value="Monthly">This Month</SelectItem>
+                            <SelectItem value="Weekly">This Week</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+                {isLoading ? <Skeleton className="h-20 w-full" /> : (
+                    <>
+                    <div>
+                        <p className="text-2xl font-bold">{formatCurrency(completedCollections.totalAmount)}</p>
+                        <p className="text-xs text-muted-foreground">from {completedCollections.totalCount} invoice(s)</p>
+                    </div>
+                    {completedCollections.data.length > 0 ? (
+                        <>
+                        <div className="space-y-4">
+                            {completedCollections.data.slice(0, 3).map(({ invoice, booking }) => (
+                                <div key={invoice.id} className="flex justify-between items-center text-sm">
+                                    <div>
+                                        <p className="font-medium">#{invoice.id.substring(0, 7)}</p>
+                                        <p className="text-xs text-muted-foreground">{booking?.clientId || invoice.clientId}</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="font-semibold text-green-600">+{formatCurrency(invoice.grossSales)}</p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        <Button variant="link" size="sm" className="w-full mt-2" onClick={() => handleViewReport('completed')}>
+                            <Eye className="mr-2 h-4 w-4" /> View Full Report
+                        </Button>
+                        </>
+                    ) : <p className="text-sm text-muted-foreground text-center py-4">No completed collections yet.</p>}
                     </>
-                ) : <p className="text-sm text-muted-foreground text-center py-10">No completed collections yet.</p>}
+                )}
             </CardContent>
         </Card>
         
@@ -543,26 +598,27 @@ export default function FinancialsPage() {
                 </div>
             </CardHeader>
             <CardContent>
-                {isLoading ? <Skeleton className="h-40 w-full" /> : profitTrackerData.length > 0 ? (
+                {isLoading ? <Skeleton className="h-40 w-full" /> : profitTrackerData.data.length > 0 ? (
                 <>
+                <div className="mb-4">
+                    <p className="text-2xl font-bold">{formatCurrency(profitTrackerData.totalProfit)}</p>
+                    <p className="text-xs text-muted-foreground">from {profitTrackerData.data.length} delivered booking(s)</p>
+                </div>
                 <div className="max-h-96 overflow-y-auto">
                     <Table>
                         <TableHeader>
                         <TableRow>
                             <TableHead>Booking</TableHead>
-                            <TableHead>Client</TableHead>
-                            <TableHead>Date</TableHead>
                             <TableHead className="text-right">Profit</TableHead>
                         </TableRow>
                         </TableHeader>
                         <TableBody>
-                        {profitTrackerData.slice(0, 7).map(booking => (
+                        {profitTrackerData.data.slice(0, 5).map(booking => (
                             <TableRow key={booking.id}>
                             <TableCell>
                                 <div className="font-medium">#{(booking.id || '').substring(0, 7).toUpperCase()}</div>
+                                <div className="text-xs text-muted-foreground">{booking.clientId}</div>
                             </TableCell>
-                            <TableCell>{booking.clientId}</TableCell>
-                            <TableCell>{format(parseISO(booking.dueDate), 'PP')}</TableCell>
                             <TableCell className="text-right font-medium">
                                 <span className={booking.profit >= 0 ? 'text-green-600' : 'text-red-600'}>
                                     {formatCurrency(booking.profit)}
@@ -606,6 +662,10 @@ export default function FinancialsPage() {
             <CardContent>
                 {isLoading ? <Skeleton className="h-40 w-full" /> : filteredExpenses.length > 0 ? (
                 <>
+                <div className="mb-4">
+                    <p className="text-2xl font-bold">{formatCurrency(totalExpenses)}</p>
+                    <p className="text-xs text-muted-foreground">from {filteredExpenses.length} transaction(s)</p>
+                </div>
                 <div className="max-h-64 overflow-y-auto">
                 <Table>
                     <TableHeader>
@@ -628,16 +688,9 @@ export default function FinancialsPage() {
                     </TableBody>
                 </Table>
                 </div>
-                <Separator className="my-4" />
-                <div className="flex justify-between items-center">
-                    <div>
-                        <p className="text-muted-foreground">Total ({expenseFilter})</p>
-                        <p className="font-bold text-xl">{formatCurrency(totalExpenses)}</p>
-                    </div>
-                    <Button variant="link" size="sm" onClick={() => handleViewReport('expense')}>
-                        <Eye className="mr-2 h-4 w-4" /> View Full Report
-                    </Button>
-                </div>
+                <Button variant="link" size="sm" className="w-full mt-2" onClick={() => handleViewReport('expense')}>
+                    <Eye className="mr-2 h-4 w-4" /> View Full Report
+                </Button>
                 </>
              ) : <p className="text-sm text-muted-foreground text-center py-10">No expenses logged for this period.</p>}
           </CardContent>
@@ -719,28 +772,28 @@ export default function FinancialsPage() {
                 </div>
             </CardHeader>
             <CardContent>
-                {isLoading ? <Skeleton className="h-60 w-full" /> : vehicleProfitabilityData.length > 0 ? (
+                {isLoading ? <Skeleton className="h-60 w-full" /> : vehicleProfitabilityData.data.length > 0 ? (
                 <>
+                <div className="mb-4">
+                    <p className="text-2xl font-bold">{formatCurrency(vehicleProfitabilityData.totalProfit)}</p>
+                    <p className="text-xs text-muted-foreground">Total net profit across all vehicle types</p>
+                </div>
                 <div className="max-h-96 overflow-y-auto">
                     <Table>
                         <TableHeader>
                         <TableRow>
                             <TableHead>Vehicle Type</TableHead>
                             <TableHead className="text-center">Bookings</TableHead>
-                            <TableHead className="text-right">Total Revenue</TableHead>
-                            <TableHead className="text-right">Total Costs</TableHead>
                             <TableHead className="text-right">Net Profit</TableHead>
                         </TableRow>
                         </TableHeader>
                         <TableBody>
-                        {vehicleProfitabilityData.map(item => (
+                        {vehicleProfitabilityData.data.map(item => (
                             <TableRow key={item.vehicleType}>
                                 <TableCell>
                                     <div className="font-medium">{item.vehicleType}</div>
                                 </TableCell>
                                 <TableCell className="text-center">{item.totalBookings}</TableCell>
-                                <TableCell className="text-right">{formatCurrency(item.totalRevenue)}</TableCell>
-                                <TableCell className="text-right">{formatCurrency(item.totalCosts)}</TableCell>
                                 <TableCell className="text-right font-medium">
                                     <span className={item.netProfit >= 0 ? 'text-green-600' : 'text-red-600'}>
                                         {formatCurrency(item.netProfit)}
