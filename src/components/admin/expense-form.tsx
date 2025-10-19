@@ -30,7 +30,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Textarea } from "../ui/textarea";
 
-const expenseCategories = ["fuel", "maintenance", "toll", "office", "staff", "permits", "vehicle parts", "pms", "change oil", "client representation", "driver rate"] as const;
+const expenseCategories = ["fuel", "maintenance", "toll", "office", "staff", "permits", "vehicle parts", "pms", "change oil", "client representation", "driver rate", "miscellaneous"] as const;
 const paymentMethods = ["cash", "bank", "credit", "PTS"] as const;
 
 const expenseSchema = z.object({
@@ -227,3 +227,5 @@ export function ExpenseForm({ onSubmit, defaultValues, isSubmitting }: ExpenseFo
     </Form>
   );
 }
+
+    
