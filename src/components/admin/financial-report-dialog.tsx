@@ -62,6 +62,11 @@ export function FinancialReportDialog({ isOpen, onOpenChange, data }: FinancialR
                 body { margin: 1.5rem; background-color: white; }
                 .printable-area { max-width: 100%; margin: 0 auto; overflow: hidden; page-break-after: avoid; }
                 .no-print { display: none !important; }
+                .report-scroll-area {
+                    height: auto !important;
+                    max-height: none !important;
+                    overflow: visible !important;
+                }
             }
         </style>
     `);
@@ -100,7 +105,7 @@ export function FinancialReportDialog({ isOpen, onOpenChange, data }: FinancialR
               </div>
             </div>
           </DialogHeader>
-          <ScrollArea className="max-h-[60vh] border rounded-md">
+          <ScrollArea className="max-h-[60vh] border rounded-md report-scroll-area">
             <Table>
               <TableHeader>
                 <TableRow>
