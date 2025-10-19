@@ -105,7 +105,7 @@ export function FinancialReportDialog({ isOpen, onOpenChange, data }: FinancialR
               <TableHeader>
                 <TableRow>
                   {data.headers.map((header, index) => (
-                    <TableHead key={index} className={index > 0 && (header.toLowerCase().includes('amount') || header.toLowerCase().includes('profit')) ? 'text-right' : ''}>{header}</TableHead>
+                    <TableHead key={index} className={index > 0 && (header.toLowerCase().includes('amount') || header.toLowerCase().includes('profit') || header.toLowerCase().includes('costs') || header.toLowerCase().includes('revenue')) ? 'text-right' : ''}>{header}</TableHead>
                   ))}
                 </TableRow>
               </TableHeader>
@@ -113,7 +113,7 @@ export function FinancialReportDialog({ isOpen, onOpenChange, data }: FinancialR
                 {data.rows.length > 0 ? data.rows.map((row, rowIndex) => (
                   <TableRow key={rowIndex}>
                     {row.map((cell, cellIndex) => (
-                      <TableCell key={cellIndex} className={cellIndex > 0 && (data.headers[cellIndex].toLowerCase().includes('amount') || data.headers[cellIndex].toLowerCase().includes('profit')) ? 'text-right' : ''}>
+                      <TableCell key={cellIndex} className={cellIndex > 0 && (data.headers[cellIndex].toLowerCase().includes('amount') || data.headers[cellIndex].toLowerCase().includes('profit') || data.headers[cellIndex].toLowerCase().includes('costs') || data.headers[cellIndex].toLowerCase().includes('revenue')) ? 'text-right' : ''}>
                         {cell}
                       </TableCell>
                     ))}
