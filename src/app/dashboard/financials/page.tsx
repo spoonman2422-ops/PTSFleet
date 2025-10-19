@@ -297,9 +297,10 @@ export default function FinancialsPage() {
          case 'completed':
             data = {
                 title: "Completed Collections Report",
-                headers: ["Invoice ID", "Client", "Paid Date", "Amount"],
+                headers: ["Invoice ID", "Booking ID", "Client", "Paid Date", "Amount"],
                 rows: completedCollections.data.map(({ invoice: i, booking: b }) => [
                     `#${(i.id || '').substring(0,7).toUpperCase()}`,
+                    `#${(b?.id || '').substring(0,7).toUpperCase()}`,
                     b?.clientId || i.clientId,
                     i.dateIssued ? format(parseISO(i.dateIssued), 'PP') : 'N/A',
                     formatCurrency(i.grossSales)
