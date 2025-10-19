@@ -9,8 +9,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter as ReportFooter } from '@/components/ui/table';
 import { Printer } from 'lucide-react';
 import { AppLogo } from '../icons';
 
@@ -18,6 +17,7 @@ export type ReportData = {
   title: string;
   headers: string[];
   rows: (string | number)[][];
+  total?: number;
 };
 
 type FinancialReportDialogProps = {
@@ -28,6 +28,8 @@ type FinancialReportDialogProps = {
 
 export function FinancialReportDialog({ isOpen, onOpenChange, data }: FinancialReportDialogProps) {
   if (!data) return null;
+  
+  const formatCurrency = (amount: number) => new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(amount);
 
   const handlePrint = () => {
     const printableArea = document.getElementById('printable-report-area');
@@ -67,6 +69,11 @@ export function FinancialReportDialog({ isOpen, onOpenChange, data }: FinancialR
                     max-height: none !important;
                     overflow: visible !important;
                 }
+                .report-content {
+                    height: auto !important;
+                    max-height: none !important;
+                    overflow-y: visible !important;
+                }
             }
         </style>
     `);
@@ -87,7 +94,7 @@ export function FinancialReportDialog({ isOpen, onOpenChange, data }: FinancialR
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-4xl max-h-[90vh] flex flex-col">
-        <div id="printable-report-area" className="printable-area flex-1 overflow-y-auto pr-6">
+        <div id="printable-report-area" className="printable-area flex-1 overflow-y-auto pr-6 report-content">
           <DialogHeader className="mb-4">
             <div className="flex justify-between items-start">
                 <div>
@@ -131,6 +138,14 @@ export function FinancialReportDialog({ isOpen, onOpenChange, data }: FinancialR
                     </TableRow>
                 )}
               </TableBody>
+              {data.total !== undefined && (
+                <ReportFooter>
+                    <TableRow>
+                        <TableCell colSpan={data.headers.length - 1} className="text-right font-bold">Total</TableCell>
+                        <TableCell className="text-right font-bold">{formatCurrency(data.total)}</TableCell>
+                    </TableRow>
+                </ReportFooter>
+              )}
             </Table>
           </div>
         </div>

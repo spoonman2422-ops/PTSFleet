@@ -273,7 +273,8 @@ export default function FinancialsPage() {
                     b.clientId,
                     format(parseISO(b.collectionDate), 'PP'),
                     formatCurrency(b.bookingRate)
-                ])
+                ]),
+                total: upcomingCollections.totalAmount
             };
             break;
         case 'outstanding':
@@ -286,7 +287,8 @@ export default function FinancialsPage() {
                     format(parseISO(i.dueDate), 'PP'),
                     `${differenceInDays(now, parseISO(i.dueDate))} days`,
                     formatCurrency(i.grossSales)
-                ])
+                ]),
+                total: outstandingPayments.totalAmount
             };
             break;
          case 'completed':
@@ -298,7 +300,8 @@ export default function FinancialsPage() {
                     b?.clientId || i.clientId,
                     i.dateIssued ? format(parseISO(i.dateIssued), 'PP') : 'N/A',
                     formatCurrency(i.grossSales)
-                ])
+                ]),
+                total: completedCollections.totalAmount
             };
             break;
         case 'cash':
@@ -323,7 +326,8 @@ export default function FinancialsPage() {
                     formatCurrency(b.bookingRate),
                     formatCurrency(b.bookingRate - b.profit),
                     formatCurrency(b.profit)
-                ])
+                ]),
+                total: profitTrackerData.totalProfit
             };
             break;
         case 'expense':
@@ -335,7 +339,8 @@ export default function FinancialsPage() {
                     e.category,
                     e.description,
                     formatCurrency(e.amount)
-                ])
+                ]),
+                total: totalExpenses
             };
             break;
         case 'vehicle':
@@ -348,7 +353,8 @@ export default function FinancialsPage() {
                     formatCurrency(v.totalRevenue),
                     formatCurrency(v.totalCosts),
                     formatCurrency(v.netProfit)
-                ])
+                ]),
+                total: vehicleProfitabilityData.totalProfit
             };
             break;
 
