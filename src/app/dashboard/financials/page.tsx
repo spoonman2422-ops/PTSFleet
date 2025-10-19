@@ -119,7 +119,7 @@ export default function FinancialsPage() {
 
 
   const profitTrackerData = useMemo(() => {
-    if (!bookings) return { data: [], totalProfit: 0 };
+    if (!bookings) return { data: [], totalRevenue: 0, totalCosts: 0, totalProfit: 0 };
     
     const deliveredBookings = bookings
         .filter(b => b.status === 'Delivered' && b.dueDate);
@@ -129,15 +129,18 @@ export default function FinancialsPage() {
     const data = deliveredBookings
       .filter(booking => booking.dueDate && isAfter(parseISO(booking.dueDate), startDate))
       .map(booking => {
-        const totalExpenses = (booking.expectedExpenses.tollFee || 0) + (booking.expectedExpenses.fuel || 0) + (booking.expectedExpenses.others || 0);
-        const profit = booking.bookingRate - (booking.driverRate + totalExpenses);
-        return { ...booking, profit };
+        const costs = (booking.driverRate || 0) + (booking.expectedExpenses.tollFee || 0) + (booking.expectedExpenses.fuel || 0) + (booking.expectedExpenses.others || 0);
+        const profit = booking.bookingRate - costs;
+        return { ...booking, profit, costs };
       })
       .sort((a, b) => parseISO(b.dueDate).getTime() - parseISO(a.dueDate).getTime());
     
+    const totalRevenue = data.reduce((sum, b) => sum + b.bookingRate, 0);
+    const totalCosts = data.reduce((sum, b) => sum + b.costs, 0);
     const totalProfit = data.reduce((sum, b) => sum + b.profit, 0);
 
-    return { data, totalProfit };
+
+    return { data, totalRevenue, totalCosts, totalProfit };
   }, [bookings, profitFilter]);
 
   const filteredExpenses = useMemo(() => {
@@ -324,10 +327,14 @@ export default function FinancialsPage() {
                     b.clientId,
                     format(parseISO(b.dueDate), 'PP'),
                     formatCurrency(b.bookingRate),
-                    formatCurrency(b.bookingRate - b.profit),
+                    formatCurrency(b.costs),
                     formatCurrency(b.profit)
                 ]),
-                total: profitTrackerData.totalProfit,
+                footer: [
+                  ['Total Revenue', profitTrackerData.totalRevenue],
+                  ['Total Costs', profitTrackerData.totalCosts],
+                  ['Total Profit', profitTrackerData.totalProfit],
+                ]
             };
             break;
         case 'expense':
