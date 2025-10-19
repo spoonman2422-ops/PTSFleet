@@ -65,6 +65,7 @@ type BookingDialogProps = {
 };
 
 const UNASSIGNED_VALUE = "unassigned";
+const clients = ["HANA Creatives", "Flash", "DTS"];
 
 export function BookingDialog({
   isOpen,
@@ -100,25 +101,32 @@ export function BookingDialog({
   
   const watchedValues = useWatch({ control: form.control });
   const watchedBookingDate = useWatch({ control: form.control, name: 'bookingDate' });
+  const watchedClientId = useWatch({ control: form.control, name: 'clientId' });
 
   useEffect(() => {
-    // Only auto-populate if it's a new booking and the booking date changes
-    if (!isEditMode && watchedBookingDate) {
+    if (watchedBookingDate && watchedClientId) {
         try {
-            const date = parseISO(watchedBookingDate);
-            const futureDate = addDays(date, 14);
-            const formattedFutureDate = format(futureDate, "yyyy-MM-dd");
-            
-            // To avoid overriding user's manual changes, we could check if they are empty
-            // but for this logic, we'll just set it. The user can change it.
-            form.setValue('collectionDate', formattedFutureDate, { shouldValidate: true });
-            form.setValue('dueDate', formattedFutureDate, { shouldValidate: true });
+            const bookingDate = parseISO(watchedBookingDate);
+            let daysToAdd = 0;
+            if (watchedClientId === 'HANA Creatives' || watchedClientId === 'DTS') {
+                daysToAdd = 15;
+            } else if (watchedClientId === 'Flash') {
+                daysToAdd = 45;
+            }
+
+            if (daysToAdd > 0) {
+                const futureDate = addDays(bookingDate, daysToAdd);
+                const formattedFutureDate = format(futureDate, "yyyy-MM-dd");
+                
+                form.setValue('collectionDate', formattedFutureDate, { shouldValidate: true });
+                form.setValue('dueDate', formattedFutureDate, { shouldValidate: true });
+            }
 
         } catch (error) {
             // Invalid date string, do nothing
         }
     }
-  }, [watchedBookingDate, isEditMode, form]);
+}, [watchedBookingDate, watchedClientId, form]);
 
 
   const netMargin =
@@ -203,9 +211,18 @@ export function BookingDialog({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Client ID / Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., C001 or Acme Inc." {...field} />
-                    </FormControl>
+                     <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a client" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {clients.map(client => (
+                            <SelectItem key={client} value={client}>{client}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     <FormMessage />
                   </FormItem>
                 )}
