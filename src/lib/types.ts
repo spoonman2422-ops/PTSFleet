@@ -78,7 +78,7 @@ export interface Message {
 export interface Expense {
   id: string;
   bookingId?: string;
-  category: "fuel" | "maintenance" | "toll" | "office" | "staff" | "permits" | "vehicle parts" | "pms" | "change oil" | "client representation" | "driver rate" | "miscellaneous";
+  category: "fuel" | "maintenance" | "toll" | "office" | "staff" | "permits" | "vehicle parts" | "pms" | "change oil" | "client representation" | "driver rate" | "miscellaneous" | "Vehicle Related Expense";
   description: string;
   amount: number;
   vatIncluded: boolean;
@@ -105,5 +105,3 @@ export interface CashAdvance {
   date: string;
   addedBy: string;
 }
-
-    
