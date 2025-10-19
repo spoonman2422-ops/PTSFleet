@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { FileText, Printer, MoreHorizontal, Trash2 } from 'lucide-react';
+import { FileText, Printer, MoreHorizontal, Trash2, Edit } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import { InvoiceSheet } from '@/components/admin/invoice-sheet';
@@ -27,6 +27,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { InvoiceDialog } from '@/components/admin/invoice-dialog';
 
 
 const statusConfig: Record<InvoiceStatus, { variant: 'secondary' | 'default' | 'destructive', className: string }> = {
@@ -44,7 +45,9 @@ export default function InvoicesPage() {
     const { data: users, isLoading: isLoadingUsers } = useCollection<User>('users');
     const { data: bookings, isLoading: isLoadingBookings } = useCollection<Booking>('bookings');
     const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+    const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
     const [isSheetOpen, setIsSheetOpen] = useState(false);
+    const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [filterStatus, setFilterStatus] = useState<InvoiceStatus | 'All'>('All');
     const [searchQuery, setSearchQuery] = useState('');
     const [deletingInvoice, setDeletingInvoice] = useState<Invoice | null>(null);
@@ -83,6 +86,24 @@ export default function InvoicesPage() {
     const handleViewInvoice = (invoice: Invoice) => {
         setSelectedInvoice(invoice);
         setIsSheetOpen(true);
+    };
+
+    const handleEditInvoice = (invoice: Invoice) => {
+        setEditingInvoice(invoice);
+        setIsDialogOpen(true);
+    };
+
+    const handleSaveInvoice = async (data: Partial<Invoice>, id: string) => {
+        if (!firestore) return;
+        
+        const invoiceRef = doc(firestore, 'invoices', id);
+        await updateDoc(invoiceRef, data);
+        
+        toast({
+            title: 'Invoice Updated',
+            description: `Invoice #${id.substring(0,7)} has been successfully updated.`,
+        });
+        setIsDialogOpen(false);
     };
 
     const handleUpdateStatus = async (invoiceId: string, status: InvoiceStatus) => {
@@ -138,11 +159,8 @@ export default function InvoicesPage() {
 
     const selectedClient = useMemo(() => {
         if (!selectedInvoice || !users) return null;
-        // Find user by clientID from the invoice itself
         const clientUser = users.find(u => u.id === selectedInvoice.clientId);
         if (clientUser) return clientUser;
-
-        // Fallback for older data or if user is not in the users collection
         return { id: selectedInvoice.clientId, name: selectedInvoice.clientId, email: '', role: 'Driver', avatarUrl: '' };
     }, [selectedInvoice, users]);
 
@@ -227,6 +245,11 @@ export default function InvoicesPage() {
                                                         </DropdownMenuTrigger>
                                                         <DropdownMenuContent>
                                                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                                            <DropdownMenuItem onClick={() => handleEditInvoice(invoice)}>
+                                                                <Edit className="mr-2 h-4 w-4" />
+                                                                Edit
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuSeparator />
                                                             <DropdownMenuItem onClick={() => handleUpdateStatus(invoice.id, 'Paid')} disabled={invoice.status === 'Paid'}>
                                                                 Mark as Paid
                                                             </DropdownMenuItem>
@@ -268,6 +291,14 @@ export default function InvoicesPage() {
                     booking={selectedBooking}
                     client={selectedClient}
                  />
+            )}
+            {editingInvoice && (
+                <InvoiceDialog
+                    isOpen={isDialogOpen}
+                    onOpenChange={setIsDialogOpen}
+                    invoice={editingInvoice}
+                    onSave={handleSaveInvoice}
+                />
             )}
              <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
                 <AlertDialogContent>
