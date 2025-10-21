@@ -31,12 +31,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
-import { CalendarIcon, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Vehicle } from '@/lib/types';
 import { Separator } from '../ui/separator';
+import { DateDropdownPicker } from '../ui/date-dropdown-picker';
 
 const vehicleSchema = z.object({
   make: z.string().min(1, 'Make is required.'),
@@ -140,22 +139,16 @@ export function VehicleDialog({ isOpen, onOpenChange, onSave, vehicle }: Vehicle
 
                 <Separator />
 
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                      <FormField control={form.control} name="dateAcquired" render={({ field }) => (
-                        <FormItem className="flex flex-col"><FormLabel>Date Acquired</FormLabel><Popover><PopoverTrigger asChild><FormControl>
-                            <Button variant={'outline'} className={cn('w-full pl-3 text-left font-normal',!field.value && 'text-muted-foreground')}>
-                            {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start">
-                            <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus/>
-                        </PopoverContent></Popover><FormMessage /></FormItem>
+                        <FormItem className="flex flex-col"><FormLabel>Date Acquired</FormLabel><FormControl>
+                            <DateDropdownPicker value={field.value} onChange={field.onChange} />
+                        </FormControl><FormMessage /></FormItem>
                     )}/>
                     <FormField control={form.control} name="nextMaintenanceDate" render={({ field }) => (
-                        <FormItem className="flex flex-col"><FormLabel>Next Maintenance</FormLabel><Popover><PopoverTrigger asChild><FormControl>
-                            <Button variant={'outline'} className={cn('w-full pl-3 text-left font-normal',!field.value && 'text-muted-foreground')}>
-                            {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start">
-                            <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus/>
-                        </PopoverContent></Popover><FormMessage /></FormItem>
+                        <FormItem className="flex flex-col"><FormLabel>Next Maintenance</FormLabel><FormControl>
+                            <DateDropdownPicker value={field.value} onChange={field.onChange} />
+                        </FormControl><FormMessage /></FormItem>
                     )}/>
                  </div>
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -163,12 +156,9 @@ export function VehicleDialog({ isOpen, onOpenChange, onSave, vehicle }: Vehicle
                         <FormItem><FormLabel>Amortization Schedule</FormLabel><FormControl><Input placeholder="e.g., Every 15th of the month" {...field} /></FormControl><FormMessage /></FormItem>
                     )}/>
                      <FormField control={form.control} name="amortizationEndDate" render={({ field }) => (
-                        <FormItem className="flex flex-col"><FormLabel>Amortization End Date</FormLabel><Popover><PopoverTrigger asChild><FormControl>
-                            <Button variant={'outline'} className={cn('w-full pl-3 text-left font-normal',!field.value && 'text-muted-foreground')}>
-                            {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start">
-                            <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus/>
-                        </PopoverContent></Popover><FormMessage /></FormItem>
+                        <FormItem className="flex flex-col"><FormLabel>Amortization End Date</FormLabel><FormControl>
+                            <DateDropdownPicker value={field.value} onChange={field.onChange} />
+                        </FormControl><FormMessage /></FormItem>
                     )}/>
                  </div>
                  <FormField control={form.control} name="status" render={({ field }) => (
