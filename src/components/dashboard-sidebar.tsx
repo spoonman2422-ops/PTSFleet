@@ -32,7 +32,6 @@ export function DashboardSidebar() {
         { href: "/dashboard/admin/expenses", label: "Expense Management", icon: Wallet },
         { href: "/dashboard/admin/revolving-fund", label: "Revolving Fund", icon: PiggyBank },
         { href: "/dashboard/admin/financials", label: "Financials", icon: TrendingUp },
-        { href: "/dashboard/admin/activity-logs", label: "Activity Logs", icon: History },
     ],
     Dispatcher: [
         { href: "/dashboard/dispatcher", label: "Dashboard", icon: Gauge },
@@ -89,3 +88,4 @@ export function DashboardSidebar() {
     </Sidebar>
   );
 }
+
