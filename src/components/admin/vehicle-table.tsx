@@ -52,7 +52,7 @@ const statusConfig: Record<VehicleStatus, { variant: "secondary" | "default" | "
 
 export function VehicleTable({ data, isLoading, onEdit, onDelete }: VehicleTableProps) {
   const [sorting, setSorting] = React.useState<SortingState>([
-    { id: "dateAcquired", desc: true },
+    { id: "make", desc: false },
   ]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = React.useState("");
