@@ -283,9 +283,9 @@ export default function FinancialsPage() {
         case 'outstanding':
             data = {
                 title: "Outstanding Payments Report",
-                headers: ["Invoice ID", "Client", "Due Date", "Days Overdue", "Amount"],
+                headers: ["Booking ID", "Client", "Due Date", "Days Overdue", "Amount"],
                 rows: outstandingPayments.data.map(({invoice: i, booking: b}) => [
-                    `#${(i.id || '').substring(0,7).toUpperCase()}`,
+                    `#${(b?.id || i.bookingId).substring(0,7).toUpperCase()}`,
                     b?.clientId || i.clientId,
                     format(parseISO(i.dueDate), 'PP'),
                     `${differenceInDays(now, parseISO(i.dueDate))} days`,
@@ -297,10 +297,9 @@ export default function FinancialsPage() {
          case 'completed':
             data = {
                 title: "Completed Collections Report",
-                headers: ["Invoice ID", "Booking ID", "Client", "Paid Date", "Amount"],
+                headers: ["Booking ID", "Client", "Paid Date", "Amount"],
                 rows: completedCollections.data.map(({ invoice: i, booking: b }) => [
-                    `#${(i.id || '').substring(0,7).toUpperCase()}`,
-                    `#${(b?.id || '').substring(0,7).toUpperCase()}`,
+                    `#${(b?.id || i.bookingId).substring(0,7).toUpperCase()}`,
                     b?.clientId || i.clientId,
                     i.dateIssued ? format(parseISO(i.dateIssued), 'PP') : 'N/A',
                     formatCurrency(i.grossSales)
@@ -459,7 +458,7 @@ export default function FinancialsPage() {
                             {outstandingPayments.data.slice(0,2).map(({ invoice, booking }) => (
                                 <TableRow key={invoice.id}>
                                     <TableCell>
-                                        <div className="font-medium">Inv #{invoice.id.substring(0, 7).toUpperCase()}</div>
+                                        <div className="font-medium">Booking #{(booking?.id || '').substring(0, 7).toUpperCase()}</div>
                                         <div className="text-xs text-muted-foreground">{booking?.clientId || invoice.clientId}</div>
                                     </TableCell>
                                     <TableCell className="text-right text-red-600 font-medium">
@@ -514,7 +513,7 @@ export default function FinancialsPage() {
                             {completedCollections.data.slice(0, 3).map(({ invoice, booking }) => (
                                 <div key={invoice.id} className="flex justify-between items-center text-sm">
                                     <div>
-                                        <p className="font-medium">#{invoice.id.substring(0, 7)}</p>
+                                        <p className="font-medium">Booking #{(booking?.id || '').substring(0, 7)}</p>
                                         <p className="text-xs text-muted-foreground">{booking?.clientId || invoice.clientId}</p>
                                     </div>
                                     <div className="text-right">
