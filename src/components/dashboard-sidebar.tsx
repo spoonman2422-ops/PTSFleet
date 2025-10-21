@@ -68,6 +68,17 @@ export function DashboardSidebar() {
             </Link>
           </SidebarMenuItem>
         ))}
+         <SidebarMenuItem>
+            <Link href="/dashboard/user-guide">
+              <SidebarMenuButton
+                isActive={pathname.startsWith('/dashboard/user-guide')}
+                tooltip={{ children: "User Guide" }}
+              >
+                <ShieldQuestion />
+                <span>User Guide</span>
+              </SidebarMenuButton>
+            </Link>
+          </SidebarMenuItem>
       </SidebarMenu>
       
       <SidebarFooter className="p-2 border-t">
@@ -88,4 +99,3 @@ export function DashboardSidebar() {
     </Sidebar>
   );
 }
-
