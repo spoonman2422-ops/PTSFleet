@@ -108,10 +108,9 @@ export function BookingDialog({
   useEffect(() => {
     if (watchedClientId && !isEditMode) {
       const clientPrefix = watchedClientId.split(' ')[0];
-      const clientPrefixUpper = clientPrefix.toUpperCase();
       
       const clientBookings = allBookings
-        .filter(b => b.id?.toUpperCase().startsWith(clientPrefixUpper))
+        .filter(b => b.id?.toLowerCase().startsWith(clientPrefix.toLowerCase()))
         .map(b => parseInt(b.id?.replace(new RegExp(`^${clientPrefix}`, 'i'), '').replace('0', '') || '0', 10))
         .filter(n => !isNaN(n));
 
@@ -476,3 +475,5 @@ export function BookingDialog({
     </Dialog>
   );
 }
+
+    
