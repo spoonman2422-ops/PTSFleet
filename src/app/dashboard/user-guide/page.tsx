@@ -2,7 +2,7 @@
 "use client";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ShieldQuestion } from 'lucide-react';
+import { ShieldQuestion, ClipboardList, Truck, PackageCheck, Pencil, FileText, Banknote, ArrowRight } from 'lucide-react';
 
 export default function UserGuidePage() {
   return (
@@ -29,25 +29,47 @@ export default function UserGuidePage() {
           </ul>
         </GuideSection>
 
-        <GuideSection title="3. Admin Guide">
-            <h3 className="font-semibold text-lg mb-2">3.1 User Management</h3>
+        <GuideSection title="3. Booking Workflow (Visualized)">
+          <p className="mb-6">This is the typical lifecycle of a booking from start to finish.</p>
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-center">
+            <WorkflowStep icon={ClipboardList} title="Booking Logged" description="Admin or Dispatcher creates a new booking and assigns a driver." />
+            <ArrowRight className="h-8 w-8 text-muted-foreground min-w-8 -rotate-90 md:rotate-0" />
+            <WorkflowStep icon={Truck} title="Driver Mobilizes" description="Driver starts the trip, updating the status to 'En Route'." />
+            <ArrowRight className="h-8 w-8 text-muted-foreground min-w-8 -rotate-90 md:rotate-0" />
+            <WorkflowStep icon={PackageCheck} title="Delivery Complete" description="Driver completes the delivery and updates the status." />
+          </div>
+          <div className="flex justify-center my-4">
+             <ArrowRight className="h-8 w-8 text-muted-foreground min-w-8 rotate-90" />
+          </div>
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-center">
+             <WorkflowStep icon={Pencil} title="Verification" description="Dispatcher verifies the delivery and marks the booking 'Delivered'." />
+             <ArrowRight className="h-8 w-8 text-muted-foreground min-w-8 -rotate-90 md:rotate-0" />
+             <WorkflowStep icon={FileText} title="Invoice Created" description="An invoice is automatically generated for the completed booking." />
+             <ArrowRight className="h-8 w-8 text-muted-foreground min-w-8 -rotate-90 md:rotate-0" />
+             <WorkflowStep icon={Banknote} title="Billing" description="Admin manages the invoice and tracks payment in the financials dashboard." />
+          </div>
+        </GuideSection>
+
+
+        <GuideSection title="4. Admin Guide">
+            <h3 className="font-semibold text-lg mb-2">4.1 User Management</h3>
             <p>The Admin can create, edit, and delete user accounts. When creating a user, you must assign them a role. If the role is 'Driver', you can also assign a specific vehicle from the fleet to them.</p>
-            <h3 className="font-semibold text-lg mt-4 mb-2">3.2 Booking Management</h3>
+            <h3 className="font-semibold text-lg mt-4 mb-2">4.2 Booking Management</h3>
             <p>Admins have full control over all bookings. This includes creating new bookings, editing existing ones, deleting bookings, and updating their status. Deleting a booking will also remove all associated data, including messages and expenses.</p>
-             <h3 className="font-semibold text-lg mt-4 mb-2">3.3 Vehicle Management</h3>
+             <h3 className="font-semibold text-lg mt-4 mb-2">4.3 Vehicle Management</h3>
             <p>Here you can manage the entire vehicle fleet. Add new vehicles with details like make, model, plate number, and amortization schedules. You can also update the status of vehicles (e.g., 'Active', 'Under Maintenance').</p>
-             <h3 className="font-semibold text-lg mt-4 mb-2">3.4 Invoices</h3>
+             <h3 className="font-semibold text-lg mt-4 mb-2">4.4 Invoices</h3>
             <p>This section lists all invoices generated from completed bookings. You can view invoice details, print them, and manually update their status (e.g., from 'Unpaid' to 'Paid').</p>
-             <h3 className="font-semibold text-lg mt-4 mb-2">3.5 Payroll</h3>
+             <h3 className="font-semibold text-lg mt-4 mb-2">4.5 Payroll</h3>
             <p>The payroll page calculates weekly pay for each driver based on their completed bookings for the selected week. It also allows you to log and deduct cash advances from their net pay.</p>
-             <h3 className="font-semibold text-lg mt-4 mb-2">3.6 Expense Management</h3>
+             <h3 className="font-semibold text-lg mt-4 mb-2">4.6 Expense Management</h3>
             <p>Log all business-related expenses here, such as fuel, maintenance, or office supplies. Expenses can be categorized for better tracking and financial analysis.</p>
-             <h3 className="font-semibold text-lg mt-4 mb-2">3.7 Financials</h3>
+             <h3 className="font-semibold text-lg mt-4 mb-2">4.7 Financials</h3>
             <p>This dashboard provides a comprehensive overview of the company's financial health, including profit/margin tracking, outstanding payments, cash on hand, and profitability broken down by vehicle type.</p>
         </GuideSection>
         
-        <GuideSection title="4. Dispatcher Guide">
-            <h3 className="font-semibold text-lg mb-2">4.1 Dashboard & Booking Management</h3>
+        <GuideSection title="5. Dispatcher Guide">
+            <h3 className="font-semibold text-lg mb-2">5.1 Dashboard & Booking Management</h3>
             <p>The dispatcher's main view is the booking management table. Here you can:</p>
             <ul className="list-disc pl-6 mt-2 space-y-1">
                 <li>Create a <strong>New Booking</strong>, which automatically generates a unique Booking ID based on the client.</li>
@@ -55,20 +77,20 @@ export default function UserGuidePage() {
                 <li>Filter bookings by status (e.g., 'pending', 'En Route').</li>
                 <li>Update the status of a booking (e.g., mark as 'Delivered'). When a booking is marked as 'Delivered', an invoice is automatically generated.</li>
             </ul>
-             <h3 className="font-semibold text-lg mt-4 mb-2">4.2 Message Board</h3>
+             <h3 className="font-semibold text-lg mt-4 mb-2">5.2 Message Board</h3>
             <p>Click on any booking in the table to open the message board for that specific job. This allows for direct communication with the assigned driver, ensuring clear instructions and updates.</p>
         </GuideSection>
 
-        <GuideSection title="5. Driver Guide">
-            <h3 className="font-semibold text-lg mb-2">5.1 Viewing Assigned Bookings</h3>
+        <GuideSection title="6. Driver Guide">
+            <h3 className="font-semibold text-lg mb-2">6.1 Viewing Assigned Bookings</h3>
             <p>Your dashboard displays all bookings currently assigned to you. Each card shows key details like pickup/delivery locations and dates.</p>
-            <h3 className="font-semibold text-lg mt-4 mb-2">5.2 Updating Booking Status</h3>
+            <h3 className="font-semibold text-lg mt-4 mb-2">6.2 Updating Booking Status</h3>
             <p>You are responsible for updating the job status:</p>
             <ul className="list-disc pl-6 mt-2 space-y-1">
                 <li>Click <strong>Start Trip</strong> when you begin a job to change the status to 'En Route'.</li>
                 <li>Click <strong>Complete Delivery</strong> when you have finished the job. The status will change to 'Pending Verification', and a notification will be sent to the dispatcher.</li>
             </ul>
-             <h3 className="font-semibold text-lg mt-4 mb-2">5.3 Communication</h3>
+             <h3 className="font-semibold text-lg mt-4 mb-2">6.3 Communication</h3>
             <p>Click on a booking card to open the message board. Here you can send and receive messages and images directly with the dispatcher for that specific job.</p>
         </GuideSection>
       </div>
@@ -85,4 +107,14 @@ const GuideSection = ({ title, children }: { title: string, children: React.Reac
             {children}
         </CardContent>
     </Card>
-)
+);
+
+const WorkflowStep = ({ icon: Icon, title, description }: { icon: React.ElementType, title: string, description: string }) => (
+    <div className="flex flex-col items-center gap-2 max-w-[200px]">
+        <div className="flex items-center justify-center h-16 w-16 rounded-full bg-muted border">
+            <Icon className="h-8 w-8 text-primary" />
+        </div>
+        <h4 className="font-bold">{title}</h4>
+        <p className="text-xs">{description}</p>
+    </div>
+);
