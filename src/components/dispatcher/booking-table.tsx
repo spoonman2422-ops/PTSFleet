@@ -49,6 +49,8 @@ const statusConfig: Record<BookingStatus, { variant: 'secondary' | 'default' | '
 
 const bookingStatuses: (BookingStatus | 'All')[] = ['All', 'pending', 'En Route', 'Pending Verification', 'Delivered', 'cancelled'];
 
+const formatCurrency = (amount: number) => new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(amount);
+
 export function BookingTable({ bookings, isLoading, onEdit, onUpdateStatus, onDelete, filterStatus, setFilterStatus, onRowClick, selectedBookingId, users, searchQuery, setSearchQuery }: BookingTableProps) {
   return (
     <div className="border rounded-lg bg-card text-card-foreground shadow-sm flex-1 flex flex-col">
@@ -75,6 +77,8 @@ export function BookingTable({ bookings, isLoading, onEdit, onUpdateStatus, onDe
             <TableHead>Client</TableHead>
             <TableHead>Route</TableHead>
             <TableHead>Driver</TableHead>
+            <TableHead>Booking Rate</TableHead>
+            <TableHead>Total Expenses</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
@@ -86,6 +90,8 @@ export function BookingTable({ bookings, isLoading, onEdit, onUpdateStatus, onDe
                 <TableCell><Skeleton className="h-5 w-24" /></TableCell>
                 <TableCell><Skeleton className="h-5 w-24" /></TableCell>
                 <TableCell><Skeleton className="h-5 w-48" /></TableCell>
+                <TableCell><Skeleton className="h-5 w-20" /></TableCell>
+                <TableCell><Skeleton className="h-5 w-20" /></TableCell>
                 <TableCell><Skeleton className="h-5 w-20" /></TableCell>
                 <TableCell><Skeleton className="h-6 w-28" /></TableCell>
                 <TableCell className="text-right"><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
@@ -100,11 +106,16 @@ export function BookingTable({ bookings, isLoading, onEdit, onUpdateStatus, onDe
                   // Gracefully handle unknown statuses to prevent crashes
                   return (
                      <TableRow key={booking.id}>
-                        <TableCell colSpan={6}>Invalid booking status: {booking.status}</TableCell>
+                        <TableCell colSpan={8}>Invalid booking status: {booking.status}</TableCell>
                      </TableRow>
                   )
               }
               const StatusIcon = currentStatusConfig.icon;
+
+              const totalExpenses = (booking.driverRate || 0) +
+                                    (booking.expectedExpenses?.tollFee || 0) +
+                                    (booking.expectedExpenses?.fuel || 0) +
+                                    (booking.expectedExpenses?.others || 0);
 
               return (
                 <TableRow 
@@ -127,6 +138,8 @@ export function BookingTable({ bookings, isLoading, onEdit, onUpdateStatus, onDe
                     </div>
                   </TableCell>
                   <TableCell>{driver?.name || 'Unassigned'}</TableCell>
+                   <TableCell className="font-medium">{formatCurrency(booking.bookingRate)}</TableCell>
+                   <TableCell className="text-destructive">{formatCurrency(totalExpenses)}</TableCell>
                   <TableCell>
                     <Badge variant={currentStatusConfig.variant} className={cn('whitespace-nowrap capitalize', currentStatusConfig.className)}>
                         <StatusIcon className="mr-1 h-3 w-3" />
@@ -141,7 +154,7 @@ export function BookingTable({ bookings, isLoading, onEdit, onUpdateStatus, onDe
             })
           ) : (
             <TableRow>
-              <TableCell colSpan={6} className="h-24 text-center">
+              <TableCell colSpan={8} className="h-24 text-center">
                 No bookings found.
               </TableCell>
             </TableRow>
