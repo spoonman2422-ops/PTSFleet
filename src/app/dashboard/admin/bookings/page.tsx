@@ -5,7 +5,7 @@ import { useState, useMemo, useEffect } from 'react';
 import type { Booking, BookingStatus, User, Expense } from '@/lib/types';
 import { BookingTable } from '@/components/dispatcher/booking-table';
 import { Button } from '@/components/ui/button';
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, PanelRight, PanelLeft } from 'lucide-react';
 import { BookingDialog } from '@/components/dispatcher/booking-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { MessageBoard } from '@/components/message-board';
@@ -25,6 +25,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { cn } from '@/lib/utils';
 
 
 export default function AdminBookingsPage() {
@@ -40,6 +41,7 @@ export default function AdminBookingsPage() {
   const { user } = useUser();
   const [deletingBooking, setDeletingBooking] = useState<Booking | null>(null);
   const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const [isMessageBoardVisible, setIsMessageBoardVisible] = useState(true);
 
   const { toast } = useToast();
 
@@ -309,6 +311,9 @@ export default function AdminBookingsPage() {
   
   const handleRowClick = (bookingId: string) => {
     setSelectedBookingId(bookingId);
+    if (!isMessageBoardVisible) {
+        setIsMessageBoardVisible(true);
+    }
   };
   
   const drivers = useMemo(() => {
@@ -318,17 +323,22 @@ export default function AdminBookingsPage() {
 
 
   return (
-    <div className="grid md:grid-cols-3 gap-6 h-full">
-      <div className="md:col-span-2 flex flex-col gap-6">
+    <div className={cn("grid gap-6 h-full transition-all", isMessageBoardVisible ? "md:grid-cols-3" : "md:grid-cols-1")}>
+      <div className={cn("flex flex-col gap-6", isMessageBoardVisible ? "md:col-span-2" : "md:col-span-1")}>
         <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
           <div>
               <h1 className="text-3xl font-bold tracking-tight">Booking Management</h1>
               <p className="text-muted-foreground">Manage and track all company bookings.</p>
           </div>
-          <Button onClick={handleAddNew}>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            New Booking
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button onClick={handleAddNew}>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                New Booking
+            </Button>
+            <Button variant="outline" size="icon" onClick={() => setIsMessageBoardVisible(!isMessageBoardVisible)}>
+                {isMessageBoardVisible ? <PanelRight /> : <PanelLeft />}
+            </Button>
+          </div>
         </div>
 
         <BookingTable
@@ -347,7 +357,7 @@ export default function AdminBookingsPage() {
         />
       </div>
       
-      <div className="md:col-span-1">
+      <div className={cn("md:col-span-1 transition-all", !isMessageBoardVisible && "hidden")}>
         {selectedBookingId ? (
             <MessageBoard bookingId={selectedBookingId} />
         ) : (
