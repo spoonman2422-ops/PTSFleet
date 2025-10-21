@@ -73,8 +73,8 @@ export default function InvoicesPage() {
             filtered = filtered.filter(invoice => {
                  const client = users?.find(u => u.id === invoice.clientId);
                  const clientNameMatch = client?.name.toLowerCase().includes(lowercasedQuery) ?? invoice.clientId.toLowerCase().includes(lowercasedQuery);
-                 const invoiceIdMatch = invoice.id.substring(0, 7).toLowerCase().includes(lowercasedQuery);
-                 const bookingIdMatch = invoice.bookingId.substring(0, 7).toLowerCase().includes(lowercasedQuery);
+                 const invoiceIdMatch = invoice.id.toLowerCase().includes(lowercasedQuery);
+                 const bookingIdMatch = invoice.bookingId.toLowerCase().includes(lowercasedQuery);
                  return clientNameMatch || invoiceIdMatch || bookingIdMatch;
             });
         }
@@ -223,7 +223,7 @@ export default function InvoicesPage() {
                                     return (
                                         <TableRow key={invoice.id}>
                                             <TableCell className="font-medium">#{invoice.id.substring(0, 7).toUpperCase()}</TableCell>
-                                            <TableCell className="font-mono text-xs">{invoice.bookingId.substring(0, 7).toUpperCase()}</TableCell>
+                                            <TableCell className="font-mono text-xs">{invoice.bookingId}</TableCell>
                                             <TableCell>{client?.name || invoice.clientId}</TableCell>
                                             <TableCell>{format(parseISO(invoice.dueDate), 'PP')}</TableCell>
                                             <TableCell>{new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(invoice.grossSales)}</TableCell>
