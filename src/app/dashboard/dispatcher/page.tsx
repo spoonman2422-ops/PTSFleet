@@ -218,7 +218,7 @@ export default function DispatcherPage() {
             const vatRegistered = false; 
             const incomeTaxOption = '8_percent_flat'; 
 
-            const grossSales = booking.bookingRate;
+            const grossSales = booking.grossBookingRate;
             let vatAmount = 0;
             let percentageTaxAmount = 0;
             let incomeTaxAmount = 0;
@@ -397,3 +397,5 @@ export default function DispatcherPage() {
     </div>
   );
 }
+
+    
