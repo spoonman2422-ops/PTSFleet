@@ -208,6 +208,7 @@
         "ownerName": { "type": "string", "description": "The legal owner of the vehicle." },
         "dateAcquired": { "type": "string", "format": "date", "description": "The date the vehicle was purchased." },
         "nextMaintenanceDate": { "type": "string", "format": "date", "description": "The date for the next scheduled maintenance." },
+        "amortizationSchedule": { "type": "string", "description": "The recurring day of the month for amortization payment (e.g., 'Every 15th')." },
         "amortizationEndDate": { "type": "string", "format": "date", "description": "The end date for the vehicle's amortization or lease." },
         "status": { "type": "string", "enum": ["Active", "Under Maintenance", "Decommissioned"], "description": "The current operational status of the vehicle." }
       },

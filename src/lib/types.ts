@@ -27,6 +27,7 @@ export interface Vehicle {
   ownerName: string;
   dateAcquired: string;
   nextMaintenanceDate: string;
+  amortizationSchedule: string;
   amortizationEndDate: string;
   status: VehicleStatus;
 }

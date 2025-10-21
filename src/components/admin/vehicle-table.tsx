@@ -77,9 +77,16 @@ export function VehicleTable({ data, isLoading, onEdit, onDelete }: VehicleTable
       header: ({ column }) => <DataTableColumnHeader column={column} title="Owner" />,
     },
     {
-      accessorKey: "dateAcquired",
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Date Acquired" />,
-      cell: ({ row }) => <span>{format(parseISO(row.getValue("dateAcquired")), "PP")}</span>,
+      id: "amortization",
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Amortization" />,
+      cell: ({ row }) => (
+        <div>
+            <div className="font-medium">{row.original.amortizationSchedule}</div>
+            <div className="text-xs text-muted-foreground">
+                Ends on {format(parseISO(row.original.amortizationEndDate), "PP")}
+            </div>
+        </div>
+      )
     },
      {
       accessorKey: "status",

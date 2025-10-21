@@ -47,6 +47,7 @@ const vehicleSchema = z.object({
   ownerName: z.string().min(1, "Owner's name is required."),
   dateAcquired: z.date({ required_error: 'Date acquired is required.' }),
   nextMaintenanceDate: z.date({ required_error: 'Next maintenance date is required.' }),
+  amortizationSchedule: z.string().min(1, 'Amortization schedule is required.'),
   amortizationEndDate: z.date({ required_error: 'Amortization end date is required.' }),
   status: z.enum(['Active', 'Under Maintenance', 'Decommissioned'], { required_error: 'Status is required.' }),
 });
@@ -87,6 +88,7 @@ export function VehicleDialog({ isOpen, onOpenChange, onSave, vehicle }: Vehicle
           ownerName: '',
           dateAcquired: new Date(),
           nextMaintenanceDate: new Date(),
+          amortizationSchedule: '',
           amortizationEndDate: new Date(),
           status: 'Active',
         });
@@ -138,7 +140,7 @@ export function VehicleDialog({ isOpen, onOpenChange, onSave, vehicle }: Vehicle
 
                 <Separator />
 
-                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                      <FormField control={form.control} name="dateAcquired" render={({ field }) => (
                         <FormItem className="flex flex-col"><FormLabel>Date Acquired</FormLabel><Popover><PopoverTrigger asChild><FormControl>
                             <Button variant={'outline'} className={cn('w-full pl-3 text-left font-normal',!field.value && 'text-muted-foreground')}>
@@ -155,8 +157,13 @@ export function VehicleDialog({ isOpen, onOpenChange, onSave, vehicle }: Vehicle
                             <Calendar mode="single" selected={field.value} onSelect={field.onChange} initialFocus/>
                         </PopoverContent></Popover><FormMessage /></FormItem>
                     )}/>
+                 </div>
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField control={form.control} name="amortizationSchedule" render={({ field }) => (
+                        <FormItem><FormLabel>Amortization Schedule</FormLabel><FormControl><Input placeholder="e.g., Every 15th of the month" {...field} /></FormControl><FormMessage /></FormItem>
+                    )}/>
                      <FormField control={form.control} name="amortizationEndDate" render={({ field }) => (
-                        <FormItem className="flex flex-col"><FormLabel>Amortization End</FormLabel><Popover><PopoverTrigger asChild><FormControl>
+                        <FormItem className="flex flex-col"><FormLabel>Amortization End Date</FormLabel><Popover><PopoverTrigger asChild><FormControl>
                             <Button variant={'outline'} className={cn('w-full pl-3 text-left font-normal',!field.value && 'text-muted-foreground')}>
                             {field.value ? format(field.value, 'PPP') : <span>Pick a date</span>}<CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                             </Button></FormControl></PopoverTrigger><PopoverContent className="w-auto p-0" align="start">
