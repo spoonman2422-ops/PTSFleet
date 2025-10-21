@@ -1,6 +1,7 @@
 
 "use client";
 
+import { useState, useMemo } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -9,9 +10,30 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableFooter as ReportFooter } from '@/components/ui/table';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+  TableFooter as ReportFooter,
+} from '@/components/ui/table';
 import { Printer } from 'lucide-react';
 import { AppLogo } from '../icons';
+import {
+  flexRender,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getSortedRowModel,
+  useReactTable,
+  type ColumnDef,
+  type ColumnFiltersState,
+  type SortingState,
+} from '@tanstack/react-table';
+import { DataTableColumnHeader } from '../ui/data-table-column-header';
+import { Input } from '../ui/input';
+
 
 type ReportFooterRow = (string | number)[];
 
@@ -19,7 +41,7 @@ export type ReportData = {
   title: string;
   headers: string[];
   rows: (string | number)[][];
-  total?: number; // Kept for backward compatibility if needed
+  total?: number;
   footer?: ReportFooterRow[];
 };
 
@@ -31,6 +53,53 @@ type FinancialReportDialogProps = {
 };
 
 export function FinancialReportDialog({ isOpen, onOpenChange, data }: FinancialReportDialogProps) {
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
+  const [globalFilter, setGlobalFilter] = useState('');
+  
+  const columns: ColumnDef<any>[] = useMemo(() => {
+    if (!data?.headers) return [];
+    return data.headers.map((header, index) => ({
+        id: header,
+        accessorFn: (row: any) => row[index],
+        header: ({ column }) => <DataTableColumnHeader column={column} title={header} />,
+        cell: ({ row }) => {
+            const value = row.original[index];
+            const isCurrencyColumn = (typeof header === 'string' && (
+                header.toLowerCase().includes('amount') || 
+                header.toLowerCase().includes('profit') || 
+                header.toLowerCase().includes('costs') || 
+                header.toLowerCase().includes('revenue') ||
+                header.toLowerCase().includes('rate')
+            ));
+            const isNumeric = typeof value === 'number';
+
+            if (isCurrencyColumn && isNumeric) {
+                return formatCurrency(value);
+            }
+            return value;
+        },
+    }));
+  }, [data]);
+
+  const tableData = useMemo(() => data?.rows || [], [data]);
+
+  const table = useReactTable({
+    data: tableData,
+    columns,
+    state: {
+      sorting,
+      columnFilters,
+      globalFilter,
+    },
+    onSortingChange: setSorting,
+    onColumnFiltersChange: setColumnFilters,
+    onGlobalFilterChange: setGlobalFilter,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
+  });
+
   if (!data) return null;
   
   const formatCurrency = (amount: number) => new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(amount);
@@ -96,8 +165,8 @@ export function FinancialReportDialog({ isOpen, onOpenChange, data }: FinancialR
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-4xl max-h-[90vh] flex flex-col dialog-content">
-        <div id="printable-report-area" className="printable-area flex-1 overflow-y-auto pr-6 report-content">
-          <DialogHeader className="mb-4">
+        <div id="printable-report-area" className="printable-area flex-1 flex flex-col overflow-hidden">
+          <DialogHeader className="mb-4 px-1">
             <div className="flex justify-between items-start">
                 <div>
                     <AppLogo width={64} height={64} className="mb-4" />
@@ -114,21 +183,35 @@ export function FinancialReportDialog({ isOpen, onOpenChange, data }: FinancialR
               </div>
             </div>
           </DialogHeader>
-          <div className="border rounded-md">
+          
+          <div className="px-1 py-4 no-print">
+            <Input
+              placeholder="Search report..."
+              value={globalFilter}
+              onChange={(e) => setGlobalFilter(e.target.value)}
+              className="max-w-sm"
+            />
+          </div>
+
+          <div className="border rounded-md flex-1 overflow-y-auto report-content">
             <Table>
               <TableHeader>
-                <TableRow>
-                  {data.headers.map((header, index) => (
-                    <TableHead key={index} className={index > 0 && (header.toLowerCase().includes('amount') || header.toLowerCase().includes('profit') || header.toLowerCase().includes('costs') || header.toLowerCase().includes('revenue')) ? 'text-right' : ''}>{header}</TableHead>
-                  ))}
-                </TableRow>
+                 {table.getHeaderGroups().map(headerGroup => (
+                  <TableRow key={headerGroup.id}>
+                    {headerGroup.headers.map(header => (
+                      <TableHead key={header.id}>
+                        {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                      </TableHead>
+                    ))}
+                  </TableRow>
+                ))}
               </TableHeader>
               <TableBody>
-                {data.rows.length > 0 ? data.rows.map((row, rowIndex) => (
-                  <TableRow key={rowIndex}>
-                    {row.map((cell, cellIndex) => (
-                      <TableCell key={cellIndex} className={cellIndex > 0 && (data.headers[cellIndex].toLowerCase().includes('amount') || data.headers[cellIndex].toLowerCase().includes('profit') || data.headers[cellIndex].toLowerCase().includes('costs') || data.headers[cellIndex].toLowerCase().includes('revenue')) ? 'text-right' : ''}>
-                        {cell}
+                {table.getRowModel().rows.length > 0 ? table.getRowModel().rows.map(row => (
+                  <TableRow key={row.id}>
+                    {row.getVisibleCells().map(cell => (
+                      <TableCell key={cell.id} className={typeof cell.getContext().getValue() === 'number' ? 'text-right' : ''}>
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </TableCell>
                     ))}
                   </TableRow>
@@ -140,7 +223,7 @@ export function FinancialReportDialog({ isOpen, onOpenChange, data }: FinancialR
                     </TableRow>
                 )}
               </TableBody>
-              {(data.total !== undefined || data.footer) && (
+               {(data.total !== undefined || data.footer) && (
                   <ReportFooter>
                     {data.footer ? (
                       data.footer.map((footerRow, index) => (

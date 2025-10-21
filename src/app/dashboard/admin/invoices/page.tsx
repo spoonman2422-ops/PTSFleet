@@ -5,10 +5,9 @@ import { useState, useMemo } from 'react';
 import { useCollection, useFirestore } from '@/firebase';
 import type { Invoice, User, Booking, InvoiceStatus } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { FileText, Printer, MoreHorizontal, Trash2, Edit } from 'lucide-react';
+import { FileText, MoreHorizontal, Trash2, Edit } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import { InvoiceSheet } from '@/components/admin/invoice-sheet';
@@ -28,6 +27,25 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { InvoiceDialog } from '@/components/admin/invoice-dialog';
+import {
+  flexRender,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getSortedRowModel,
+  useReactTable,
+  type ColumnDef,
+  type ColumnFiltersState,
+  type SortingState,
+} from '@tanstack/react-table';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 
 
 const statusConfig: Record<InvoiceStatus, { variant: 'secondary' | 'default' | 'destructive', className: string }> = {
@@ -52,34 +70,26 @@ export default function InvoicesPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [deletingInvoice, setDeletingInvoice] = useState<Invoice | null>(null);
     const [isAlertOpen, setIsAlertOpen] = useState(false);
-
+    
+    const [sorting, setSorting] = useState<SortingState>([
+      { id: "dueDate", desc: true }
+    ]);
+    const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
 
     const { toast } = useToast();
 
     const sortedInvoices = useMemo(() => {
         if (!invoices) return [];
-        return invoices.sort((a, b) => new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime());
+        return invoices.sort((a, b) => new Date(b.dateIssued).getTime() - new Date(a.dateIssued).getTime());
     }, [invoices]);
 
     const filteredInvoices = useMemo(() => {
         let filtered = sortedInvoices;
-        
         if (filterStatus !== 'All') {
             filtered = filtered.filter(i => i.status === filterStatus);
         }
-
-        if (searchQuery) {
-            const lowercasedQuery = searchQuery.toLowerCase();
-            filtered = filtered.filter(invoice => {
-                 const client = users?.find(u => u.id === invoice.clientId);
-                 const clientNameMatch = client?.name.toLowerCase().includes(lowercasedQuery) ?? invoice.clientId.toLowerCase().includes(lowercasedQuery);
-                 const invoiceIdMatch = invoice.id.toLowerCase().includes(lowercasedQuery);
-                 const bookingIdMatch = invoice.bookingId.toLowerCase().includes(lowercasedQuery);
-                 return clientNameMatch || invoiceIdMatch || bookingIdMatch;
-            });
-        }
         return filtered;
-    }, [sortedInvoices, filterStatus, searchQuery, users]);
+    }, [sortedInvoices, filterStatus]);
     
     const isLoading = isLoadingInvoices || isLoadingUsers || isLoadingBookings;
 
@@ -164,6 +174,104 @@ export default function InvoicesPage() {
         return { id: selectedInvoice.clientId, name: selectedInvoice.clientId, email: '', role: 'Driver', avatarUrl: '' };
     }, [selectedInvoice, users]);
 
+    const columns: ColumnDef<Invoice>[] = useMemo(() => [
+      {
+        accessorKey: 'id',
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Invoice #" />,
+        cell: ({ row }) => <div className="font-medium">#{row.original.id.substring(0, 7).toUpperCase()}</div>
+      },
+      {
+        accessorKey: 'bookingId',
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Booking ID" />,
+        cell: ({ row }) => <div className="font-mono text-xs">{row.original.bookingId}</div>
+      },
+      {
+        id: 'clientName',
+        accessorFn: (row) => users?.find(u => u.id === row.clientId)?.name || row.clientId,
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Client" />,
+      },
+      {
+        accessorKey: 'dueDate',
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Due Date" />,
+        cell: ({ row }) => format(parseISO(row.original.dueDate), 'PP')
+      },
+      {
+        accessorKey: 'grossSales',
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Gross Sales" />,
+        cell: ({ row }) => new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(row.original.grossSales)
+      },
+      {
+        accessorKey: 'status',
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Status" />,
+        cell: ({ row }) => {
+          const status = row.original.status;
+          return (
+            <Badge variant={statusConfig[status].variant as any} className={statusConfig[status].className}>
+              {status}
+            </Badge>
+          );
+        }
+      },
+      {
+        id: 'actions',
+        cell: ({ row }) => {
+          const invoice = row.original;
+          return (
+            <div className="flex items-center justify-end gap-2">
+              <Button variant="outline" size="sm" onClick={() => handleViewInvoice(invoice)}>
+                <FileText className="mr-2 h-4 w-4" /> View
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <MoreHorizontal className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                  <DropdownMenuItem onClick={() => handleEditInvoice(invoice)}>
+                    <Edit className="mr-2 h-4 w-4" />
+                    Edit
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => handleUpdateStatus(invoice.id, 'Paid')} disabled={invoice.status === 'Paid'}>
+                    Mark as Paid
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleUpdateStatus(invoice.id, 'Unpaid')} disabled={invoice.status === 'Unpaid'}>
+                    Mark as Unpaid
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleUpdateStatus(invoice.id, 'Overdue')} disabled={invoice.status === 'Overdue'}>
+                    Mark as Overdue
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10" onClick={() => handleOpenDeleteDialog(invoice)}>
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          );
+        }
+      }
+    ], [users]);
+
+    const table = useReactTable({
+      data: filteredInvoices,
+      columns,
+      state: {
+        sorting,
+        columnFilters,
+        globalFilter: searchQuery,
+      },
+      onSortingChange: setSorting,
+      onColumnFiltersChange: setColumnFilters,
+      onGlobalFilterChange: setSearchQuery,
+      getCoreRowModel: getCoreRowModel(),
+      getSortedRowModel: getSortedRowModel(),
+      getFilteredRowModel: getFilteredRowModel(),
+    });
+
 
     return (
         <>
@@ -185,7 +293,7 @@ export default function InvoicesPage() {
                                 </TabsList>
                             </Tabs>
                              <Input
-                                placeholder="Search by client, invoice, or booking..."
+                                placeholder="Search all columns..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 className="max-w-sm"
@@ -195,91 +303,45 @@ export default function InvoicesPage() {
                     <CardContent>
                         <Table>
                             <TableHeader>
-                                <TableRow>
-                                    <TableHead>Invoice #</TableHead>
-                                    <TableHead>Booking ID</TableHead>
-                                    <TableHead>Client</TableHead>
-                                    <TableHead>Due Date</TableHead>
-                                    <TableHead>Gross Sales</TableHead>
-                                    <TableHead>Status</TableHead>
-                                    <TableHead className="text-right">Actions</TableHead>
+                                {table.getHeaderGroups().map(headerGroup => (
+                                <TableRow key={headerGroup.id}>
+                                    {headerGroup.headers.map(header => (
+                                    <TableHead key={header.id}>
+                                        {header.isPlaceholder ? null : flexRender(
+                                        header.column.columnDef.header,
+                                        header.getContext()
+                                        )}
+                                    </TableHead>
+                                    ))}
                                 </TableRow>
+                                ))}
                             </TableHeader>
                             <TableBody>
                                 {isLoading ? (
                                     Array.from({ length: 5 }).map((_, i) => (
                                         <TableRow key={i}>
-                                            <TableCell><Skeleton className="h-5 w-20" /></TableCell>
-                                            <TableCell><Skeleton className="h-5 w-20" /></TableCell>
-                                            <TableCell><Skeleton className="h-5 w-24" /></TableCell>
-                                            <TableCell><Skeleton className="h-5 w-24" /></TableCell>
-                                            <TableCell><Skeleton className="h-5 w-20" /></TableCell>
-                                            <TableCell><Skeleton className="h-6 w-20" /></TableCell>
-                                            <TableCell className="text-right"><Skeleton className="h-8 w-20 ml-auto" /></TableCell>
+                                            <TableCell colSpan={columns.length}><Skeleton className="h-8 w-full" /></TableCell>
                                         </TableRow>
                                     ))
-                                ) : filteredInvoices.map(invoice => {
-                                    const client = users?.find(u => u.id === invoice.clientId);
-                                    return (
-                                        <TableRow key={invoice.id}>
-                                            <TableCell className="font-medium">#{invoice.id.substring(0, 7).toUpperCase()}</TableCell>
-                                            <TableCell className="font-mono text-xs">{invoice.bookingId}</TableCell>
-                                            <TableCell>{client?.name || invoice.clientId}</TableCell>
-                                            <TableCell>{format(parseISO(invoice.dueDate), 'PP')}</TableCell>
-                                            <TableCell>{new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(invoice.grossSales)}</TableCell>
-                                            <TableCell>
-                                                <Badge variant={statusConfig[invoice.status].variant as any} className={statusConfig[invoice.status].className}>
-                                                    {invoice.status}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                <div className="flex items-center justify-end gap-2">
-                                                    <Button variant="outline" size="sm" onClick={() => handleViewInvoice(invoice)}>
-                                                        <FileText className="mr-2 h-4 w-4" /> View
-                                                    </Button>
-                                                    <DropdownMenu>
-                                                        <DropdownMenuTrigger asChild>
-                                                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                                                                <MoreHorizontal className="h-4 w-4" />
-                                                            </Button>
-                                                        </DropdownMenuTrigger>
-                                                        <DropdownMenuContent>
-                                                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                                            <DropdownMenuItem onClick={() => handleEditInvoice(invoice)}>
-                                                                <Edit className="mr-2 h-4 w-4" />
-                                                                Edit
-                                                            </DropdownMenuItem>
-                                                            <DropdownMenuSeparator />
-                                                            <DropdownMenuItem onClick={() => handleUpdateStatus(invoice.id, 'Paid')} disabled={invoice.status === 'Paid'}>
-                                                                Mark as Paid
-                                                            </DropdownMenuItem>
-                                                            <DropdownMenuItem onClick={() => handleUpdateStatus(invoice.id, 'Unpaid')} disabled={invoice.status === 'Unpaid'}>
-                                                                Mark as Unpaid
-                                                            </DropdownMenuItem>
-                                                            <DropdownMenuItem onClick={() => handleUpdateStatus(invoice.id, 'Overdue')} disabled={invoice.status === 'Overdue'}>
-                                                                Mark as Overdue
-                                                            </DropdownMenuItem>
-                                                            <DropdownMenuSeparator />
-                                                            <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10" onClick={() => handleOpenDeleteDialog(invoice)}>
-                                                                <Trash2 className="mr-2 h-4 w-4" />
-                                                                Delete
-                                                            </DropdownMenuItem>
-                                                        </DropdownMenuContent>
-                                                    </DropdownMenu>
-                                                </div>
-                                            </TableCell>
+                                ) : table.getRowModel().rows.map(row => (
+                                        <TableRow key={row.id}>
+                                            {row.getVisibleCells().map(cell => (
+                                                <TableCell key={cell.id}>
+                                                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                                                </TableCell>
+                                            ))}
                                         </TableRow>
-                                    );
-                                })}
+                                    ))
+                                }
+                                 { !isLoading && table.getRowModel().rows.length === 0 && (
+                                    <TableRow>
+                                        <TableCell colSpan={columns.length} className="h-24 text-center">
+                                            {searchQuery ? 'No invoices found for your search.' : 'No invoices found for this filter.'}
+                                        </TableCell>
+                                    </TableRow>
+                                )}
                             </TableBody>
                         </Table>
-                         { !isLoading && filteredInvoices.length === 0 && (
-                            <div className="text-center py-16">
-                                <p className="text-muted-foreground">
-                                    {searchQuery ? 'No invoices found for your search.' : 'No invoices found for this filter.'}
-                                </p>
-                            </div>
-                        )}
                     </CardContent>
                 </Card>
             </div>

@@ -13,8 +13,6 @@ import {
   type ColumnFiltersState,
   type SortingState,
   type VisibilityState,
-  getFacetedRowModel,
-  getFacetedUniqueValues,
 } from "@tanstack/react-table"
 
 import {
@@ -49,8 +47,6 @@ export function ExpenseTable({ data, users, isLoading, onEdit, onDelete }: Expen
   ])
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
   const [globalFilter, setGlobalFilter] = React.useState("")
-  const [columnVisibility, setColumnVisibility] =
-    React.useState<VisibilityState>({})
 
   const columns: ColumnDef<Expense>[] = React.useMemo(() => [
     {
@@ -136,14 +132,10 @@ export function ExpenseTable({ data, users, isLoading, onEdit, onDelete }: Expen
     onColumnFiltersChange: setColumnFilters,
     onGlobalFilterChange: setGlobalFilter,
     getFilteredRowModel: getFilteredRowModel(),
-    getFacetedRowModel: getFacetedRowModel(),
-    getFacetedUniqueValues: getFacetedUniqueValues(),
-    onColumnVisibilityChange: setColumnVisibility,
     state: {
       sorting,
       columnFilters,
       globalFilter,
-      columnVisibility,
     },
   })
 
@@ -167,7 +159,7 @@ export function ExpenseTable({ data, users, isLoading, onEdit, onDelete }: Expen
     <div>
       <div className="flex items-center py-4">
         <Input
-          placeholder="Search expenses..."
+          placeholder="Search all columns..."
           value={globalFilter ?? ''}
           onChange={(event) =>
             setGlobalFilter(event.target.value)
