@@ -134,6 +134,7 @@ export default function DispatcherPage() {
     
     const dataToSave = {
       ...bookingData,
+      grossBookingRate: Number(bookingData.grossBookingRate) || 0,
       bookingRate: Number(bookingData.bookingRate) || 0,
       driverRate: Number(bookingData.driverRate) || 0,
       expectedExpenses: {

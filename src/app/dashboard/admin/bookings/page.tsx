@@ -89,7 +89,7 @@ export default function AdminBookingsPage() {
 
       toast({
         title: 'Booking Deleted',
-        description: `Booking #${deletingBooking.id!.substring(0, 7)} and all associated data have been deleted.`,
+        description: `Booking #${deletingBooking.id!.substring(0, 7)} and all its associated data have been deleted.`,
       });
 
       if (selectedBookingId === deletingBooking.id) {
@@ -138,6 +138,7 @@ export default function AdminBookingsPage() {
     
     const dataToSave = {
       ...bookingData,
+      grossBookingRate: Number(bookingData.grossBookingRate) || 0,
       bookingRate: Number(bookingData.bookingRate) || 0,
       driverRate: Number(bookingData.driverRate) || 0,
       expectedExpenses: {

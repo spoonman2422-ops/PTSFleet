@@ -43,7 +43,9 @@ export interface Booking {
   billingDate: string;
   completionDate?: string;
   dueDate: string;
+  grossBookingRate: number;
   bookingRate: number;
+  ewtApplied: boolean;
   driverRate: number;
   vehicleType: VehicleType;
   expectedExpenses: {

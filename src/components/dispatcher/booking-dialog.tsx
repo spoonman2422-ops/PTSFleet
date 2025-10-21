@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -21,8 +21,10 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Select,
   SelectContent,
@@ -44,7 +46,9 @@ const bookingSchema = z.object({
   dueDate: z.string().min(1, "Due date is required"),
   driverId: z.string().nullable(),
   vehicleType: z.enum(['6-Wheel', 'AUV']),
+  grossBookingRate: z.coerce.number().min(0, 'Gross booking rate must be a positive number'),
   bookingRate: z.coerce.number().min(0, 'Booking rate must be a positive number'),
+  ewtApplied: z.boolean().default(false),
   driverRate: z.coerce.number().min(0, 'Driver rate must be a positive number'),
   expectedExpenses: z.object({
     tollFee: z.coerce.number().min(0, 'Toll fee must be a positive number'),
@@ -78,6 +82,8 @@ export function BookingDialog({
   allBookings,
 }: BookingDialogProps) {
   const isEditMode = !!booking;
+  const [ewtRate] = useState(0.02);
+
 
   const form = useForm<BookingFormValues>({
     resolver: zodResolver(bookingSchema),
@@ -91,7 +97,9 @@ export function BookingDialog({
       dueDate: '',
       driverId: null,
       vehicleType: '6-Wheel',
+      grossBookingRate: 0,
       bookingRate: 0,
+      ewtApplied: false,
       driverRate: 0,
       expectedExpenses: {
         tollFee: 0,
@@ -104,19 +112,31 @@ export function BookingDialog({
   const watchedValues = useWatch({ control: form.control });
   const watchedBookingDate = useWatch({ control: form.control, name: 'bookingDate' });
   const watchedClientId = useWatch({ control: form.control, name: 'clientId' });
+  const watchedGrossBookingRate = useWatch({ control: form.control, name: 'grossBookingRate' });
+  const watchedEwtApplied = useWatch({ control: form.control, name: 'ewtApplied' });
+
+  useEffect(() => {
+    const grossRate = watchedGrossBookingRate || 0;
+    if (watchedEwtApplied) {
+        form.setValue('bookingRate', grossRate * (1 - ewtRate));
+    } else {
+        form.setValue('bookingRate', grossRate);
+    }
+  }, [watchedGrossBookingRate, watchedEwtApplied, form, ewtRate]);
+  
 
   useEffect(() => {
     if (watchedClientId && !isEditMode) {
-      const clientPrefix = watchedClientId.split(' ')[0];
+      const clientPrefix = watchedClientId.split(' ')[0].toLowerCase();
       
       const clientBookings = allBookings
-        .filter(b => b.id?.toLowerCase().startsWith(clientPrefix.toLowerCase()))
+        .filter(b => b.id?.toLowerCase().startsWith(clientPrefix))
         .map(b => parseInt(b.id?.replace(new RegExp(`^${clientPrefix}`, 'i'), '').replace('0', '') || '0', 10))
         .filter(n => !isNaN(n));
 
       const lastNumber = clientBookings.length > 0 ? Math.max(...clientBookings) : 0;
       const newNumber = lastNumber + 1;
-      const newId = `${clientPrefix}0${newNumber}`;
+      const newId = `${watchedClientId.split(' ')[0]}0${newNumber}`;
 
       form.setValue('id', newId, { shouldValidate: true });
     }
@@ -182,7 +202,9 @@ export function BookingDialog({
           dueDate: '',
           driverId: null,
           vehicleType: '6-Wheel',
+          grossBookingRate: 0,
           bookingRate: 0,
+          ewtApplied: false,
           driverRate: 0,
           expectedExpenses: {
             tollFee: 0,
@@ -380,10 +402,10 @@ export function BookingDialog({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
-                    name="bookingRate"
+                    name="grossBookingRate"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Booking Rate (Client)</FormLabel>
+                        <FormLabel>Gross Booking Rate (Client)</FormLabel>
                         <FormControl>
                           <Input type="number" placeholder="0.00" {...field} />
                         </FormControl>
@@ -391,7 +413,37 @@ export function BookingDialog({
                       </FormItem>
                     )}
                   />
-                   <FormField
+                  <div className="space-y-2">
+                    <FormLabel>Net Booking Rate</FormLabel>
+                    <Input type="number" placeholder="0.00" readOnly value={form.getValues('bookingRate')} />
+                  </div>
+                </div>
+
+                <FormField
+                    control={form.control}
+                    name="ewtApplied"
+                    render={({ field }) => (
+                        <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                            <FormControl>
+                                <Checkbox
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                                />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                                <FormLabel>
+                                Apply 2% Expanded Withholding Tax (EWT)
+                                </FormLabel>
+                                <FormDescription>
+                                This will deduct 2% from the gross booking rate.
+                                </FormDescription>
+                            </div>
+                        </FormItem>
+                    )}
+                />
+
+
+                 <FormField
                     control={form.control}
                     name="driverRate"
                     render={({ field }) => (
@@ -404,7 +456,6 @@ export function BookingDialog({
                       </FormItem>
                     )}
                   />
-                </div>
               </div>
 
               <div className="space-y-2">
@@ -475,5 +526,3 @@ export function BookingDialog({
     </Dialog>
   );
 }
-
-    
