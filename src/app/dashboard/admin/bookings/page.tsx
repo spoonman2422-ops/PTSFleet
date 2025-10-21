@@ -255,10 +255,14 @@ export default function AdminBookingsPage() {
             const totalTaxes = vatAmount + percentageTaxAmount + incomeTaxAmount;
             const netRevenue = grossSales - totalTaxes;
             
+            const ewtAmount = booking.ewtApplied ? booking.grossBookingRate * 0.02 : 0;
+
             const invoiceData = {
                 clientId: booking.clientId,
                 bookingId: booking.id,
-                grossSales: grossSales,
+                grossSales: booking.grossBookingRate,
+                ewtApplied: booking.ewtApplied,
+                ewtAmount: ewtAmount,
                 vatRegistered: vatRegistered,
                 vatRate: 0.12,
                 vatAmount: vatAmount,

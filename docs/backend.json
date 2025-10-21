@@ -87,6 +87,8 @@
         "clientId": { "type": "string" },
         "bookingId": { "type": "string" },
         "grossSales": { "type": "number" },
+        "ewtApplied": { "type": "boolean" },
+        "ewtAmount": { "type": "number" },
         "vatRegistered": { "type": "boolean" },
         "vatRate": { "type": "number" },
         "vatAmount": { "type": "number" },

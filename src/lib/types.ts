@@ -62,6 +62,8 @@ export interface Invoice {
     clientId: string;
     bookingId: string;
     grossSales: number;
+    ewtApplied: boolean;
+    ewtAmount: number;
     vatRegistered: boolean;
     vatRate: number;
     vatAmount: number;

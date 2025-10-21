@@ -85,7 +85,7 @@ export function InvoiceSheet({ isOpen, onOpenChange, invoice, booking, client }:
   }
 
   const invoiceCreationDate = invoice.dateIssued ? parseISO(invoice.dateIssued) : new Date();
-  const totalAmount = invoice.grossSales;
+  const totalAmount = invoice.grossSales - (invoice.ewtAmount || 0);
 
   return (
     <Sheet open={isOpen} onOpenChange={onOpenChange}>
@@ -157,6 +157,12 @@ export function InvoiceSheet({ isOpen, onOpenChange, invoice, booking, client }:
                   <span className="text-muted-foreground">Subtotal</span>
                   <span>{new Intl.NumberFormat('en-ph', { style: 'currency', currency: 'PHP' }).format(invoice.grossSales)}</span>
                 </div>
+                 {invoice.ewtApplied && (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Less: 2% EWT</span>
+                    <span className="text-destructive">-{new Intl.NumberFormat('en-ph', { style: 'currency', currency: 'PHP' }).format(invoice.ewtAmount)}</span>
+                  </div>
+                )}
                  {invoice.vatRegistered && (
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">VAT ({invoice.vatRate * 100}%)</span>
@@ -171,7 +177,7 @@ export function InvoiceSheet({ isOpen, onOpenChange, invoice, booking, client }:
                 )}
                 <Separator className="my-2" />
                 <div className="flex justify-between font-bold text-lg">
-                  <span>Total</span>
+                  <span>Total Amount Due</span>
                   <span>{new Intl.NumberFormat('en-ph', { style: 'currency', currency: 'PHP' }).format(totalAmount)}</span>
                 </div>
               </div>
