@@ -293,26 +293,10 @@ export default function AdminBookingsPage() {
     });
   }, [bookings]);
 
-  const filteredBookings = useMemo(() => {
-    let filtered = sortedBookings;
-    if (filterStatus !== 'All') {
-      filtered = filtered.filter(b => b.status === filterStatus);
-    }
-    if (searchQuery) {
-        const lowercasedQuery = searchQuery.toLowerCase();
-        filtered = filtered.filter(booking => {
-            const driver = users?.find(u => u.id === booking.driverId);
-            return (
-                (booking.id && booking.id.toLowerCase().includes(lowercasedQuery)) ||
-                (booking.clientId && booking.clientId.toLowerCase().includes(lowercasedQuery)) ||
-                (driver && driver.name && driver.name.toLowerCase().includes(lowercasedQuery)) ||
-                (booking.pickupLocation && booking.pickupLocation.toLowerCase().includes(lowercasedQuery)) ||
-                (booking.dropoffLocation && booking.dropoffLocation.toLowerCase().includes(lowercasedQuery))
-            );
-        });
-    }
-    return filtered;
-  }, [sortedBookings, filterStatus, searchQuery, users]);
+  const filteredByStatus = useMemo(() => {
+    if (filterStatus === 'All') return sortedBookings;
+    return sortedBookings.filter(b => b.status === filterStatus);
+  }, [sortedBookings, filterStatus]);
   
   const handleRowClick = (bookingId: string) => {
     setSelectedBookingId(bookingId);
@@ -347,7 +331,7 @@ export default function AdminBookingsPage() {
         </div>
 
         <BookingTable
-          bookings={filteredBookings}
+          bookings={filteredByStatus}
           isLoading={isLoadingBookings || isLoadingUsers}
           onEdit={handleEdit}
           onUpdateStatus={handleUpdateStatus}
@@ -403,5 +387,3 @@ export default function AdminBookingsPage() {
     </div>
   );
 }
-
-    
