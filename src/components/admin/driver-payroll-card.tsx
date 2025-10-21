@@ -126,7 +126,7 @@ export function DriverPayrollCard({
                     {bookings.map(booking => (
                         <div key={booking.id} className="flex justify-between items-center">
                             <div>
-                                <p className="font-medium">#{booking.id?.substring(0, 4)} - {booking.dropoffLocation}</p>
+                                <p className="font-medium">#{booking.id} - {booking.dropoffLocation}</p>
                             </div>
                             <p className="font-mono">{formatCurrency(booking.driverRate)}</p>
                         </div>
@@ -204,7 +204,7 @@ export function DriverPayrollCard({
                     {bookings.map(booking => (
                         <tr key={booking.id} className="border-b">
                             <td className="py-2">{booking.completionDate ? format(parseISO(booking.completionDate), 'PP') : 'N/A'}</td>
-                            <td className="py-2">#{booking.id?.substring(0, 7).toUpperCase()}</td>
+                            <td className="py-2">#{booking.id}</td>
                             <td className="py-2">{booking.pickupLocation} to {booking.dropoffLocation}</td>
                             <td className="text-right py-2">{formatCurrency(booking.driverRate)}</td>
                         </tr>
