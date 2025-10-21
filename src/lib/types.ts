@@ -6,6 +6,8 @@ export type UserRole = 'Admin' | 'Dispatcher' | 'Driver';
 export type BookingStatus = 'pending' | 'En Route' | 'Pending Verification' | 'Delivered' | 'cancelled';
 export type InvoiceStatus = 'Paid' | 'Unpaid' | 'Overdue';
 export type VehicleType = '6-Wheel' | 'AUV';
+export type VehicleStatus = 'Active' | 'Under Maintenance' | 'Decommissioned';
+
 
 export interface User {
   id: string;
@@ -20,7 +22,13 @@ export interface Vehicle {
   make: string;
   model: string;
   year: number;
-  licensePlate: string;
+  plateNumber: string;
+  vin: string;
+  ownerName: string;
+  dateAcquired: string;
+  nextMaintenanceDate: string;
+  amortizationEndDate: string;
+  status: VehicleStatus;
 }
 
 export interface Booking {

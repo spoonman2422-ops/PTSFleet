@@ -194,6 +194,24 @@
         }
       },
       "required": ["driverId", "amount", "date", "addedBy"]
+    },
+    "Vehicle": {
+      "title": "Vehicle",
+      "description": "A company vehicle.",
+      "type": "object",
+      "properties": {
+        "make": { "type": "string", "description": "The manufacturer of the vehicle (e.g., Isuzu)." },
+        "model": { "type": "string", "description": "The model of the vehicle (e.g., N-Series)." },
+        "year": { "type": "number", "description": "The manufacturing year." },
+        "plateNumber": { "type": "string", "description": "The unique license plate number." },
+        "vin": { "type": "string", "description": "The unique Vehicle Identification Number." },
+        "ownerName": { "type": "string", "description": "The legal owner of the vehicle." },
+        "dateAcquired": { "type": "string", "format": "date", "description": "The date the vehicle was purchased." },
+        "nextMaintenanceDate": { "type": "string", "format": "date", "description": "The date for the next scheduled maintenance." },
+        "amortizationEndDate": { "type": "string", "format": "date", "description": "The end date for the vehicle's amortization or lease." },
+        "status": { "type": "string", "enum": ["Active", "Under Maintenance", "Decommissioned"], "description": "The current operational status of the vehicle." }
+      },
+      "required": ["make", "model", "year", "plateNumber", "ownerName", "dateAcquired", "status"]
     }
   },
   "auth": {
@@ -241,6 +259,12 @@
         "$ref": "#/entities/CashAdvance"
       },
       "description": "A collection of all cash advances given to drivers."
+    },
+     "/vehicles/{vehicleId}": {
+      "schema": {
+        "$ref": "#/entities/Vehicle"
+      },
+      "description": "A collection of all company vehicles."
     }
   }
 }

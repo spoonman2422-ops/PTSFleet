@@ -26,6 +26,7 @@ export function DashboardSidebar() {
         { href: "/dashboard/admin", label: "Admin Panel", icon: Gauge },
         { href: "/dashboard/admin/users", label: "User Management", icon: Users },
         { href: "/dashboard/admin/bookings", label: "Booking Management", icon: ClipboardList },
+        { href: "/dashboard/admin/vehicles", label: "Vehicle Management", icon: Truck },
         { href: "/dashboard/admin/invoices", label: "Invoices", icon: FileText },
         { href: "/dashboard/admin/payroll", label: "Payroll", icon: Banknote },
         { href: "/dashboard/admin/expenses", label: "Expense Management", icon: Wallet },
