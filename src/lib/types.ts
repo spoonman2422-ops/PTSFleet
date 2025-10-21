@@ -119,3 +119,27 @@ export interface CashAdvance {
   date: string;
   addedBy: string;
 }
+
+export type ActivityAction = 
+  | 'USER_CREATED' | 'USER_UPDATED' | 'USER_DELETED'
+  | 'BOOKING_CREATED' | 'BOOKING_UPDATED' | 'BOOKING_DELETED' | 'BOOKING_STATUS_CHANGED'
+  | 'INVOICE_CREATED' | 'INVOICE_UPDATED' | 'INVOICE_DELETED' | 'INVOICE_STATUS_CHANGED'
+  | 'EXPENSE_CREATED' | 'EXPENSE_UPDATED' | 'EXPENSE_DELETED'
+  | 'VEHICLE_CREATED' | 'VEHICLE_UPDATED' | 'VEHICLE_DELETED'
+  | 'CASH_ADVANCE_CREATED' | 'CASH_ADVANCE_UPDATED'
+  | 'REVOLVING_FUND_CREATED' | 'REVOLVING_FUND_UPDATED'
+  | 'LOGIN_SUCCESS';
+
+export type EntityType = 'User' | 'Booking' | 'Invoice' | 'Expense' | 'Vehicle' | 'CashAdvance' | 'RevolvingFund' | 'Auth';
+
+
+export interface ActivityLog {
+    id: string;
+    timestamp: Timestamp;
+    userId: string;
+    userName: string;
+    action: ActivityAction;
+    entityType: EntityType;
+    entityId: string;
+    details: string;
+}

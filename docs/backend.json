@@ -218,7 +218,26 @@
         "status": { "type": "string", "enum": ["Active", "Under Maintenance", "Decommissioned"], "description": "The current operational status of the vehicle." }
       },
       "required": ["make", "model", "year", "plateNumber", "ownerName", "dateAcquired", "status"]
-    }
+    },
+    "ActivityLog": {
+        "title": "Activity Log",
+        "description": "A record of a user action within the system.",
+        "type": "object",
+        "properties": {
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The time the action occurred."
+          },
+          "userId": { "type": "string", "description": "The ID of the user who performed the action." },
+          "userName": { "type": "string", "description": "The name of the user who performed the action." },
+          "action": { "type": "string", "description": "A standardized string identifying the action (e.g., BOOKING_CREATED)." },
+          "entityType": { "type": "string", "description": "The type of document affected (e.g., 'Booking', 'User')." },
+          "entityId": { "type": "string", "description": "The ID of the document that was changed." },
+          "details": { "type": "string", "description": "A human-readable description of the change." }
+        },
+        "required": ["timestamp", "userId", "userName", "action", "entityType", "entityId", "details"]
+      }
   },
   "auth": {
     "providers": ["anonymous"]
@@ -271,6 +290,12 @@
         "$ref": "#/entities/Vehicle"
       },
       "description": "A collection of all company vehicles."
+    },
+    "/activityLogs/{logId}": {
+      "schema": {
+        "$ref": "#/entities/ActivityLog"
+      },
+      "description": "A collection of all user activity logs."
     }
   }
 }
