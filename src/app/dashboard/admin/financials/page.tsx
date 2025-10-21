@@ -16,6 +16,7 @@ import { vehicles } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { FinancialReportDialog, ReportData } from '@/components/admin/financial-report-dialog';
 import { CollectionsChart } from '@/components/admin/collections-chart';
+import { ProfitChart } from '@/components/admin/profit-chart';
 
 
 type FinancialFilter = 'Overall' | 'Annual' | 'Monthly' | 'Weekly';
@@ -135,28 +136,44 @@ export default function FinancialsPage() {
 
 
   const profitTrackerData = useMemo(() => {
-    if (!bookings) return { data: [], totalRevenue: 0, totalCosts: 0, totalProfit: 0 };
-    
-    const deliveredBookings = bookings
-        .filter(b => b.status === 'Delivered' && b.dueDate);
+    if (!bookings) return { data: [], totalProfit: 0, chartData: [] };
     
     const startDate = getStartDate(profitFilter);
 
-    const data = deliveredBookings
-      .filter(booking => booking.dueDate && isAfter(parseISO(booking.dueDate), startDate))
+    const deliveredBookings = bookings
+        .filter(b => b.status === 'Delivered' && b.completionDate && isAfter(parseISO(b.completionDate), startDate));
+
+    const dataForReport = deliveredBookings
       .map(booking => {
         const costs = (booking.driverRate || 0) + (booking.expectedExpenses.tollFee || 0) + (booking.expectedExpenses.fuel || 0) + (booking.expectedExpenses.others || 0);
         const profit = booking.bookingRate - costs;
         return { ...booking, profit, costs };
       })
-      .sort((a, b) => parseISO(b.dueDate).getTime() - parseISO(a.dueDate).getTime());
+      .sort((a, b) => {
+        const dateA = a.completionDate ? parseISO(a.completionDate).getTime() : 0;
+        const dateB = b.completionDate ? parseISO(b.completionDate).getTime() : 0;
+        return dateB - dateA;
+      });
+
+    const profitByClient = deliveredBookings.reduce((acc, booking) => {
+      const clientName = booking.clientId;
+      if (!clientName) return acc;
+      if (!acc[clientName]) {
+        acc[clientName] = 0;
+      }
+      const costs = (booking.driverRate || 0) + (booking.expectedExpenses.tollFee || 0) + (booking.expectedExpenses.fuel || 0) + (booking.expectedExpenses.others || 0);
+      const profit = booking.bookingRate - costs;
+      acc[clientName] += profit;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const chartData = Object.entries(profitByClient)
+      .map(([name, total]) => ({ name, total }))
+      .sort((a, b) => b.total - a.total);
     
-    const totalRevenue = data.reduce((sum, b) => sum + b.bookingRate, 0);
-    const totalCosts = data.reduce((sum, b) => sum + b.costs, 0);
-    const totalProfit = data.reduce((sum, b) => sum + b.profit, 0);
+    const totalProfit = chartData.reduce((sum, item) => sum + item.total, 0);
 
-
-    return { data, totalRevenue, totalCosts, totalProfit };
+    return { data: dataForReport, totalProfit, chartData, bookingCount: deliveredBookings.length };
   }, [bookings, profitFilter]);
 
   const filteredExpenses = useMemo(() => {
@@ -315,7 +332,7 @@ export default function FinancialsPage() {
                 title: "Completed Collections Report",
                 headers: ["Booking ID", "Client", "Paid Date", "Amount"],
                 rows: completedCollections.reportData.map(({ invoice: i, booking: b }) => [
-                    `#${(i?.bookingId).substring(0,7).toUpperCase()}`,
+                    `#${(b?.id || '').substring(0,7).toUpperCase()}`,
                     i.clientId,
                     i.dateIssued ? format(parseISO(i.dateIssued), 'PP') : 'N/A',
                     formatCurrency(i.grossSales)
@@ -337,18 +354,18 @@ export default function FinancialsPage() {
         case 'profit':
              data = {
                 title: `Profit/Margin Report (${profitFilter})`,
-                headers: ["Booking ID", "Client", "Date", "Revenue", "Costs", "Profit"],
+                headers: ["Booking ID", "Client", "Completion Date", "Revenue", "Costs", "Profit"],
                 rows: profitTrackerData.data.map(b => [
                     `#${(b.id || '').substring(0,7).toUpperCase()}`,
                     b.clientId,
-                    format(parseISO(b.dueDate), 'PP'),
+                    b.completionDate ? format(parseISO(b.completionDate), 'PP') : 'N/A',
                     formatCurrency(b.bookingRate),
                     formatCurrency(b.costs),
                     formatCurrency(b.profit)
                 ]),
                 footer: [
-                  ['Total Revenue', profitTrackerData.totalRevenue],
-                  ['Total Costs', profitTrackerData.totalCosts],
+                  ['Total Revenue', profitTrackerData.data.reduce((sum, b) => sum + b.bookingRate, 0)],
+                  ['Total Costs', profitTrackerData.data.reduce((sum, b) => sum + b.costs, 0)],
                   ['Total Profit', profitTrackerData.totalProfit],
                 ]
             };
@@ -428,7 +445,7 @@ export default function FinancialsPage() {
                         {upcomingBillings.data.slice(0,2).map(booking => (
                         <TableRow key={booking.id}>
                             <TableCell>
-                            <div className="font-medium">#{(booking.id || '').substring(0,7)}</div>
+                            <div className="font-medium">#{(booking.id || '').substring(0,7).toUpperCase()}</div>
                             <div className="text-xs text-muted-foreground">{booking.clientId}</div>
                             </TableCell>
                             <TableCell className="text-right">{formatCurrency(booking.bookingRate)}</TableCell>
@@ -466,7 +483,7 @@ export default function FinancialsPage() {
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>Details</TableHead>
+                                <TableHead>Booking</TableHead>
                                 <TableHead className="text-right">Days Overdue</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -614,43 +631,23 @@ export default function FinancialsPage() {
                 </div>
             </CardHeader>
             <CardContent>
-                {isLoading ? <Skeleton className="h-40 w-full" /> : profitTrackerData.data.length > 0 ? (
-                <>
-                <div className="mb-4">
-                    <p className="text-2xl font-bold">{formatCurrency(profitTrackerData.totalProfit)}</p>
-                    <p className="text-xs text-muted-foreground">from {profitTrackerData.data.length} delivered booking(s)</p>
-                </div>
-                <div className="max-h-96 overflow-y-auto">
-                    <Table>
-                        <TableHeader>
-                        <TableRow>
-                            <TableHead>Booking</TableHead>
-                            <TableHead className="text-right">Profit</TableHead>
-                        </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                        {profitTrackerData.data.slice(0, 5).map(booking => (
-                            <TableRow key={booking.id}>
-                            <TableCell>
-                                <div className="font-medium">#{(booking.id || '').substring(0, 7).toUpperCase()}</div>
-                                <div className="text-xs text-muted-foreground">{booking.clientId}</div>
-                            </TableCell>
-                            <TableCell className="text-right font-medium">
-                                <span className={booking.profit >= 0 ? 'text-green-600' : 'text-red-600'}>
-                                    {formatCurrency(booking.profit)}
-                                </span>
-                            </TableCell>
-                            </TableRow>
-                        ))}
-                        </TableBody>
-                    </Table>
-                </div>
-                 <Button variant="link" size="sm" className="w-full mt-2" onClick={() => handleViewReport('profit')}>
-                    <Eye className="mr-2 h-4 w-4" /> View Full Report
-                </Button>
-                </>
-             ) : <p className="text-sm text-muted-foreground text-center py-10">No delivered bookings to analyze for this period.</p>}
-          </CardContent>
+                {isLoading ? <Skeleton className="h-48 w-full" /> : (
+                  <>
+                  <div>
+                      <p className="text-2xl font-bold">{formatCurrency(profitTrackerData.totalProfit)}</p>
+                      <p className="text-xs text-muted-foreground">from {profitTrackerData.bookingCount} delivered booking(s)</p>
+                  </div>
+                  {profitTrackerData.chartData.length > 0 ? (
+                      <div className="h-48">
+                         <ProfitChart data={profitTrackerData.chartData} totalProfit={profitTrackerData.totalProfit}/>
+                      </div>
+                  ) : <p className="text-sm text-muted-foreground text-center py-10">No delivered bookings to analyze.</p>}
+                   <Button variant="link" size="sm" className="w-full mt-2" onClick={() => handleViewReport('profit')}>
+                      <Eye className="mr-2 h-4 w-4" /> View Full Report
+                  </Button>
+                  </>
+              )}
+            </CardContent>
         </Card>
 
         <Card className="xl:col-span-1">
