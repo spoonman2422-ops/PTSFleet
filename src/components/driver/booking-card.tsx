@@ -89,7 +89,7 @@ export function BookingCard({ booking, onStatusChange, onClick, isSelected }: Bo
                 <div>
                     <p className="font-medium">Pickup</p>
                     <p className="text-muted-foreground">{booking.pickupLocation}</p>
-                    <p className="text-xs text-muted-foreground">{format(parseISO(booking.collectionDate), "PPPp")}</p>
+                    <p className="text-xs text-muted-foreground">{format(parseISO(booking.bookingDate), "PPPp")}</p>
                 </div>
             </div>
             <div className="flex items-start gap-3">

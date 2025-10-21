@@ -31,7 +31,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import type { Booking, User, Vehicle, VehicleType } from '@/lib/types';
-import { format, parseISO, addDays } from 'date-fns';
+import { format, parseISO, addDays, nextSunday, startOfMonth, addMonths, nextSaturday } from 'date-fns';
 import { Separator } from '../ui/separator';
 
 const bookingSchema = z.object({
@@ -40,7 +40,7 @@ const bookingSchema = z.object({
   pickupLocation: z.string().min(1, 'Pickup location is required'),
   dropoffLocation: z.string().min(1, 'Dropoff location is required'),
   bookingDate: z.string().min(1, "Booking date is required"),
-  collectionDate: z.string().min(1, "Collection date is required"),
+  billingDate: z.string().min(1, "Billing date is required"),
   dueDate: z.string().min(1, "Due date is required"),
   driverId: z.string().nullable(),
   vehicleType: z.enum(['6-Wheel', 'AUV']),
@@ -85,7 +85,7 @@ export function BookingDialog({
       pickupLocation: '',
       dropoffLocation: '',
       bookingDate: '',
-      collectionDate: '',
+      billingDate: '',
       dueDate: '',
       driverId: null,
       vehicleType: '6-Wheel',
@@ -105,28 +105,32 @@ export function BookingDialog({
 
   useEffect(() => {
     if (watchedBookingDate && watchedClientId) {
-        try {
-            const bookingDate = parseISO(watchedBookingDate);
-            let daysToAdd = 0;
-            if (watchedClientId === 'HANA Creatives' || watchedClientId === 'DTS') {
-                daysToAdd = 15;
-            } else if (watchedClientId === 'Flash') {
-                daysToAdd = 45;
-            }
+      try {
+        const bookingDate = parseISO(watchedBookingDate);
+        let billingDate: Date | null = null;
+        let dueDate: Date | null = null;
 
-            if (daysToAdd > 0) {
-                const futureDate = addDays(bookingDate, daysToAdd);
-                const formattedFutureDate = format(futureDate, "yyyy-MM-dd");
-                
-                form.setValue('collectionDate', formattedFutureDate, { shouldValidate: true });
-                form.setValue('dueDate', formattedFutureDate, { shouldValidate: true });
-            }
-
-        } catch (error) {
-            // Invalid date string, do nothing
+        if (watchedClientId === 'HANA Creatives') {
+          billingDate = nextSunday(bookingDate);
+          dueDate = addDays(billingDate, 15);
+        } else if (watchedClientId === 'Flash') {
+          billingDate = startOfMonth(addMonths(bookingDate, 1));
+          dueDate = addDays(billingDate, 46);
+        } else if (watchedClientId === 'DTS') {
+          billingDate = nextSaturday(bookingDate);
+          dueDate = addDays(billingDate, 10);
         }
+
+        if (billingDate && dueDate) {
+          form.setValue('billingDate', format(billingDate, "yyyy-MM-dd"), { shouldValidate: true });
+          form.setValue('dueDate', format(dueDate, "yyyy-MM-dd"), { shouldValidate: true });
+        }
+
+      } catch (error) {
+        // Invalid date string, do nothing
+      }
     }
-}, [watchedBookingDate, watchedClientId, form]);
+  }, [watchedBookingDate, watchedClientId, form]);
 
 
   const netMargin =
@@ -143,7 +147,7 @@ export function BookingDialog({
           ...booking,
           id: booking.id || '',
           bookingDate: booking.bookingDate ? format(parseISO(booking.bookingDate), "yyyy-MM-dd") : '',
-          collectionDate: booking.collectionDate ? format(parseISO(booking.collectionDate), "yyyy-MM-dd") : '',
+          billingDate: booking.billingDate ? format(parseISO(booking.billingDate), "yyyy-MM-dd") : '',
           dueDate: booking.dueDate ? format(parseISO(booking.dueDate), "yyyy-MM-dd") : '',
           driverId: booking.driverId || null,
         });
@@ -154,7 +158,7 @@ export function BookingDialog({
           pickupLocation: '',
           dropoffLocation: '',
           bookingDate: '',
-          collectionDate: '',
+          billingDate: '',
           dueDate: '',
           driverId: null,
           vehicleType: '6-Wheel',
@@ -273,10 +277,10 @@ export function BookingDialog({
                 />
                 <FormField
                     control={form.control}
-                    name="collectionDate"
+                    name="billingDate"
                     render={({ field }) => (
                     <FormItem>
-                        <FormLabel>Collection Date</FormLabel>
+                        <FormLabel>Billing Date</FormLabel>
                         <FormControl>
                         <Input type="date" {...field} />
                         </FormControl>

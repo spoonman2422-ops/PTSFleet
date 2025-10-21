@@ -30,7 +30,7 @@ export interface Booking {
   pickupLocation: string;
   dropoffLocation: string;
   bookingDate: string;
-  collectionDate: string;
+  billingDate: string;
   completionDate?: string;
   dueDate: string;
   bookingRate: number;

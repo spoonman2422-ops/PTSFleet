@@ -45,7 +45,7 @@
         "pickupLocation": { "type": "string" },
         "dropoffLocation": { "type": "string" },
         "bookingDate": { "type": "string", "format": "date" },
-        "collectionDate": { "type": "string", "format": "date" },
+        "billingDate": { "type": "string", "format": "date" },
         "completionDate": { "type": "string", "format": "date" },
         "dueDate": { "type": "string", "format": "date" },
         "bookingRate": { "type": "number" },

@@ -19,7 +19,7 @@ export default function DriverPage() {
     if (!user || !allBookings) return [];
     return allBookings
       .filter(b => b.driverId === user.id)
-      .sort((a, b) => new Date(a.collectionDate).getTime() - new Date(b.collectionDate).getTime());
+      .sort((a, b) => new Date(a.bookingDate).getTime() - new Date(b.bookingDate).getTime());
   }, [user, allBookings]);
 
   const updateBookingStatus = async (bookingId: string, status: BookingStatus) => {

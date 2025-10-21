@@ -57,7 +57,7 @@ export default function FinancialsPage() {
   };
 
 
-  const upcomingCollections = useMemo(() => {
+  const upcomingBillings = useMemo(() => {
     if (!bookings || !invoices) return { data: [], totalAmount: 0, totalCount: 0 };
     const data = bookings
       .filter(b => {
@@ -65,9 +65,9 @@ export default function FinancialsPage() {
         if (invoice && invoice.status === 'Paid') {
           return false;
         }
-        return b.collectionDate && isAfter(parseISO(b.collectionDate), now) && isBefore(parseISO(b.collectionDate), nextSevenDays)
+        return b.billingDate && isAfter(parseISO(b.billingDate), now) && isBefore(parseISO(b.billingDate), nextSevenDays)
       })
-      .sort((a, b) => parseISO(a.collectionDate).getTime() - parseISO(b.collectionDate).getTime());
+      .sort((a, b) => parseISO(a.billingDate).getTime() - parseISO(b.billingDate).getTime());
     
     const totalAmount = data.reduce((sum, b) => sum + b.bookingRate, 0);
     const totalCount = data.length;
@@ -269,15 +269,15 @@ export default function FinancialsPage() {
     switch (type) {
         case 'upcoming':
             data = {
-                title: "Upcoming Collections Report",
-                headers: ["Booking ID", "Client", "Collection Date", "Amount"],
-                rows: upcomingCollections.data.map(b => [
+                title: "Upcoming Billings Report",
+                headers: ["Booking ID", "Client", "Billing Date", "Amount"],
+                rows: upcomingBillings.data.map(b => [
                     `#${(b.id || '').substring(0,7).toUpperCase()}`,
                     b.clientId,
-                    format(parseISO(b.collectionDate), 'PP'),
+                    format(parseISO(b.billingDate), 'PP'),
                     formatCurrency(b.bookingRate)
                 ]),
-                total: upcomingCollections.totalAmount,
+                total: upcomingBillings.totalAmount,
             };
             break;
         case 'outstanding':
@@ -389,7 +389,7 @@ export default function FinancialsPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
                 <CalendarCheck2 className="h-5 w-5 text-blue-500" />
-                <span>Upcoming Collections</span>
+                <span>Upcoming Billings</span>
             </CardTitle>
              <CardDescription>Next 7 days</CardDescription>
           </CardHeader>
@@ -397,10 +397,10 @@ export default function FinancialsPage() {
              {isLoading ? <Skeleton className="h-20 w-full" /> : (
                 <>
                 <div>
-                    <p className="text-2xl font-bold">{formatCurrency(upcomingCollections.totalAmount)}</p>
-                    <p className="text-xs text-muted-foreground">from {upcomingCollections.totalCount} booking(s)</p>
+                    <p className="text-2xl font-bold">{formatCurrency(upcomingBillings.totalAmount)}</p>
+                    <p className="text-xs text-muted-foreground">from {upcomingBillings.totalCount} booking(s)</p>
                 </div>
-                {upcomingCollections.data.length > 0 ? (
+                {upcomingBillings.data.length > 0 ? (
                 <>
                     <Table>
                     <TableHeader>
@@ -410,7 +410,7 @@ export default function FinancialsPage() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {upcomingCollections.data.slice(0,2).map(booking => (
+                        {upcomingBillings.data.slice(0,2).map(booking => (
                         <TableRow key={booking.id}>
                             <TableCell>
                             <div className="font-medium">#{(booking.id || '').substring(0,7)}</div>
@@ -425,7 +425,7 @@ export default function FinancialsPage() {
                         <Eye className="mr-2 h-4 w-4" /> View Full Report
                     </Button>
                 </>
-                ) : <p className="text-sm text-muted-foreground text-center py-4">No upcoming collections.</p>}
+                ) : <p className="text-sm text-muted-foreground text-center py-4">No upcoming billings.</p>}
                 </>
              )}
           </CardContent>
