@@ -6,14 +6,12 @@ import {
   collection,
   getDocs,
   writeBatch,
-  query,
-  where,
   doc,
 } from "firebase/firestore";
 import { useFirestore } from "@/firebase";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ShieldCheck, Trash2, Loader2, Wrench } from "lucide-react";
+import { ShieldCheck, Trash2, Loader2, Wrench, FileCog } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,12 +24,97 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
-import type { Booking, Expense } from "@/lib/types";
+import type { Booking, Invoice } from "@/lib/types";
+import { format, parseISO, addDays, nextSunday, startOfMonth, addMonths, nextSaturday } from 'date-fns';
+
 
 export default function AdminPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const [isResetting, setIsResetting] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  const handleUpdateData = async () => {
+    if (!firestore) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Firestore is not available.",
+      });
+      return;
+    }
+    setIsUpdating(true);
+    try {
+        const batch = writeBatch(firestore);
+
+        const bookingsSnapshot = await getDocs(collection(firestore, "bookings"));
+        const invoicesSnapshot = await getDocs(collection(firestore, "invoices"));
+
+        const allInvoices = invoicesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Invoice));
+
+        let updatedCount = 0;
+
+        for (const bookingDoc of bookingsSnapshot.docs) {
+            const booking = { id: bookingDoc.id, ...bookingDoc.data() } as Booking;
+            if (!booking.bookingDate || !booking.clientId) continue;
+
+            const bookingDate = parseISO(booking.bookingDate);
+            let newBillingDate: Date | null = null;
+            let newDueDate: Date | null = null;
+
+            if (booking.clientId === 'HANA Creatives') {
+                newBillingDate = nextSunday(bookingDate);
+                newDueDate = addDays(newBillingDate, 15);
+            } else if (booking.clientId === 'Flash') {
+                newBillingDate = startOfMonth(addMonths(bookingDate, 1));
+                newDueDate = addDays(newBillingDate, 46);
+            } else if (booking.clientId === 'DTS') {
+                newBillingDate = nextSaturday(bookingDate);
+                newDueDate = addDays(newBillingDate, 10);
+            }
+
+            if (newBillingDate && newDueDate) {
+                const bookingRef = doc(firestore, "bookings", booking.id!);
+                const updates: Partial<Booking> = {
+                    billingDate: format(newBillingDate, "yyyy-MM-dd"),
+                    dueDate: format(newDueDate, "yyyy-MM-dd"),
+                };
+                batch.update(bookingRef, updates);
+                updatedCount++;
+                
+                // Find and update the corresponding invoice
+                const correspondingInvoice = allInvoices.find(inv => inv.bookingId === booking.id);
+                if (correspondingInvoice) {
+                    const invoiceRef = doc(firestore, "invoices", correspondingInvoice.id);
+                    batch.update(invoiceRef, { dueDate: format(newDueDate, "yyyy-MM-dd") });
+                }
+            }
+        }
+        
+        if (updatedCount > 0) {
+            await batch.commit();
+            toast({
+                title: "Data Update Complete",
+                description: `${updatedCount} booking(s) and their corresponding invoices have been successfully updated.`,
+            });
+        } else {
+             toast({
+                title: "No Updates Needed",
+                description: "All existing bookings already match the new date logic.",
+            });
+        }
+
+    } catch (error: any) {
+        console.error("Error updating data: ", error);
+        toast({
+            variant: "destructive",
+            title: "Update Failed",
+            description: error.message || "An unexpected error occurred while updating data.",
+        });
+    } finally {
+        setIsUpdating(false);
+    }
+  };
 
   const handleResetData = async () => {
     if (!firestore) {
@@ -108,8 +191,50 @@ export default function AdminPage() {
             <p>Welcome, Admin. This is where administrative controls and system overview will be displayed.</p>
           </CardContent>
         </Card>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+                <FileCog className="h-6 w-6" />
+                <span>Data Migration</span>
+            </CardTitle>
+            <CardDescription>
+                Run one-time scripts to update existing data to match new application logic.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+             <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="outline" disabled={isUpdating}>
+                  {isUpdating ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Wrench className="mr-2 h-4 w-4" />
+                  )}
+                  {isUpdating ? "Updating..." : "Update Booking & Invoice Dates"}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action will scan all existing bookings and update their Billing and Due Dates based on the new client-specific rules. It will also update the due dates on corresponding invoices. This cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleUpdateData}
+                  >
+                    Yes, update all records
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </CardContent>
+        </Card>
 
-        <Card className="border-destructive/50">
+        <Card className="border-destructive/50 md:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-destructive">
               <Trash2 className="h-6 w-6" />
