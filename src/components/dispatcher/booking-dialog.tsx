@@ -111,12 +111,12 @@ export function BookingDialog({
       
       const clientBookings = allBookings
         .filter(b => b.id?.startsWith(clientPrefix))
-        .map(b => parseInt(b.id?.split('-')[1] || '0', 10))
+        .map(b => parseInt(b.id?.replace(clientPrefix, '').replace('0', '') || '0', 10))
         .filter(n => !isNaN(n));
 
       const lastNumber = clientBookings.length > 0 ? Math.max(...clientBookings) : 0;
       const newNumber = lastNumber + 1;
-      const newId = `${clientPrefix}-0${newNumber}`;
+      const newId = `${clientPrefix}0${newNumber}`;
 
       form.setValue('id', newId, { shouldValidate: true });
     }
