@@ -15,6 +15,7 @@ import { Separator } from '@/components/ui/separator';
 import { vehicles } from '@/lib/data';
 import { Button } from '@/components/ui/button';
 import { FinancialReportDialog, ReportData } from '@/components/admin/financial-report-dialog';
+import { CollectionsChart } from '@/components/admin/collections-chart';
 
 
 type FinancialFilter = 'Overall' | 'Annual' | 'Monthly' | 'Weekly';
@@ -76,10 +77,15 @@ export default function FinancialsPage() {
   }, [bookings, invoices, now, nextSevenDays]);
   
   const completedCollections = useMemo(() => {
-    if (!invoices || !bookings) return { data: [], totalAmount: 0, totalCount: 0 };
+    if (!invoices || !bookings) return { data: [], reportData: [], totalAmount: 0, totalCount: 0, chartData: [] };
     const startDate = getStartDate(completedFilter);
-    const data = invoices
-      .filter(inv => inv.status === 'Paid' && inv.dateIssued && isAfter(parseISO(inv.dateIssued), startDate))
+
+    const paidInvoices = invoices.filter(inv => inv.status === 'Paid' && inv.dateIssued && isAfter(parseISO(inv.dateIssued), startDate));
+    
+    const totalAmount = paidInvoices.reduce((sum, inv) => sum + inv.grossSales, 0);
+    const totalCount = paidInvoices.length;
+
+    const reportData = paidInvoices
       .map(inv => {
         const booking = bookings.find(b => b.id === inv.bookingId);
         return { invoice: inv, booking };
@@ -90,10 +96,20 @@ export default function FinancialsPage() {
          return dateB - dateA;
       });
 
-    const totalAmount = data.reduce((sum, { invoice }) => sum + invoice.grossSales, 0);
-    const totalCount = data.length;
+    const collectionsByClient = paidInvoices.reduce((acc, inv) => {
+        const clientName = inv.clientId;
+        if (!acc[clientName]) {
+            acc[clientName] = 0;
+        }
+        acc[clientName] += inv.grossSales;
+        return acc;
+    }, {} as Record<string, number>);
+
+    const chartData = Object.entries(collectionsByClient)
+      .map(([name, total]) => ({ name, total }))
+      .sort((a, b) => b.total - a.total);
     
-    return { data, totalAmount, totalCount };
+    return { reportData, totalAmount, totalCount, chartData };
   }, [invoices, bookings, completedFilter]);
 
 
@@ -298,7 +314,7 @@ export default function FinancialsPage() {
             data = {
                 title: "Completed Collections Report",
                 headers: ["Booking ID", "Client", "Paid Date", "Amount"],
-                rows: completedCollections.data.map(({ invoice: i, booking: b }) => [
+                rows: completedCollections.reportData.map(({ invoice: i, booking: b }) => [
                     `#${(b?.id || i.bookingId).substring(0,7).toUpperCase()}`,
                     b?.clientId || i.clientId,
                     i.dateIssued ? format(parseISO(i.dateIssued), 'PP') : 'N/A',
@@ -458,7 +474,7 @@ export default function FinancialsPage() {
                             {outstandingPayments.data.slice(0,2).map(({ invoice, booking }) => (
                                 <TableRow key={invoice.id}>
                                     <TableCell>
-                                        <div className="font-medium">Booking #{(booking?.id || '').substring(0, 7).toUpperCase()}</div>
+                                        <div className="font-medium">Booking #{(booking?.id || invoice.bookingId).substring(0, 7).toUpperCase()}</div>
                                         <div className="text-xs text-muted-foreground">{booking?.clientId || invoice.clientId}</div>
                                     </TableCell>
                                     <TableCell className="text-right text-red-600 font-medium">
@@ -501,32 +517,20 @@ export default function FinancialsPage() {
                 </div>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
-                {isLoading ? <Skeleton className="h-20 w-full" /> : (
+                {isLoading ? <Skeleton className="h-48 w-full" /> : (
                     <>
                     <div>
                         <p className="text-2xl font-bold">{formatCurrency(completedCollections.totalAmount)}</p>
                         <p className="text-xs text-muted-foreground">from {completedCollections.totalCount} invoice(s)</p>
                     </div>
-                    {completedCollections.data.length > 0 ? (
-                        <>
-                        <div className="space-y-4">
-                            {completedCollections.data.slice(0, 3).map(({ invoice, booking }) => (
-                                <div key={invoice.id} className="flex justify-between items-center text-sm">
-                                    <div>
-                                        <p className="font-medium">Booking #{(booking?.id || '').substring(0, 7)}</p>
-                                        <p className="text-xs text-muted-foreground">{booking?.clientId || invoice.clientId}</p>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className="font-semibold text-green-600">+{formatCurrency(invoice.grossSales)}</p>
-                                    </div>
-                                </div>
-                            ))}
+                    {completedCollections.chartData.length > 0 ? (
+                        <div className="h-48">
+                           <CollectionsChart data={completedCollections.chartData} />
                         </div>
-                        <Button variant="link" size="sm" className="w-full mt-2" onClick={() => handleViewReport('completed')}>
-                            <Eye className="mr-2 h-4 w-4" /> View Full Report
-                        </Button>
-                        </>
-                    ) : <p className="text-sm text-muted-foreground text-center py-4">No completed collections yet.</p>}
+                    ) : <p className="text-sm text-muted-foreground text-center py-10">No collections for this period.</p>}
+                     <Button variant="link" size="sm" className="w-full mt-2" onClick={() => handleViewReport('completed')}>
+                        <Eye className="mr-2 h-4 w-4" /> View Full Report
+                    </Button>
                     </>
                 )}
             </CardContent>
@@ -834,3 +838,5 @@ export default function FinancialsPage() {
     </>
   );
 }
+
+    
