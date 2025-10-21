@@ -62,6 +62,7 @@ type BookingDialogProps = {
   booking: Booking | null;
   drivers: User[];
   vehicles: Vehicle[];
+  allBookings: Booking[];
 };
 
 const UNASSIGNED_VALUE = "unassigned";
@@ -74,6 +75,7 @@ export function BookingDialog({
   booking,
   drivers,
   vehicles,
+  allBookings,
 }: BookingDialogProps) {
   const isEditMode = !!booking;
 
@@ -102,6 +104,24 @@ export function BookingDialog({
   const watchedValues = useWatch({ control: form.control });
   const watchedBookingDate = useWatch({ control: form.control, name: 'bookingDate' });
   const watchedClientId = useWatch({ control: form.control, name: 'clientId' });
+
+  useEffect(() => {
+    if (watchedClientId && !isEditMode) {
+      const clientPrefix = watchedClientId.split(' ')[0].toUpperCase();
+      
+      const clientBookings = allBookings
+        .filter(b => b.id?.startsWith(clientPrefix))
+        .map(b => parseInt(b.id?.split('-')[1] || '0', 10))
+        .filter(n => !isNaN(n));
+
+      const lastNumber = clientBookings.length > 0 ? Math.max(...clientBookings) : 0;
+      const newNumber = lastNumber + 1;
+      const newId = `${clientPrefix}-0${newNumber}`;
+
+      form.setValue('id', newId, { shouldValidate: true });
+    }
+  }, [watchedClientId, allBookings, form, isEditMode]);
+
 
   useEffect(() => {
     if (watchedBookingDate && watchedClientId) {
@@ -196,26 +216,13 @@ export function BookingDialog({
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-6">
-              <FormField
-                  control={form.control}
-                  name="id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Booking ID</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter a unique booking ID" {...field} readOnly={isEditMode}/>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              <FormField
+               <FormField
                 control={form.control}
                 name="clientId"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Client ID / Name</FormLabel>
-                     <Select onValueChange={field.onChange} value={field.value}>
+                     <Select onValueChange={field.onChange} value={field.value} disabled={isEditMode}>
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select a client" />
@@ -231,6 +238,19 @@ export function BookingDialog({
                   </FormItem>
                 )}
               />
+              <FormField
+                  control={form.control}
+                  name="id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Booking ID</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Booking ID is auto-generated" {...field} readOnly/>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField

@@ -375,6 +375,7 @@ export default function AdminBookingsPage() {
         booking={editingBooking}
         drivers={drivers}
         vehicles={vehicles}
+        allBookings={bookings || []}
       />
 
       <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
