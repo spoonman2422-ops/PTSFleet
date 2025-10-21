@@ -22,7 +22,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { User, UserRole } from "@/lib/types";
+import type { User, UserRole, Vehicle } from "@/lib/types";
 import { UserDialog } from "@/components/admin/user-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useCollection, useFirestore } from "@/firebase";
@@ -50,6 +50,7 @@ const roleBadgeVariant: Record<UserRole, "default" | "secondary" | "outline" | "
 
 export default function UserManagementPage() {
   const { data: users, isLoading: isLoadingUsers } = useCollection<User>('users');
+  const { data: vehicles, isLoading: isLoadingVehicles } = useCollection<Vehicle>('vehicles');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [deletingUser, setDeletingUser] = useState<User | null>(null);
@@ -83,8 +84,13 @@ export default function UserManagementPage() {
     try {
       if (userId) { // Editing existing user
         const userRef = doc(firestore, "users", userId);
-        const { name, email, role } = userData;
-        await updateDoc(userRef, { name, email, role });
+        const { name, email, role, vehicleId } = userData;
+        const dataToUpdate: Partial<User> = { name, email, role, vehicleId };
+        if (role !== 'Driver') {
+            dataToUpdate.vehicleId = null;
+        }
+
+        await updateDoc(userRef, dataToUpdate);
         toast({ title: 'User Updated', description: `${name} has been updated.` });
 
       } else { // Creating new user
@@ -103,7 +109,11 @@ export default function UserManagementPage() {
           email: userData.email,
           role: userData.role,
           avatarUrl: `https://picsum.photos/seed/${authUser.uid}/100/100`,
+          vehicleId: userData.vehicleId || null,
         };
+        if (newUser.role !== 'Driver') {
+            newUser.vehicleId = null;
+        }
 
         await setDoc(doc(firestore, "users", authUser.uid), newUser);
 
@@ -143,6 +153,8 @@ export default function UserManagementPage() {
         setDeletingUser(null);
     }
   };
+  
+  const isLoading = isLoadingUsers || isLoadingVehicles;
 
 
   return (
@@ -171,11 +183,12 @@ export default function UserManagementPage() {
                   <TableHead>User</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Role</TableHead>
+                  <TableHead>Vehicle Assigned</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {isLoadingUsers ? (
+                {isLoading ? (
                   Array.from({ length: 5 }).map((_, i) => (
                     <TableRow key={i}>
                       <TableCell>
@@ -186,47 +199,56 @@ export default function UserManagementPage() {
                       </TableCell>
                       <TableCell><Skeleton className="h-5 w-32" /></TableCell>
                       <TableCell><Skeleton className="h-6 w-20" /></TableCell>
+                      <TableCell><Skeleton className="h-5 w-28" /></TableCell>
                       <TableCell className="text-right"><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
                     </TableRow>
                   ))
-                ) : (users || []).map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-9 w-9">
-                          <AvatarImage
-                            src={user.avatarUrl}
-                            alt={user.name}
-                          />
-                          <AvatarFallback>{user.name[0]}</AvatarFallback>
-                        </Avatar>
-                        <div className="font-medium">{user.name}</div>
-                      </div>
-                    </TableCell>
-                    <TableCell>{user.email}</TableCell>
-                    <TableCell>
-                      <Badge variant={roleBadgeVariant[user.role]}>
-                        {user.role}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="icon">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent>
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem onClick={() => handleEditUser(user)}>Edit</DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive" onClick={() => handleOpenDeleteDialog(user)}>
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                ) : (users || []).map((user) => {
+                  const assignedVehicle = vehicles?.find(v => v.id === user.vehicleId);
+                  return (
+                    <TableRow key={user.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-9 w-9">
+                            <AvatarImage
+                              src={user.avatarUrl}
+                              alt={user.name}
+                            />
+                            <AvatarFallback>{user.name[0]}</AvatarFallback>
+                          </Avatar>
+                          <div className="font-medium">{user.name}</div>
+                        </div>
+                      </TableCell>
+                      <TableCell>{user.email}</TableCell>
+                      <TableCell>
+                        <Badge variant={roleBadgeVariant[user.role]}>
+                          {user.role}
+                        </Badge>
+                      </TableCell>
+                       <TableCell>
+                        {user.role === 'Driver' ? (
+                          assignedVehicle ? `${assignedVehicle.make} ${assignedVehicle.model} (${assignedVehicle.plateNumber})` : 'Unassigned'
+                        ) : 'N/A'}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent>
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuItem onClick={() => handleEditUser(user)}>Edit</DropdownMenuItem>
+                            <DropdownMenuItem className="text-destructive" onClick={() => handleOpenDeleteDialog(user)}>
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </CardContent>
@@ -237,6 +259,7 @@ export default function UserManagementPage() {
           onOpenChange={setIsDialogOpen}
           onSave={handleSaveUser}
           user={editingUser}
+          vehicles={vehicles || []}
         />
       </div>
 

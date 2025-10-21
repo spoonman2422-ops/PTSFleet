@@ -72,7 +72,8 @@
             "name": { "type": "string" },
             "email": { "type": "string", "format": "email" },
             "role": { "type": "string", "enum": ["Admin", "Dispatcher", "Driver"] },
-            "avatarUrl": { "type": "string", "format": "uri" }
+            "avatarUrl": { "type": "string", "format": "uri" },
+            "vehicleId": { "type": ["string", "null"], "description": "The ID of the vehicle assigned to this user, if they are a driver." }
         },
         "required": ["name", "email", "role"]
     },

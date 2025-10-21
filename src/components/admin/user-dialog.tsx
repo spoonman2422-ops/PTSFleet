@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useEffect } from 'react';
@@ -30,12 +30,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type { User, UserRole } from '@/lib/types';
+import type { User, UserRole, Vehicle } from '@/lib/types';
 
 const userSchemaBase = z.object({
   name: z.string().min(1, 'Full name is required'),
   email: z.string().email('Invalid email address'),
   role: z.enum(['Admin', 'Dispatcher', 'Driver']),
+  vehicleId: z.string().nullable(),
 });
 
 const userSchemaCreate = userSchemaBase.extend({
@@ -54,15 +55,18 @@ type UserDialogProps = {
   onOpenChange: (open: boolean) => void;
   onSave: (data: Partial<UserFormValues>, id?: string) => void;
   user: User | null;
+  vehicles: Vehicle[];
 };
 
 const roles: Omit<UserRole, 'Accountant'>[] = ['Admin', 'Dispatcher', 'Driver'];
+const UNASSIGNED_VALUE = "unassigned";
 
 export function UserDialog({
   isOpen,
   onOpenChange,
   onSave,
   user,
+  vehicles,
 }: UserDialogProps) {
   const isEditMode = !!user;
 
@@ -73,8 +77,11 @@ export function UserDialog({
       email: '',
       role: 'Driver',
       password: '',
+      vehicleId: null,
     },
   });
+
+  const watchedRole = useWatch({ control: form.control, name: 'role' });
 
   useEffect(() => {
     if (isOpen) {
@@ -84,6 +91,7 @@ export function UserDialog({
           email: user.email,
           role: user.role,
           password: '',
+          vehicleId: user.vehicleId || null,
         });
       } else {
         form.reset({
@@ -91,13 +99,18 @@ export function UserDialog({
           email: '',
           role: 'Driver',
           password: '',
+          vehicleId: null,
         });
       }
     }
   }, [isOpen, isEditMode, user, form]);
 
   const onSubmit = (data: UserFormValues) => {
-    onSave(data, user?.id);
+    const dataToSave = {
+        ...data,
+        vehicleId: data.vehicleId === UNASSIGNED_VALUE ? null : data.vehicleId,
+    };
+    onSave(dataToSave, user?.id);
   };
   
   const handleOpenChange = (open: boolean) => {
@@ -179,6 +192,38 @@ export function UserDialog({
                 </FormItem>
                 )}
             />
+
+            {watchedRole === 'Driver' && (
+              <FormField
+                control={form.control}
+                name="vehicleId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Vehicle Assigned</FormLabel>
+                    <Select 
+                      onValueChange={(value) => field.onChange(value === UNASSIGNED_VALUE ? null : value)}
+                      value={field.value ?? UNASSIGNED_VALUE}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a vehicle" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value={UNASSIGNED_VALUE}>Unassigned</SelectItem>
+                        {vehicles.map(vehicle => (
+                          <SelectItem key={vehicle.id} value={vehicle.id}>
+                            {`${vehicle.make} ${vehicle.model} (${vehicle.plateNumber})`}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
             <DialogFooter className="pt-4">
               <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
                 Cancel

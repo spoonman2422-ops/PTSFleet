@@ -15,6 +15,7 @@ export interface User {
   email: string;
   role: UserRole;
   avatarUrl: string;
+  vehicleId?: string | null;
 }
 
 export interface Vehicle {
