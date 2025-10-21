@@ -92,8 +92,8 @@ export default function PayrollPage() {
     const deliveredBookings = (bookings || []).filter(
       (b) =>
         b.status === 'Delivered' &&
-        b.completionDate &&
-        isWithinInterval(parseISO(b.completionDate), {
+        b.bookingDate &&
+        isWithinInterval(parseISO(b.bookingDate), {
           start: weekStart,
           end: weekEnd,
         })
