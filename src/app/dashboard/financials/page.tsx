@@ -315,8 +315,8 @@ export default function FinancialsPage() {
                 title: "Completed Collections Report",
                 headers: ["Booking ID", "Client", "Paid Date", "Amount"],
                 rows: completedCollections.reportData.map(({ invoice: i, booking: b }) => [
-                    `#${(b?.id || i.bookingId).substring(0,7).toUpperCase()}`,
-                    b?.clientId || i.clientId,
+                    `#${(i?.bookingId).substring(0,7).toUpperCase()}`,
+                    i.clientId,
                     i.dateIssued ? format(parseISO(i.dateIssued), 'PP') : 'N/A',
                     formatCurrency(i.grossSales)
                 ]),
@@ -525,7 +525,7 @@ export default function FinancialsPage() {
                     </div>
                     {completedCollections.chartData.length > 0 ? (
                         <div className="h-48">
-                           <CollectionsChart data={completedCollections.chartData} />
+                           <CollectionsChart data={completedCollections.chartData} totalAmount={completedCollections.totalAmount}/>
                         </div>
                     ) : <p className="text-sm text-muted-foreground text-center py-10">No collections for this period.</p>}
                      <Button variant="link" size="sm" className="w-full mt-2" onClick={() => handleViewReport('completed')}>

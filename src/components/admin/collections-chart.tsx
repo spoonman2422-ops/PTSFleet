@@ -1,11 +1,11 @@
 
 "use client"
 
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, ResponsiveContainer, LabelList, Cell } from 'recharts';
 
 type CollectionsChartProps = {
     data: { name: string, total: number }[];
+    totalAmount: number;
 };
 
 const formatCurrency = (value: number) => new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(value);
@@ -39,10 +39,33 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
-export function CollectionsChart({ data }: CollectionsChartProps) {
+const clientColors: Record<string, string> = {
+    "HANA Creatives": "hsl(var(--chart-1))",
+    "Flash": "hsl(var(--chart-2))",
+    "DTS": "hsl(var(--chart-3))",
+};
+
+
+const renderCustomizedLabel = (totalAmount: number) => (props: any) => {
+  const { x, y, width, height, value } = props;
+  const percentage = totalAmount > 0 ? ((value / totalAmount) * 100).toFixed(1) : 0;
+  
+  return (
+    <g>
+      <text x={x + width / 2} y={y - 10} fill="#666" textAnchor="middle" dy={-6} fontSize={12}>
+        {formatCurrency(value)}
+      </text>
+      <text x={x + width / 2} y={y + height / 2} fill="#fff" textAnchor="middle" dy={4} fontSize={12} fontWeight="bold">
+        {`${percentage}%`}
+      </text>
+    </g>
+  );
+};
+
+export function CollectionsChart({ data, totalAmount }: CollectionsChartProps) {
   return (
     <ResponsiveContainer width="100%" height="100%">
-      <BarChart data={data} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+      <BarChart data={data} margin={{ top: 30, right: 0, left: -20, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" vertical={false} />
         <XAxis
           dataKey="name"
@@ -59,10 +82,13 @@ export function CollectionsChart({ data }: CollectionsChartProps) {
           tickFormatter={(value) => formatCurrency(value as number)}
         />
         <Tooltip cursor={{fill: 'hsl(var(--muted))'}} content={<CustomTooltip />} />
-        <Bar dataKey="total" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+        <Bar dataKey="total" radius={[4, 4, 0, 0]}>
+          {data.map((entry, index) => (
+            <Cell key={`cell-${index}`} fill={clientColors[entry.name] || 'hsl(var(--primary))'} />
+          ))}
+          <LabelList dataKey="total" content={renderCustomizedLabel(totalAmount)} />
+        </Bar>
       </BarChart>
     </ResponsiveContainer>
   );
 }
-
-    
