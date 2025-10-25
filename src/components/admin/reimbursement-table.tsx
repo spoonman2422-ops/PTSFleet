@@ -68,7 +68,8 @@ export function ReimbursementTable({ data, users, isLoading, onLiquidate, onEdit
     {
       accessorKey: "description",
       header: ({ column }) => <DataTableColumnHeader column={column} title="Description" />,
-      cell: ({ row }) => <div className="whitespace-normal break-words">{row.getValue("description")}</div>
+      cell: ({ row }) => <div className="whitespace-normal break-words">{row.getValue("description")}</div>,
+      size: 300, // Explicitly give more size to the description column
     },
     {
       accessorKey: "creditedTo",
@@ -116,17 +117,17 @@ export function ReimbursementTable({ data, users, isLoading, onLiquidate, onEdit
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                    {reimbursement.status === "Pending" ? (
-                        <>
+                    {reimbursement.status === "Pending" && (
                         <DropdownMenuItem onClick={() => onEdit(reimbursement)}>
                             <Edit className="mr-2 h-4 w-4" />
                             Edit
                         </DropdownMenuItem>
+                    )}
+                    {reimbursement.status === "Pending" ? (
                         <DropdownMenuItem onClick={() => onLiquidate(reimbursement)}>
                             <HandCoins className="mr-2 h-4 w-4" />
                             Liquidate
                         </DropdownMenuItem>
-                        </>
                     ) : (
                         <DropdownMenuItem disabled>
                             Already Liquidated
@@ -201,7 +202,7 @@ export function ReimbursementTable({ data, users, isLoading, onLiquidate, onEdit
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id}>
+                  <TableHead key={header.id} style={{ minWidth: header.getSize(), width: header.getSize() }}>
                     {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                   </TableHead>
                 ))}
