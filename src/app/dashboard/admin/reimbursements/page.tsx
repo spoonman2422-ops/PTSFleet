@@ -9,6 +9,8 @@ import { ReimbursementTable } from '@/components/admin/reimbursement-table';
 import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/context/user-context';
 import { addDoc, collection, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { ReimbursementDialog } from '@/components/admin/reimbursement-dialog';
+import { format } from 'date-fns';
 
 export default function ReimbursementsPage() {
   const { data: reimbursements, isLoading: isLoadingReimbursements } = useCollection<Reimbursement>('reimbursements');
@@ -16,6 +18,8 @@ export default function ReimbursementsPage() {
   const firestore = useFirestore();
   const { toast } = useToast();
   const { user } = useUser();
+  const [editingReimbursement, setEditingReimbursement] = useState<Reimbursement | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const handleLiquidate = async (reimbursement: Reimbursement) => {
     if (!firestore || !user) {
@@ -54,9 +58,31 @@ export default function ReimbursementsPage() {
     });
   };
 
+  const handleEdit = (reimbursement: Reimbursement) => {
+    setEditingReimbursement(reimbursement);
+    setIsDialogOpen(true);
+  };
+  
+  const handleSaveReimbursement = async (data: Omit<Reimbursement, 'id' | 'addedBy' | 'status' | 'liquidatedAt' | 'liquidatedBy'>, id: string) => {
+    if (!firestore) {
+      toast({ variant: "destructive", title: "Error", description: "Firestore not available." });
+      return;
+    }
+
+    const docRef = doc(firestore, 'reimbursements', id);
+    await updateDoc(docRef, {
+        ...data,
+        dateIncurred: format(new Date(data.dateIncurred), "yyyy-MM-dd"),
+    });
+
+    toast({ title: "Reimbursement Updated", description: "The request has been successfully updated." });
+    setIsDialogOpen(false);
+  };
+
   const isLoading = isLoadingReimbursements || isLoadingUsers;
 
   return (
+    <>
     <div className="flex flex-col gap-6">
        <div className="flex items-center justify-between">
           <div>
@@ -75,11 +101,18 @@ export default function ReimbursementsPage() {
                     users={users || []}
                     isLoading={isLoading}
                     onLiquidate={handleLiquidate}
+                    onEdit={handleEdit}
                 />
             </CardContent>
         </Card>
     </div>
+
+    <ReimbursementDialog
+        isOpen={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        onSave={handleSaveReimbursement}
+        reimbursement={editingReimbursement}
+      />
+    </>
   );
 }
-
-    

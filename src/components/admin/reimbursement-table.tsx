@@ -28,14 +28,16 @@ import { format, parseISO } from "date-fns";
 import { DataTableColumnHeader } from "../ui/data-table-column-header";
 import { Skeleton } from "../ui/skeleton";
 import { Badge } from "../ui/badge";
-import { HandCoins, CheckCircle2 } from "lucide-react";
+import { HandCoins, CheckCircle2, MoreHorizontal, Edit } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "../ui/tabs";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "../ui/dropdown-menu";
 
 type ReimbursementTableProps = {
   data: Reimbursement[];
   users: User[];
   isLoading: boolean;
   onLiquidate: (reimbursement: Reimbursement) => void;
+  onEdit: (reimbursement: Reimbursement) => void;
 };
 
 const statusConfig: Record<ReimbursementStatus, { variant: "secondary" | "default", icon: React.ElementType, className: string }> = {
@@ -43,7 +45,7 @@ const statusConfig: Record<ReimbursementStatus, { variant: "secondary" | "defaul
   Liquidated: { variant: 'default', icon: CheckCircle2, className: 'bg-green-100 text-green-800' },
 };
 
-export function ReimbursementTable({ data, users, isLoading, onLiquidate }: ReimbursementTableProps) {
+export function ReimbursementTable({ data, users, isLoading, onLiquidate, onEdit }: ReimbursementTableProps) {
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: "dateIncurred", desc: true },
   ]);
@@ -91,7 +93,7 @@ export function ReimbursementTable({ data, users, isLoading, onLiquidate }: Reim
         if (!config) return <Badge variant="outline">{status}</Badge>;
         const StatusIcon = config.icon;
         return (
-          <Badge variant={config.variant} className={config.className}>
+          <Badge variant={config.variant as any} className={config.className}>
             <StatusIcon className="mr-1 h-3 w-3" />
             {status}
           </Badge>
@@ -104,17 +106,38 @@ export function ReimbursementTable({ data, users, isLoading, onLiquidate }: Reim
         const reimbursement = row.original;
         return (
           <div className="text-right">
-            {reimbursement.status === "Pending" && (
-              <Button size="sm" onClick={() => onLiquidate(reimbursement)}>
-                <HandCoins className="mr-2 h-4 w-4" />
-                Liquidate
-              </Button>
-            )}
+             <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="h-8 w-8 p-0">
+                    <span className="sr-only">Open menu</span>
+                    <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                    {reimbursement.status === "Pending" && (
+                        <>
+                        <DropdownMenuItem onClick={() => onEdit(reimbursement)}>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => onLiquidate(reimbursement)}>
+                            <HandCoins className="mr-2 h-4 w-4" />
+                            Liquidate
+                        </DropdownMenuItem>
+                        </>
+                    )}
+                     {reimbursement.status === "Liquidated" && (
+                        <DropdownMenuItem disabled>
+                            Already Liquidated
+                        </DropdownMenuItem>
+                    )}
+                </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         );
       },
     },
-  ], [onLiquidate]);
+  ], [onLiquidate, onEdit]);
 
   const filteredData = React.useMemo(() => {
     return statusFilter === "All" ? data : data.filter(d => d.status === statusFilter);
@@ -216,5 +239,3 @@ export function ReimbursementTable({ data, users, isLoading, onLiquidate }: Reim
     </div>
   );
 }
-
-    
