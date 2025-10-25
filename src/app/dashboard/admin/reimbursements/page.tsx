@@ -41,8 +41,7 @@ export default function ReimbursementsPage() {
     }
     
     // 1. Create a new expense
-    const expenseData = {
-        bookingId: reimbursement.bookingId || undefined,
+    const expenseData: any = {
         category: reimbursement.category,
         description: reimbursement.description,
         amount: reimbursement.amount,
@@ -55,6 +54,11 @@ export default function ReimbursementsPage() {
         addedBy: user.id, // The admin liquidating it
         notes: `Liquidated from reimbursement request #${reimbursement.id.substring(0, 7)}. Original request by user ID: ${reimbursement.addedBy}`
     };
+
+    if (reimbursement.bookingId) {
+        expenseData.bookingId = reimbursement.bookingId;
+    }
+
     await addDoc(collection(firestore, 'expenses'), expenseData);
 
     // 2. Update the reimbursement status
