@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useState } from "react";
@@ -155,7 +154,7 @@ export default function ExpensesPage() {
           <CardHeader>
               <CardTitle>All Expenses</CardTitle>
               <CardDescription>View, filter, and manage all logged expenses. Credit-based expenses will appear here once liquidated.</CardDescription>
-          </Header>
+          </CardHeader>
           <CardContent>
               <ExpenseTable 
                   data={expenses || []} 
@@ -194,5 +193,3 @@ export default function ExpensesPage() {
     </>
   );
 }
-
-    
