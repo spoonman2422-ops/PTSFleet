@@ -68,8 +68,7 @@ export function ReimbursementTable({ data, users, isLoading, onLiquidate, onEdit
     {
       accessorKey: "description",
       header: ({ column }) => <DataTableColumnHeader column={column} title="Description" />,
-      cell: ({ row }) => <div className="whitespace-normal break-words">{row.getValue("description")}</div>,
-      size: 300, // Explicitly give more size to the description column
+      cell: ({ row }) => <div className="min-w-[300px] whitespace-normal break-words">{row.getValue("description")}</div>,
     },
     {
       accessorKey: "creditedTo",
@@ -202,7 +201,7 @@ export function ReimbursementTable({ data, users, isLoading, onLiquidate, onEdit
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id} style={{ minWidth: header.getSize(), width: header.getSize() }}>
+                  <TableHead key={header.id}>
                     {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
                   </TableHead>
                 ))}
