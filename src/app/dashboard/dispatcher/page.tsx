@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useMemo, useEffect } from 'react';
-import type { Booking, BookingStatus, User, Expense } from '@/lib/types';
+import type { Booking, BookingStatus, User, Expense, ExpenseCategory, OwnerName } from '@/lib/types';
 import { BookingTable } from '@/components/dispatcher/booking-table';
 import { Button } from '@/components/ui/button';
 import { PlusCircle, PanelRight, PanelLeft } from 'lucide-react';
@@ -70,6 +70,13 @@ export default function DispatcherPage() {
       expensesSnapshot.forEach(doc => {
         batch.delete(doc.ref);
       });
+      
+      // 1.5 Delete associated reimbursements
+      const reimbursementsQuery = query(collection(firestore, "reimbursements"), where("bookingId", "==", deletingBooking.id));
+      const reimbursementsSnapshot = await getDocs(reimbursementsQuery);
+      reimbursementsSnapshot.forEach(doc => {
+        batch.delete(doc.ref);
+      });
 
       // 2. Delete messages subcollection
       const messagesPath = `bookings/${deletingBooking.id}/messages`;
@@ -105,28 +112,44 @@ export default function DispatcherPage() {
     }
   };
 
-  const createExpenseFromBooking = async (
+  const createExpenseEntry = async (
     bookingData: Omit<Booking, 'status' | 'id'>,
     bookingId: string, 
-    category: Expense['category'],
+    category: ExpenseCategory,
     amount: number
   ) => {
     if (!firestore || !user || !amount || amount <= 0) return;
 
-    const expenseData = {
-      bookingId,
-      category,
-      description: `Mobilization Expense for Booking #${bookingId.substring(0,7)}`,
-      amount: amount,
-      vatIncluded: false,
-      vatRate: 0,
-      inputVat: 0,
-      dateIncurred: bookingData.bookingDate,
-      paidBy: "PTS" as const,
-      addedBy: user.id,
-      notes: `Automatically generated from booking ${bookingId.substring(0,7)}`,
-    };
-    await addDoc(collection(firestore, "expenses"), expenseData);
+    if (bookingData.expensePaymentMethod === 'Credit') {
+      const reimbursementData = {
+        bookingId,
+        category,
+        description: `Mobilization Expense for Booking #${bookingId.substring(0,7)} (${category})`,
+        amount,
+        dateIncurred: bookingData.bookingDate,
+        creditedTo: bookingData.expenseCreditedTo,
+        status: 'Pending' as const,
+        addedBy: user.id,
+        notes: `Automatically generated from booking ${bookingId.substring(0,7)}`,
+      };
+      await addDoc(collection(firestore, "reimbursements"), reimbursementData);
+
+    } else { // 'PTS'
+      const expenseData = {
+        bookingId,
+        category,
+        description: `Mobilization Expense for Booking #${bookingId.substring(0,7)} (${category})`,
+        amount,
+        vatIncluded: false,
+        vatRate: 0,
+        inputVat: 0,
+        dateIncurred: bookingData.bookingDate,
+        paidBy: "PTS" as const,
+        addedBy: user.id,
+        notes: `Automatically generated from booking ${bookingId.substring(0,7)}`,
+      };
+      await addDoc(collection(firestore, "expenses"), expenseData);
+    }
   };
 
   const handleSaveBooking = async (bookingData: Omit<Booking, 'status' | 'id'>, id: string) => {
@@ -147,14 +170,26 @@ export default function DispatcherPage() {
     const isEditing = !!editingBooking;
     const bookingRef = doc(firestore, 'bookings', id);
 
-    // --- Delete old expenses before creating new ones ---
+    // --- Delete old mobilization expenses before creating new ones ---
     if (isEditing) {
-      const expensesQuery = query(collection(firestore, "expenses"), where("bookingId", "==", id));
+      const mobilizationCategories: ExpenseCategory[] = ["driver rate", "toll", "fuel", "client representation"];
+      const expensesQuery = query(
+          collection(firestore, "expenses"), 
+          where("bookingId", "==", id),
+          where("category", "in", mobilizationCategories)
+        );
       const expensesSnapshot = await getDocs(expensesQuery);
+      
+      const reimbursementsQuery = query(
+          collection(firestore, "reimbursements"), 
+          where("bookingId", "==", id),
+          where("category", "in", mobilizationCategories)
+      );
+      const reimbursementsSnapshot = await getDocs(reimbursementsQuery);
+
       const batch = writeBatch(firestore);
-      expensesSnapshot.forEach(doc => {
-          batch.delete(doc.ref);
-      });
+      expensesSnapshot.forEach(doc => batch.delete(doc.ref));
+      reimbursementsSnapshot.forEach(doc => batch.delete(doc.ref));
       await batch.commit();
     }
     // --- End of delete logic ---
@@ -179,11 +214,11 @@ export default function DispatcherPage() {
       }
     }
     
-    // Create expense entries for both new and updated bookings
-    await createExpenseFromBooking(dataToSave, id, "driver rate", dataToSave.driverRate);
-    await createExpenseFromBooking(dataToSave, id, "toll", dataToSave.expectedExpenses.tollFee);
-    await createExpenseFromBooking(dataToSave, id, "fuel", dataToSave.expectedExpenses.fuel);
-    await createExpenseFromBooking(dataToSave, id, "client representation", dataToSave.expectedExpenses.others);
+    // Create expense/reimbursement entries for both new and updated bookings
+    await createExpenseEntry(dataToSave, id, "driver rate", dataToSave.driverRate);
+    await createExpenseEntry(dataToSave, id, "toll", dataToSave.expectedExpenses.tollFee);
+    await createExpenseEntry(dataToSave, id, "fuel", dataToSave.expectedExpenses.fuel);
+    await createExpenseEntry(dataToSave, id, "client representation", dataToSave.expectedExpenses.others);
 
     setIsDialogOpen(false);
   };
@@ -385,3 +420,5 @@ export default function DispatcherPage() {
     </div>
   );
 }
+
+    

@@ -1,0 +1,85 @@
+
+"use client";
+
+import { useState } from 'react';
+import { useCollection, useFirestore } from '@/firebase';
+import type { Reimbursement, User } from '@/lib/types';
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
+import { ReimbursementTable } from '@/components/admin/reimbursement-table';
+import { useToast } from '@/hooks/use-toast';
+import { useUser } from '@/context/user-context';
+import { addDoc, collection, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+
+export default function ReimbursementsPage() {
+  const { data: reimbursements, isLoading: isLoadingReimbursements } = useCollection<Reimbursement>('reimbursements');
+  const { data: users, isLoading: isLoadingUsers } = useCollection<User>('users');
+  const firestore = useFirestore();
+  const { toast } = useToast();
+  const { user } = useUser();
+
+  const handleLiquidate = async (reimbursement: Reimbursement) => {
+    if (!firestore || !user) {
+        toast({ variant: "destructive", title: "Error", description: "Authentication error." });
+        return;
+    }
+    
+    // 1. Create a new expense
+    const expenseData = {
+        bookingId: reimbursement.bookingId || undefined,
+        category: reimbursement.category,
+        description: reimbursement.description,
+        amount: reimbursement.amount,
+        vatIncluded: false, // Defaulting as not tracked in reimbursement
+        vatRate: 0,
+        inputVat: 0,
+        dateIncurred: reimbursement.dateIncurred,
+        paidBy: "PTS" as const, // The company is now paying it out.
+        creditedTo: reimbursement.creditedTo, // Keep track of who was reimbursed
+        addedBy: user.id, // The admin liquidating it
+        notes: `Liquidated from reimbursement request #${reimbursement.id.substring(0, 7)}. Original request by user ID: ${reimbursement.addedBy}`
+    };
+    await addDoc(collection(firestore, 'expenses'), expenseData);
+
+    // 2. Update the reimbursement status
+    const reimbursementRef = doc(firestore, 'reimbursements', reimbursement.id);
+    await updateDoc(reimbursementRef, {
+        status: 'Liquidated',
+        liquidatedBy: user.id,
+        liquidatedAt: new Date().toISOString()
+    });
+
+    toast({
+        title: "Reimbursement Liquidated",
+        description: `An expense has been created and the request is marked as complete.`
+    });
+  };
+
+  const isLoading = isLoadingReimbursements || isLoadingUsers;
+
+  return (
+    <div className="flex flex-col gap-6">
+       <div className="flex items-center justify-between">
+          <div>
+              <h1 className="text-3xl font-bold tracking-tight">Reimbursements & Liquidation</h1>
+              <p className="text-muted-foreground">Manage and liquidate credit-based expense requests.</p>
+          </div>
+        </div>
+        <Card>
+            <CardHeader>
+                <CardTitle>Pending & Liquidated Requests</CardTitle>
+                <CardDescription>Review all reimbursement requests. Liquidate pending items to record them as official expenses.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <ReimbursementTable
+                    data={reimbursements || []}
+                    users={users || []}
+                    isLoading={isLoading}
+                    onLiquidate={handleLiquidate}
+                />
+            </CardContent>
+        </Card>
+    </div>
+  );
+}
+
+    

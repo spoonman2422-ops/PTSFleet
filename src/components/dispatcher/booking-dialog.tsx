@@ -32,9 +32,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import type { Booking, User, Vehicle, VehicleType } from '@/lib/types';
+import type { Booking, User, Vehicle, VehicleType, OwnerName } from '@/lib/types';
 import { format, parseISO, addDays, nextSunday, startOfMonth, addMonths, nextSaturday } from 'date-fns';
 import { Separator } from '../ui/separator';
+
+const owners: OwnerName[] = ["Manel", "Meann", "Egay", "Nalyn", "Mae"];
 
 const bookingSchema = z.object({
   id: z.string().min(1, 'Booking ID is required.'),
@@ -50,11 +52,21 @@ const bookingSchema = z.object({
   bookingRate: z.coerce.number().min(0, 'Booking rate must be a positive number'),
   ewtApplied: z.boolean().default(false),
   driverRate: z.coerce.number().min(0, 'Driver rate must be a positive number'),
+  expensePaymentMethod: z.enum(['PTS', 'Credit'], { required_error: 'Expense payment method is required.' }),
+  expenseCreditedTo: z.enum(owners).nullable(),
   expectedExpenses: z.object({
     tollFee: z.coerce.number().min(0, 'Toll fee must be a positive number'),
     fuel: z.coerce.number().min(0, 'Fuel must be a positive number'),
     others: z.coerce.number().min(0, 'Other expenses must be a positive number'),
   }),
+}).refine(data => {
+    if (data.expensePaymentMethod === 'Credit') {
+        return !!data.expenseCreditedTo;
+    }
+    return true;
+}, {
+    message: "Please select an owner to credit.",
+    path: ["expenseCreditedTo"],
 });
 
 type BookingFormValues = z.infer<typeof bookingSchema>;
@@ -101,6 +113,8 @@ export function BookingDialog({
       bookingRate: 0,
       ewtApplied: false,
       driverRate: 0,
+      expensePaymentMethod: 'PTS',
+      expenseCreditedTo: null,
       expectedExpenses: {
         tollFee: 0,
         fuel: 0,
@@ -114,6 +128,7 @@ export function BookingDialog({
   const watchedClientId = useWatch({ control: form.control, name: 'clientId' });
   const watchedGrossBookingRate = useWatch({ control: form.control, name: 'grossBookingRate' });
   const watchedEwtApplied = useWatch({ control: form.control, name: 'ewtApplied' });
+  const watchedExpensePaymentMethod = useWatch({ control: form.control, name: 'expensePaymentMethod'});
 
   useEffect(() => {
     const grossRate = watchedGrossBookingRate || 0;
@@ -190,6 +205,7 @@ export function BookingDialog({
           billingDate: booking.billingDate ? format(parseISO(booking.billingDate), "yyyy-MM-dd") : '',
           dueDate: booking.dueDate ? format(parseISO(booking.dueDate), "yyyy-MM-dd") : '',
           driverId: booking.driverId || null,
+          expenseCreditedTo: booking.expenseCreditedTo || null
         });
       } else {
         form.reset({
@@ -206,6 +222,8 @@ export function BookingDialog({
           bookingRate: 0,
           ewtApplied: false,
           driverRate: 0,
+          expensePaymentMethod: 'PTS',
+          expenseCreditedTo: null,
           expectedExpenses: {
             tollFee: 0,
             fuel: 0,
@@ -221,6 +239,7 @@ export function BookingDialog({
     const dataToSave = {
       ...data,
       driverId: data.driverId === UNASSIGNED_VALUE ? null : data.driverId,
+      expenseCreditedTo: data.expensePaymentMethod === 'Credit' ? data.expenseCreditedTo : null,
     };
     const { id, ...rest } = dataToSave;
     onSave(rest, submissionId);
@@ -460,6 +479,53 @@ export function BookingDialog({
 
               <div className="space-y-2">
                 <h3 className="text-md font-semibold">Expected Expenses</h3>
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField
+                        control={form.control}
+                        name="expensePaymentMethod"
+                        render={({ field }) => (
+                        <FormItem>
+                            <FormLabel>Expense Payment Method</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                                <SelectTrigger>
+                                <SelectValue placeholder="Select payment method" />
+                                </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                                <SelectItem value="PTS">Paid by PTS</SelectItem>
+                                <SelectItem value="Credit">Paid by Credit (Reimbursement)</SelectItem>
+                            </SelectContent>
+                            </Select>
+                            <FormMessage />
+                        </FormItem>
+                        )}
+                    />
+                    {watchedExpensePaymentMethod === 'Credit' && (
+                        <FormField
+                            control={form.control}
+                            name="expenseCreditedTo"
+                            render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Credit To (Owner)</FormLabel>
+                                <Select onValueChange={field.onChange} value={field.value ?? undefined}>
+                                <FormControl>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select an owner" />
+                                    </SelectTrigger>
+                                </FormControl>
+                                <SelectContent>
+                                    {owners.map(owner => (
+                                        <SelectItem key={owner} value={owner}>{owner}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                                </Select>
+                                <FormMessage />
+                            </FormItem>
+                            )}
+                        />
+                    )}
+                 </div>
                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <FormField
                         control={form.control}
@@ -526,3 +592,5 @@ export function BookingDialog({
     </Dialog>
   );
 }
+
+    

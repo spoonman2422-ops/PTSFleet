@@ -53,6 +53,8 @@
         "ewtApplied": { "type": "boolean" },
         "driverRate": { "type": "number" },
         "vehicleType": { "type": "string", "enum": ["6-Wheel", "AUV"] },
+        "expensePaymentMethod": { "type": "string", "enum": ["PTS", "Credit"] },
+        "expenseCreditedTo": { "type": ["string", "null"], "enum": ["Manel", "Meann", "Egay", "Nalyn", "Mae", null] },
         "expectedExpenses": {
           "type": "object",
           "properties": {
@@ -64,7 +66,7 @@
         "status": { "type": "string", "enum": ["pending", "in-progress", "completed", "cancelled"] },
         "proofOfDeliveryUrl": { "type": "string", "format": "uri" }
       },
-      "required": ["clientId", "pickupLocation", "dropoffLocation", "bookingDate", "status", "bookingRate", "grossBookingRate", "ewtApplied", "vehicleType"]
+      "required": ["clientId", "pickupLocation", "dropoffLocation", "bookingDate", "status", "bookingRate", "grossBookingRate", "ewtApplied", "vehicleType", "expensePaymentMethod"]
     },
     "UserProfile": {
         "title": "User Profile",
@@ -136,8 +138,12 @@
         },
         "paidBy": {
           "type": "string",
-          "description": "The payment method used for the expense.",
-          "enum": ["cash", "bank", "credit", "PTS"]
+          "description": "The payment method used for the expense. 'Credit' indicates a reimbursement.",
+          "enum": ["cash", "bank", "PTS"]
+        },
+        "creditedTo": {
+          "type": ["string", "null"],
+          "description": "The owner to be reimbursed if paid by credit."
         },
         "addedBy": {
           "type": "string",
@@ -149,6 +155,25 @@
         }
       },
       "required": ["category", "description", "amount", "dateIncurred", "paidBy", "addedBy"]
+    },
+    "Reimbursement": {
+      "title": "Reimbursement",
+      "description": "A request for reimbursement for an expense paid by credit.",
+      "type": "object",
+      "properties": {
+        "bookingId": { "type": ["string", "null"] },
+        "category": { "type": "string", "enum": ["fuel", "maintenance", "toll", "office", "staff", "permits", "vehicle parts", "pms", "change oil", "client representation", "driver rate", "miscellaneous", "Vehicle Related Expense", "driver payroll"] },
+        "description": { "type": "string" },
+        "amount": { "type": "number" },
+        "dateIncurred": { "type": "string", "format": "date" },
+        "creditedTo": { "type": "string", "enum": ["Manel", "Meann", "Egay", "Nalyn", "Mae"] },
+        "status": { "type": "string", "enum": ["Pending", "Liquidated"] },
+        "addedBy": { "type": "string" },
+        "liquidatedAt": { "type": ["string", "null"], "format": "date-time" },
+        "liquidatedBy": { "type": ["string", "null"] },
+        "notes": { "type": ["string", "null"] }
+      },
+      "required": ["category", "description", "amount", "dateIncurred", "creditedTo", "status", "addedBy"]
     },
     "RevolvingFundContribution": {
       "title": "Revolving Fund Contribution",
@@ -273,6 +298,12 @@
       },
       "description": "A collection of all business expenses."
     },
+     "/reimbursements/{reimbursementId}": {
+      "schema": {
+        "$ref": "#/entities/Reimbursement"
+      },
+      "description": "A collection of all reimbursement requests."
+    },
     "/revolvingFundContributions/{contributionId}": {
       "schema": {
         "$ref": "#/entities/RevolvingFundContribution"
@@ -299,3 +330,5 @@
     }
   }
 }
+
+    

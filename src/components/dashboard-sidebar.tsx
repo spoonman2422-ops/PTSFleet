@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/sidebar";
 import { AppLogo } from "./icons";
 import { Button } from "./ui/button";
-import { LogOut, User, Gauge, Truck, Users, ShieldQuestion, ClipboardList, FileText, TrendingUp, Wallet, PiggyBank, Banknote, History } from "lucide-react";
+import { LogOut, User, Gauge, Truck, Users, ShieldQuestion, ClipboardList, FileText, TrendingUp, Wallet, PiggyBank, Banknote, History, HandCoins } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 
 export function DashboardSidebar() {
@@ -30,6 +30,7 @@ export function DashboardSidebar() {
         { href: "/dashboard/admin/invoices", label: "Invoices", icon: FileText },
         { href: "/dashboard/admin/payroll", label: "Payroll", icon: Banknote },
         { href: "/dashboard/admin/expenses", label: "Expense Management", icon: Wallet },
+        { href: "/dashboard/admin/reimbursements", label: "Reimbursements", icon: HandCoins },
         { href: "/dashboard/admin/revolving-fund", label: "Revolving Fund", icon: PiggyBank },
         { href: "/dashboard/admin/financials", label: "Financials", icon: TrendingUp },
     ],
@@ -48,7 +49,7 @@ export function DashboardSidebar() {
   return (
     <Sidebar collapsible="icon" side="left" variant="sidebar">
       <SidebarHeader className="h-16 justify-center bg-primary flex items-center">
-        <AppLogo width={56} height={56} className="mr-2" />
+        <AppLogo width={140} height={140} className="mr-2" />
         <span className="text-lg font-semibold text-primary-foreground group-data-[collapsible=icon]:hidden">
           PTSFleet
         </span>
@@ -99,3 +100,5 @@ export function DashboardSidebar() {
     </Sidebar>
   );
 }
+
+    

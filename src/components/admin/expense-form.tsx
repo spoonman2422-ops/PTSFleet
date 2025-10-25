@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import {
@@ -29,9 +29,11 @@ import { CalendarIcon, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { Textarea } from "../ui/textarea";
+import type { OwnerName } from "@/lib/types";
 
 const expenseCategories = ["fuel", "maintenance", "toll", "office", "staff", "permits", "vehicle parts", "pms", "change oil", "client representation", "driver rate", "miscellaneous", "Vehicle Related Expense", "driver payroll"] as const;
 const paymentMethods = ["cash", "bank", "credit", "PTS"] as const;
+const owners: OwnerName[] = ["Manel", "Meann", "Egay", "Nalyn", "Mae"];
 
 const expenseSchema = z.object({
   category: z.enum(expenseCategories, { required_error: "Category is required." }),
@@ -42,7 +44,16 @@ const expenseSchema = z.object({
     required_error: "A date is required.",
   }),
   paidBy: z.enum(paymentMethods, { required_error: "Payment method is required." }),
+  creditedTo: z.enum(owners).optional().nullable(),
   notes: z.string().optional(),
+}).refine(data => {
+    if (data.paidBy === 'credit') {
+        return !!data.creditedTo;
+    }
+    return true;
+}, {
+    message: "Please select who to credit when payment method is 'Credit'.",
+    path: ["creditedTo"],
 });
 
 type ExpenseFormValues = z.infer<typeof expenseSchema>;
@@ -57,6 +68,11 @@ export function ExpenseForm({ onSubmit, defaultValues, isSubmitting }: ExpenseFo
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(expenseSchema),
     defaultValues,
+  });
+
+  const watchedPaidBy = useWatch({
+    control: form.control,
+    name: 'paidBy',
   });
 
   return (
@@ -202,6 +218,31 @@ export function ExpenseForm({ onSubmit, defaultValues, isSubmitting }: ExpenseFo
                 )}
             />
         </div>
+
+        {watchedPaidBy === 'credit' && (
+             <FormField
+                control={form.control}
+                name="creditedTo"
+                render={({ field }) => (
+                <FormItem>
+                    <FormLabel>Credit To (Owner)</FormLabel>
+                     <Select onValueChange={field.onChange} value={field.value ?? undefined}>
+                    <FormControl>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Select an owner" />
+                        </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                        {owners.map(owner => (
+                            <SelectItem key={owner} value={owner}>{owner}</SelectItem>
+                        ))}
+                    </SelectContent>
+                    </Select>
+                    <FormMessage />
+                </FormItem>
+                )}
+            />
+        )}
         
         <FormField
             control={form.control}
@@ -227,3 +268,5 @@ export function ExpenseForm({ onSubmit, defaultValues, isSubmitting }: ExpenseFo
     </Form>
   );
 }
+
+    

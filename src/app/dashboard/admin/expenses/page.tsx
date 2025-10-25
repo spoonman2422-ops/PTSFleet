@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState } from "react";
@@ -11,7 +12,7 @@ import { useUser } from "@/context/user-context";
 import { useToast } from "@/hooks/use-toast";
 import { addDoc, collection, doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { format } from "date-fns";
-import type { Expense, User } from "@/lib/types";
+import type { Expense, OwnerName, User } from "@/lib/types";
 import { PlusCircle } from "lucide-react";
 import {
   AlertDialog,
@@ -74,7 +75,7 @@ export default function ExpensesPage() {
     }
   };
 
-  const handleSaveExpense = async (data: Omit<Expense, 'id' | 'addedBy' | 'inputVat' | 'vatRate'>, id?: string) => {
+  const handleSaveExpense = async (data: Omit<Expense, 'id' | 'addedBy' | 'inputVat' | 'vatRate'> & { paidBy: "cash" | "bank" | "credit" | "PTS", creditedTo?: OwnerName | null }, id?: string) => {
     if (!firestore || !user) {
       toast({
         variant: "destructive",
@@ -83,29 +84,52 @@ export default function ExpensesPage() {
       });
       return;
     }
-
-    const vatRate = 0.12;
-    const inputVat = data.vatIncluded ? data.amount * vatRate : 0;
     
-    const dataToSave = {
-      ...data,
-      dateIncurred: format(new Date(data.dateIncurred), "yyyy-MM-dd"), // Ensure date is string
-      vatRate,
-      inputVat,
-    };
+    // Divert to reimbursements if paid by credit
+    if (data.paidBy === 'credit') {
+        if (!data.creditedTo) {
+             toast({ variant: "destructive", title: "Missing Information", description: "Please select the owner to be credited." });
+             return;
+        }
+        
+        const reimbursementData = {
+            category: data.category,
+            description: data.description,
+            amount: data.amount,
+            dateIncurred: format(new Date(data.dateIncurred), "yyyy-MM-dd"),
+            creditedTo: data.creditedTo,
+            status: 'Pending' as const,
+            addedBy: user.id,
+            notes: data.notes
+        };
 
-    if (id) {
-      // Update existing expense
-      const expenseRef = doc(firestore, 'expenses', id);
-      await updateDoc(expenseRef, dataToSave);
-      toast({ title: "Expense Updated", description: "The expense has been successfully updated." });
+        await addDoc(collection(firestore, "reimbursements"), reimbursementData);
+        toast({ title: "Reimbursement Request Saved", description: "The request has been sent for liquidation." });
+
     } else {
-      // Create new expense
-      await addDoc(collection(firestore, "expenses"), {
-        ...dataToSave,
-        addedBy: user.id,
-      });
-      toast({ title: "Expense Saved", description: "The new expense has been logged successfully." });
+        const vatRate = 0.12;
+        const inputVat = data.vatIncluded ? data.amount * vatRate : 0;
+        
+        const dataToSave = {
+          ...data,
+          dateIncurred: format(new Date(data.dateIncurred), "yyyy-MM-dd"), // Ensure date is string
+          vatRate,
+          inputVat,
+        };
+
+        if (id) {
+          // Update existing expense
+          const expenseRef = doc(firestore, 'expenses', id);
+          await updateDoc(expenseRef, dataToSave);
+          toast({ title: "Expense Updated", description: "The expense has been successfully updated." });
+        } else {
+          // Create new expense
+          await addDoc(collection(firestore, "expenses"), {
+            ...dataToSave,
+            addedBy: user.id,
+          });
+          toast({ title: "Expense Saved", description: "The new expense has been logged successfully." });
+        }
     }
     
     setIsDialogOpen(false);
@@ -130,8 +154,8 @@ export default function ExpensesPage() {
         <Card>
           <CardHeader>
               <CardTitle>All Expenses</CardTitle>
-              <CardDescription>View, filter, and manage all logged expenses.</CardDescription>
-          </CardHeader>
+              <CardDescription>View, filter, and manage all logged expenses. Credit-based expenses will appear here once liquidated.</CardDescription>
+          </Header>
           <CardContent>
               <ExpenseTable 
                   data={expenses || []} 
@@ -170,3 +194,5 @@ export default function ExpensesPage() {
     </>
   );
 }
+
+    

@@ -7,6 +7,7 @@ export type BookingStatus = 'pending' | 'En Route' | 'Pending Verification' | 'D
 export type InvoiceStatus = 'Paid' | 'Unpaid' | 'Overdue';
 export type VehicleType = '6-Wheel' | 'AUV';
 export type VehicleStatus = 'Active' | 'Under Maintenance' | 'Decommissioned';
+export type OwnerName = "Manel" | "Meann" | "Egay" | "Nalyn" | "Mae";
 
 
 export interface User {
@@ -48,6 +49,8 @@ export interface Booking {
   ewtApplied: boolean;
   driverRate: number;
   vehicleType: VehicleType;
+  expensePaymentMethod: 'PTS' | 'Credit';
+  expenseCreditedTo: OwnerName | null;
   expectedExpenses: {
     tollFee: number;
     fuel: number;
@@ -89,19 +92,37 @@ export interface Message {
   imageUrl?: string;
 }
 
+export type ExpenseCategory = "fuel" | "maintenance" | "toll" | "office" | "staff" | "permits" | "vehicle parts" | "pms" | "change oil" | "client representation" | "driver rate" | "miscellaneous" | "Vehicle Related Expense" | "driver payroll";
+
 export interface Expense {
   id: string;
   bookingId?: string;
-  category: "fuel" | "maintenance" | "toll" | "office" | "staff" | "permits" | "vehicle parts" | "pms" | "change oil" | "client representation" | "driver rate" | "miscellaneous" | "Vehicle Related Expense" | "driver payroll";
+  category: ExpenseCategory;
   description: string;
   amount: number;
   vatIncluded: boolean;
   vatRate: number;
   inputVat: number;
   dateIncurred: string;
-  paidBy: "cash" | "bank" | "credit" | "PTS";
+  paidBy: "cash" | "bank" | "PTS";
+  creditedTo?: OwnerName | null;
   addedBy: string;
   notes?: string;
+}
+
+export interface Reimbursement {
+  id: string;
+  bookingId?: string | null;
+  category: ExpenseCategory;
+  description: string;
+  amount: number;
+  dateIncurred: string;
+  creditedTo: OwnerName;
+  status: 'Pending' | 'Liquidated';
+  addedBy: string;
+  liquidatedAt?: string | null;
+  liquidatedBy?: string | null;
+  notes?: string | null;
 }
 
 export interface RevolvingFundContribution {
@@ -125,12 +146,13 @@ export type ActivityAction =
   | 'BOOKING_CREATED' | 'BOOKING_UPDATED' | 'BOOKING_DELETED' | 'BOOKING_STATUS_CHANGED'
   | 'INVOICE_CREATED' | 'INVOICE_UPDATED' | 'INVOICE_DELETED' | 'INVOICE_STATUS_CHANGED'
   | 'EXPENSE_CREATED' | 'EXPENSE_UPDATED' | 'EXPENSE_DELETED'
+  | 'REIMBURSEMENT_CREATED' | 'REIMBURSEMENT_LIQUIDATED'
   | 'VEHICLE_CREATED' | 'VEHICLE_UPDATED' | 'VEHICLE_DELETED'
   | 'CASH_ADVANCE_CREATED' | 'CASH_ADVANCE_UPDATED'
   | 'REVOLVING_FUND_CREATED' | 'REVOLVING_FUND_UPDATED'
   | 'LOGIN_SUCCESS';
 
-export type EntityType = 'User' | 'Booking' | 'Invoice' | 'Expense' | 'Vehicle' | 'CashAdvance' | 'RevolvingFund' | 'Auth';
+export type EntityType = 'User' | 'Booking' | 'Invoice' | 'Expense' | 'Vehicle' | 'CashAdvance' | 'RevolvingFund' | 'Auth' | 'Reimbursement';
 
 
 export interface ActivityLog {
@@ -143,3 +165,5 @@ export interface ActivityLog {
     entityId: string;
     details: string;
 }
+
+    
