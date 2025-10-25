@@ -8,9 +8,19 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/com
 import { ReimbursementTable } from '@/components/admin/reimbursement-table';
 import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/context/user-context';
-import { addDoc, collection, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { addDoc, collection, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { ReimbursementDialog } from '@/components/admin/reimbursement-dialog';
 import { format } from 'date-fns';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function ReimbursementsPage() {
   const { data: reimbursements, isLoading: isLoadingReimbursements } = useCollection<Reimbursement>('reimbursements');
@@ -19,7 +29,10 @@ export default function ReimbursementsPage() {
   const { toast } = useToast();
   const { user } = useUser();
   const [editingReimbursement, setEditingReimbursement] = useState<Reimbursement | null>(null);
+  const [deletingReimbursement, setDeletingReimbursement] = useState<Reimbursement | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isAlertOpen, setIsAlertOpen] = useState(false);
+
 
   const handleLiquidate = async (reimbursement: Reimbursement) => {
     if (!firestore || !user) {
@@ -79,6 +92,33 @@ export default function ReimbursementsPage() {
     setIsDialogOpen(false);
   };
 
+  const handleOpenDeleteDialog = (reimbursement: Reimbursement) => {
+    setDeletingReimbursement(reimbursement);
+    setIsAlertOpen(true);
+  };
+
+  const handleDeleteReimbursement = async () => {
+    if (!deletingReimbursement || !firestore) return;
+
+    try {
+      await deleteDoc(doc(firestore, "reimbursements", deletingReimbursement.id));
+      toast({
+        title: "Reimbursement Deleted",
+        description: "The request has been successfully removed.",
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error Deleting Request",
+        description: error.message || "An unexpected error occurred.",
+      });
+    } finally {
+      setIsAlertOpen(false);
+      setDeletingReimbursement(null);
+    }
+  };
+
+
   const isLoading = isLoadingReimbursements || isLoadingUsers;
 
   return (
@@ -102,6 +142,7 @@ export default function ReimbursementsPage() {
                     isLoading={isLoading}
                     onLiquidate={handleLiquidate}
                     onEdit={handleEdit}
+                    onDelete={handleOpenDeleteDialog}
                 />
             </CardContent>
         </Card>
@@ -113,6 +154,23 @@ export default function ReimbursementsPage() {
         onSave={handleSaveReimbursement}
         reimbursement={editingReimbursement}
       />
+      
+      <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
+        <AlertDialogContent>
+        <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+            This action cannot be undone. This will permanently delete the reimbursement request for <span className="font-bold">{deletingReimbursement?.description}</span>.
+            </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteReimbursement} className="bg-destructive hover:bg-destructive/90">
+            Delete
+            </AlertDialogAction>
+        </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

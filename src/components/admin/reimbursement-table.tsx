@@ -28,9 +28,9 @@ import { format, parseISO } from "date-fns";
 import { DataTableColumnHeader } from "../ui/data-table-column-header";
 import { Skeleton } from "../ui/skeleton";
 import { Badge } from "../ui/badge";
-import { HandCoins, CheckCircle2, MoreHorizontal, Edit } from "lucide-react";
+import { HandCoins, CheckCircle2, MoreHorizontal, Edit, Trash2 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "../ui/tabs";
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "../ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "../ui/dropdown-menu";
 
 type ReimbursementTableProps = {
   data: Reimbursement[];
@@ -38,6 +38,7 @@ type ReimbursementTableProps = {
   isLoading: boolean;
   onLiquidate: (reimbursement: Reimbursement) => void;
   onEdit: (reimbursement: Reimbursement) => void;
+  onDelete: (reimbursement: Reimbursement) => void;
 };
 
 const statusConfig: Record<ReimbursementStatus, { variant: "secondary" | "default", icon: React.ElementType, className: string }> = {
@@ -45,7 +46,7 @@ const statusConfig: Record<ReimbursementStatus, { variant: "secondary" | "defaul
   Liquidated: { variant: 'default', icon: CheckCircle2, className: 'bg-green-100 text-green-800' },
 };
 
-export function ReimbursementTable({ data, users, isLoading, onLiquidate, onEdit }: ReimbursementTableProps) {
+export function ReimbursementTable({ data, users, isLoading, onLiquidate, onEdit, onDelete }: ReimbursementTableProps) {
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: "dateIncurred", desc: true },
   ]);
@@ -124,6 +125,14 @@ export function ReimbursementTable({ data, users, isLoading, onLiquidate, onEdit
                             <HandCoins className="mr-2 h-4 w-4" />
                             Liquidate
                         </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem 
+                            onClick={() => onDelete(reimbursement)}
+                            className="text-destructive focus:text-destructive"
+                        >
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Delete
+                        </DropdownMenuItem>
                         </>
                     )}
                      {reimbursement.status === "Liquidated" && (
@@ -137,7 +146,7 @@ export function ReimbursementTable({ data, users, isLoading, onLiquidate, onEdit
         );
       },
     },
-  ], [onLiquidate, onEdit]);
+  ], [onLiquidate, onEdit, onDelete]);
 
   const filteredData = React.useMemo(() => {
     return statusFilter === "All" ? data : data.filter(d => d.status === statusFilter);
