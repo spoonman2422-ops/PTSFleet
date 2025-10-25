@@ -92,7 +92,7 @@ export interface Message {
   imageUrl?: string;
 }
 
-export type ExpenseCategory = "fuel" | "maintenance" | "toll" | "office" | "staff" | "permits" | "vehicle parts" | "pms" | "change oil" | "client representation" | "driver rate" | "miscellaneous" | "Vehicle Related Expense" | "driver payroll" | "Bank Transfer fee";
+export type ExpenseCategory = "Bank Transfer fee" | "change oil" | "client representation" | "driver payroll" | "driver rate" | "fuel" | "maintenance" | "miscellaneous" | "office" | "permits" | "pms" | "staff" | "toll" | "Vehicle Related Expense" | "vehicle parts";
 
 export interface Expense {
   id: string;

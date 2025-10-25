@@ -29,7 +29,7 @@ import { cn } from "@/lib/utils";
 import { Textarea } from "../ui/textarea";
 import type { OwnerName } from "@/lib/types";
 
-const expenseCategories = ["fuel", "maintenance", "toll", "office", "staff", "permits", "vehicle parts", "pms", "change oil", "client representation", "driver rate", "miscellaneous", "Vehicle Related Expense", "driver payroll", "Bank Transfer fee"] as const;
+const expenseCategories = ["Bank Transfer fee", "change oil", "client representation", "driver payroll", "driver rate", "fuel", "maintenance", "miscellaneous", "office", "permits", "pms", "staff", "toll", "Vehicle Related Expense", "vehicle parts"] as const;
 const owners: OwnerName[] = ["Manel", "Meann", "Egay", "Nalyn", "Mae"];
 
 const reimbursementSchema = z.object({

@@ -118,7 +118,7 @@
         "category": {
           "type": "string",
           "description": "The category of the expense.",
-          "enum": ["fuel", "maintenance", "toll", "office", "staff", "permits", "vehicle parts", "pms", "change oil", "client representation", "driver rate", "miscellaneous", "Vehicle Related Expense", "driver payroll", "Bank Transfer fee"]
+          "enum": ["Bank Transfer fee", "change oil", "client representation", "driver payroll", "driver rate", "fuel", "maintenance", "miscellaneous", "office", "permits", "pms", "staff", "toll", "Vehicle Related Expense", "vehicle parts"]
         },
         "description": {
           "type": "string",
@@ -162,7 +162,7 @@
       "type": "object",
       "properties": {
         "bookingId": { "type": ["string", "null"] },
-        "category": { "type": "string", "enum": ["fuel", "maintenance", "toll", "office", "staff", "permits", "vehicle parts", "pms", "change oil", "client representation", "driver rate", "miscellaneous", "Vehicle Related Expense", "driver payroll", "Bank Transfer fee"] },
+        "category": { "type": "string", "enum": ["Bank Transfer fee", "change oil", "client representation", "driver payroll", "driver rate", "fuel", "maintenance", "miscellaneous", "office", "permits", "pms", "staff", "toll", "Vehicle Related Expense", "vehicle parts"] },
         "description": { "type": "string" },
         "amount": { "type": "number" },
         "dateIncurred": { "type": "string", "format": "date" },
