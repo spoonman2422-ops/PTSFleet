@@ -68,6 +68,7 @@ export function ReimbursementTable({ data, users, isLoading, onLiquidate, onEdit
     {
       accessorKey: "description",
       header: ({ column }) => <DataTableColumnHeader column={column} title="Description" />,
+      cell: ({ row }) => <div className="whitespace-normal break-words">{row.getValue("description")}</div>
     },
     {
       accessorKey: "creditedTo",

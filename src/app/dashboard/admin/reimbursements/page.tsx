@@ -134,7 +134,7 @@ export default function ReimbursementsPage() {
               <p className="text-muted-foreground">Manage and liquidate credit-based expense requests.</p>
           </div>
         </div>
-        <Card>
+        <Card className="flex-1">
             <CardHeader>
                 <CardTitle>Pending & Liquidated Requests</CardTitle>
                 <CardDescription>Review all reimbursement requests. Liquidate pending items to record them as official expenses.</CardDescription>
