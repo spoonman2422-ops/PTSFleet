@@ -31,7 +31,7 @@ import { cn } from "@/lib/utils";
 import { Textarea } from "../ui/textarea";
 import type { OwnerName } from "@/lib/types";
 
-const expenseCategories = ["fuel", "maintenance", "toll", "office", "staff", "permits", "vehicle parts", "pms", "change oil", "client representation", "driver rate", "miscellaneous", "Vehicle Related Expense", "driver payroll"] as const;
+const expenseCategories = ["fuel", "maintenance", "toll", "office", "staff", "permits", "vehicle parts", "pms", "change oil", "client representation", "driver rate", "miscellaneous", "Vehicle Related Expense", "driver payroll", "Bank Transfer fee"] as const;
 const paymentMethods = ["cash", "bank", "credit", "PTS"] as const;
 const owners: OwnerName[] = ["Manel", "Meann", "Egay", "Nalyn", "Mae"];
 
@@ -268,5 +268,3 @@ export function ExpenseForm({ onSubmit, defaultValues, isSubmitting }: ExpenseFo
     </Form>
   );
 }
-
-    

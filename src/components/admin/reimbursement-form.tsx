@@ -29,7 +29,7 @@ import { cn } from "@/lib/utils";
 import { Textarea } from "../ui/textarea";
 import type { OwnerName } from "@/lib/types";
 
-const expenseCategories = ["fuel", "maintenance", "toll", "office", "staff", "permits", "vehicle parts", "pms", "change oil", "client representation", "driver rate", "miscellaneous", "Vehicle Related Expense", "driver payroll"] as const;
+const expenseCategories = ["fuel", "maintenance", "toll", "office", "staff", "permits", "vehicle parts", "pms", "change oil", "client representation", "driver rate", "miscellaneous", "Vehicle Related Expense", "driver payroll", "Bank Transfer fee"] as const;
 const owners: OwnerName[] = ["Manel", "Meann", "Egay", "Nalyn", "Mae"];
 
 const reimbursementSchema = z.object({
@@ -185,7 +185,7 @@ export function ReimbursementForm({ onSubmit, defaultValues, isSubmitting }: Rei
             <FormItem>
                 <FormLabel>Notes (Optional)</FormLabel>
                 <FormControl>
-                <Textarea placeholder="Any additional notes about this expense..." {...field} />
+                <Textarea placeholder="Any additional notes about this expense..." value={field.value ?? ''} onChange={field.onChange} />
                 </FormControl>
                 <FormMessage />
             </FormItem>

@@ -92,7 +92,7 @@ export interface Message {
   imageUrl?: string;
 }
 
-export type ExpenseCategory = "fuel" | "maintenance" | "toll" | "office" | "staff" | "permits" | "vehicle parts" | "pms" | "change oil" | "client representation" | "driver rate" | "miscellaneous" | "Vehicle Related Expense" | "driver payroll";
+export type ExpenseCategory = "fuel" | "maintenance" | "toll" | "office" | "staff" | "permits" | "vehicle parts" | "pms" | "change oil" | "client representation" | "driver rate" | "miscellaneous" | "Vehicle Related Expense" | "driver payroll" | "Bank Transfer fee";
 
 export interface Expense {
   id: string;
@@ -110,6 +110,8 @@ export interface Expense {
   notes?: string;
 }
 
+export type ReimbursementStatus = 'Pending' | 'Liquidated';
+
 export interface Reimbursement {
   id: string;
   bookingId?: string | null;
@@ -118,7 +120,7 @@ export interface Reimbursement {
   amount: number;
   dateIncurred: string;
   creditedTo: OwnerName;
-  status: 'Pending' | 'Liquidated';
+  status: ReimbursementStatus;
   addedBy: string;
   liquidatedAt?: string | null;
   liquidatedBy?: string | null;
@@ -165,5 +167,3 @@ export interface ActivityLog {
     entityId: string;
     details: string;
 }
-
-    
