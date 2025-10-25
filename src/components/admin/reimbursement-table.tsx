@@ -68,7 +68,7 @@ export function ReimbursementTable({ data, users, isLoading, onLiquidate, onEdit
     {
       accessorKey: "description",
       header: ({ column }) => <DataTableColumnHeader column={column} title="Description" />,
-      cell: ({ row }) => <div className="min-w-[300px] whitespace-normal break-words">{row.getValue("description")}</div>,
+      cell: ({ row }) => <div className="min-w-[300px]">{row.getValue("description")}</div>,
     },
     {
       accessorKey: "creditedTo",
@@ -122,14 +122,10 @@ export function ReimbursementTable({ data, users, isLoading, onLiquidate, onEdit
                             Edit
                         </DropdownMenuItem>
                     )}
-                    {reimbursement.status === "Pending" ? (
+                    {reimbursement.status === "Pending" && (
                         <DropdownMenuItem onClick={() => onLiquidate(reimbursement)}>
                             <HandCoins className="mr-2 h-4 w-4" />
                             Liquidate
-                        </DropdownMenuItem>
-                    ) : (
-                        <DropdownMenuItem disabled>
-                            Already Liquidated
                         </DropdownMenuItem>
                     )}
                     <DropdownMenuSeparator />
@@ -179,7 +175,7 @@ export function ReimbursementTable({ data, users, isLoading, onLiquidate, onEdit
   }
 
   return (
-    <div>
+    <div className="w-full">
       <div className="flex flex-col sm:flex-row items-center py-4 gap-4">
         <Input
           placeholder="Search all columns..."
