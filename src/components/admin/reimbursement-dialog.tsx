@@ -53,8 +53,7 @@ export function ReimbursementDialog({ isOpen, onOpenChange, onSave, reimbursemen
   const handleSubmit = async (data: ReimbursementFormValues) => {
     if (!reimbursement) return;
     setIsSubmitting(true);
-    const {bookingId, ...rest} = data;
-    await onSave(rest, reimbursement.id);
+    await onSave(data, reimbursement.id);
     setIsSubmitting(false);
   };
   
