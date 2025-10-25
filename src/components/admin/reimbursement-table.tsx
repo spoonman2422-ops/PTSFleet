@@ -115,7 +115,7 @@ export function ReimbursementTable({ data, users, isLoading, onLiquidate, onEdit
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                    {reimbursement.status === "Pending" && (
+                    {reimbursement.status === "Pending" ? (
                         <>
                         <DropdownMenuItem onClick={() => onEdit(reimbursement)}>
                             <Edit className="mr-2 h-4 w-4" />
@@ -125,21 +125,20 @@ export function ReimbursementTable({ data, users, isLoading, onLiquidate, onEdit
                             <HandCoins className="mr-2 h-4 w-4" />
                             Liquidate
                         </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem 
-                            onClick={() => onDelete(reimbursement)}
-                            className="text-destructive focus:text-destructive"
-                        >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
-                        </DropdownMenuItem>
                         </>
-                    )}
-                     {reimbursement.status === "Liquidated" && (
+                    ) : (
                         <DropdownMenuItem disabled>
                             Already Liquidated
                         </DropdownMenuItem>
                     )}
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem 
+                        onClick={() => onDelete(reimbursement)}
+                        className="text-destructive focus:text-destructive"
+                    >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete
+                    </DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
           </div>
