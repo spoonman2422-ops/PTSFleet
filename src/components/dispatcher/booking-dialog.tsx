@@ -142,16 +142,21 @@ export function BookingDialog({
 
   useEffect(() => {
     if (watchedClientId && !isEditMode) {
-      const clientPrefix = watchedClientId.split(' ')[0].toLowerCase();
+      const clientPrefix = watchedClientId.split(' ')[0];
+      const lowerCaseClientPrefix = clientPrefix.toLowerCase();
       
       const clientBookings = allBookings
-        .filter(b => b.id?.toLowerCase().startsWith(clientPrefix))
-        .map(b => parseInt(b.id?.replace(new RegExp(`^${clientPrefix}`, 'i'), '').replace('0', '') || '0', 10))
+        .filter(b => b.id?.toLowerCase().startsWith(lowerCaseClientPrefix))
+        .map(b => {
+            const numericPart = b.id?.replace(new RegExp(`^${clientPrefix}`, 'i'), '');
+            return parseInt(numericPart || '0', 10);
+        })
         .filter(n => !isNaN(n));
 
       const lastNumber = clientBookings.length > 0 ? Math.max(...clientBookings) : 0;
       const newNumber = lastNumber + 1;
-      const newId = `${watchedClientId.split(' ')[0]}0${newNumber}`;
+      
+      const newId = `${clientPrefix}${newNumber}`;
 
       form.setValue('id', newId, { shouldValidate: true });
     }
@@ -592,7 +597,5 @@ export function BookingDialog({
     </Dialog>
   );
 }
-
-    
 
     
