@@ -7,7 +7,7 @@ import type { Invoice, User, Booking, InvoiceStatus } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { FileText, MoreHorizontal, Trash2, Edit } from 'lucide-react';
+import { FileText, MoreHorizontal, Trash2, Edit, Download } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import { InvoiceSheet } from '@/components/admin/invoice-sheet';
@@ -47,6 +47,7 @@ import {
 } from '@/components/ui/table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { cn } from '@/lib/utils';
+import Papa from 'papaparse';
 
 
 const statusConfig: Record<InvoiceStatus, { variant: 'secondary' | 'default' | 'destructive', className: string }> = {
@@ -286,6 +287,33 @@ export default function InvoicesPage() {
       getFilteredRowModel: getFilteredRowModel(),
     });
 
+    const handleDownloadCSV = () => {
+      const dataToExport = table.getFilteredRowModel().rows.map(row => {
+          const original = row.original;
+          const booking = bookings?.find(b => b.id === original.bookingId);
+          const costs = (booking?.driverRate || 0) + (booking?.expectedExpenses.tollFee || 0) + (booking?.expectedExpenses.fuel || 0) + (booking?.expectedExpenses.others || 0);
+          const netProfit = booking ? booking.bookingRate - costs : 0;
+          return {
+              "Invoice #": original.id.substring(0, 7).toUpperCase(),
+              "Client": users?.find(u => u.id === original.clientId)?.name || original.clientId,
+              "Due Date": format(parseISO(original.dueDate), 'yyyy-MM-dd'),
+              "Gross Sales": original.grossSales,
+              "Net Profit": netProfit,
+              "Status": original.status,
+          };
+      });
+
+      const csv = Papa.unparse(dataToExport);
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `invoices-report-${format(new Date(), 'yyyy-MM-dd')}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+  };
+
 
     return (
         <>
@@ -295,6 +323,10 @@ export default function InvoicesPage() {
                         <h1 className="text-3xl font-bold tracking-tight">Invoice Management</h1>
                         <p className="text-muted-foreground">View, manage, and print invoices.</p>
                     </div>
+                    <Button onClick={handleDownloadCSV} variant="outline">
+                        <Download className="mr-2 h-4 w-4" />
+                        Download CSV
+                    </Button>
                 </div>
                 <Card>
                     <CardHeader>
