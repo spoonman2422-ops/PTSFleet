@@ -7,7 +7,7 @@ import type { Invoice, User, Booking, InvoiceStatus } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { FileText, MoreHorizontal, Trash2, Edit, Download } from 'lucide-react';
+import { FileText, MoreHorizontal, Trash2, Edit, Download, ChevronDown } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import { InvoiceSheet } from '@/components/admin/invoice-sheet';
@@ -287,7 +287,7 @@ export default function InvoicesPage() {
       getFilteredRowModel: getFilteredRowModel(),
     });
 
-    const handleDownloadCSV = () => {
+    const handleDownload = (formatType: 'csv' | 'xlsx') => {
       const dataToExport = table.getFilteredRowModel().rows.map(row => {
           const original = row.original;
           const booking = bookings?.find(b => b.id === original.bookingId);
@@ -302,6 +302,13 @@ export default function InvoicesPage() {
               "Status": original.status,
           };
       });
+
+      if (formatType === 'xlsx') {
+        toast({
+          title: "XLSX Export not yet supported",
+          description: "Downloading as CSV instead, which can be opened in Excel.",
+        });
+      }
 
       const csv = Papa.unparse(dataToExport);
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -323,10 +330,23 @@ export default function InvoicesPage() {
                         <h1 className="text-3xl font-bold tracking-tight">Invoice Management</h1>
                         <p className="text-muted-foreground">View, manage, and print invoices.</p>
                     </div>
-                    <Button onClick={handleDownloadCSV} variant="outline">
-                        <Download className="mr-2 h-4 w-4" />
-                        Download CSV
-                    </Button>
+                     <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="outline">
+                                <Download className="mr-2 h-4 w-4" />
+                                Download Report
+                                <ChevronDown className="ml-2 h-4 w-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                            <DropdownMenuItem onSelect={() => handleDownload('csv')}>
+                                Download as CSV
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => handleDownload('xlsx')}>
+                                Download as XLSX
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 </div>
                 <Card>
                     <CardHeader>
@@ -428,5 +448,3 @@ export default function InvoicesPage() {
         </>
     );
 }
-
-    
