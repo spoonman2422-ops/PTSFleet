@@ -134,8 +134,20 @@ export function FinancialReportDialog({ isOpen, onOpenChange, data }: FinancialR
     doc.write(`
         <style>
             @media print {
-                body { margin: 1.5rem; background-color: white; }
-                .dialog-content { 
+                @page {
+                    size: auto;
+                    margin: 1.5rem;
+                }
+                body { 
+                    margin: 0; 
+                    background-color: white;
+                }
+                html, body {
+                    height: auto !important;
+                    overflow: visible !important;
+                }
+                .dialog-content {
+                  height: auto !important;
                   max-height: none !important;
                   overflow-y: visible !important;
                 }
