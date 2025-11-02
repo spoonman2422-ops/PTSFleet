@@ -183,6 +183,11 @@ export default function InvoicesPage() {
         cell: ({ row }) => <div className="font-medium">#{row.original.id.substring(0, 7).toUpperCase()}</div>
       },
       {
+        accessorKey: 'bookingId',
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Booking ID" />,
+        cell: ({ row }) => <div className="font-medium text-muted-foreground">{row.original.bookingId}</div>
+      },
+      {
         id: 'clientName',
         accessorFn: (row) => users?.find(u => u.id === row.clientId)?.name || row.clientId,
         header: ({ column }) => <DataTableColumnHeader column={column} title="Client" />,
