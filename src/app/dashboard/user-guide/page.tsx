@@ -2,7 +2,7 @@
 "use client";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ShieldQuestion, ClipboardList, Truck, PackageCheck, Pencil, FileText, Banknote, ArrowRight, GitPullRequest, HandCoins as ReimbursementIcon } from 'lucide-react';
+import { ShieldQuestion, ClipboardList, Truck, PackageCheck, Pencil, FileText, Banknote, ArrowRight, GitPullRequest, HandCoins as ReimbursementIcon, Download, FileSpreadsheet, List } from 'lucide-react';
 
 export default function UserGuidePage() {
   return (
@@ -11,7 +11,7 @@ export default function UserGuidePage() {
         <ShieldQuestion className="h-12 w-12 text-primary" />
         <div>
             <h1 className="text-3xl font-bold tracking-tight">PTSFleetSystem User Guide</h1>
-            <p className="text-muted-foreground">Your guide to navigating the fleet management system. (ver. 3.0)</p>
+            <p className="text-muted-foreground">Your guide to navigating the fleet management system.</p>
         </div>
       </div>
       
@@ -20,7 +20,30 @@ export default function UserGuidePage() {
           <p>Welcome to the PTSFleetSystem! This application is designed to streamline the operations of Platinum Trucking Services by managing bookings, dispatch, payroll, and financial tracking in one centralized platform. This guide will walk you through the key features and functionalities available to different user roles.</p>
         </GuideSection>
 
-        <GuideSection title="2. What's New in Version 3.0">
+        <GuideSection title="2. What's New">
+            <h2 className="text-xl font-bold mb-4">Version 3.1</h2>
+            <ul className="list-disc pl-6 mt-2 space-y-3">
+                <li>
+                  <strong className="flex items-center gap-2"><Download className="h-4 w-4" /> CSV Downloads</strong>
+                  <p className="mt-1">You can now download data from the Booking Management, Expense Management, and Reimbursement pages directly into a CSV file for your records or for external analysis.</p>
+                </li>
+                <li>
+                  <strong className="flex items-center gap-2"><List className="h-4 w-4" /> Full Data View</strong>
+                  <p className="mt-1">Pagination has been removed from the Expense and Reimbursement pages. All entries are now displayed at once, making it easier to view your data in conjunction with the powerful filter and sort features.</p>
+                </li>
+                 <li>
+                  <strong className="flex items-center gap-2"><FileSpreadsheet className="h-4 w-4" /> Report & UI Enhancements</strong>
+                   <ul className="list-disc pl-6 mt-2 space-y-2">
+                        <li>The "Upcoming Billings" card on the Financials page now correctly shows unpaid invoices due within the next 7 days.</li>
+                        <li>Booking IDs have been added to the Upcoming Billings card and its full report for easier cross-referencing.</li>
+                        <li>The Booking ID column has been added to the main Invoice Management table.</li>
+                        <li>Fixed a bug that caused reports to print incorrectly (repeating pages).</li>
+                        <li>Corrected an issue where automatically generated descriptions and notifications were showing shortened Booking IDs.</li>
+                   </ul>
+                </li>
+            </ul>
+
+            <h2 className="text-xl font-bold mt-8 mb-4">Version 3.0</h2>
             <h3 className="font-semibold text-lg mb-2 flex items-center gap-2"><GitPullRequest className="h-5 w-5" /> Reimbursement & Liquidation Workflow</h3>
             <p>To better track expenses paid by individuals on behalf of the company, a new reimbursement system has been introduced.</p>
             <ul className="list-disc pl-6 mt-2 space-y-2">
