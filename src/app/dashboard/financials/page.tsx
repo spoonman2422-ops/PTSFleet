@@ -306,9 +306,10 @@ export default function FinancialsPage() {
         case 'upcoming':
             data = {
                 title: "Upcoming Billings Report",
-                headers: ["Invoice ID", "Client", "Due Date", "Amount"],
+                headers: ["Invoice ID", "Booking ID", "Client", "Due Date", "Amount"],
                 rows: upcomingBillings.data.map(({ invoice: i, booking: b }) => [
                     `#${(i.id).substring(0,7).toUpperCase()}`,
+                    `#${(b?.id || i.bookingId).substring(0,7).toUpperCase()}`,
                     i.clientId,
                     format(parseISO(i.dueDate), 'PP'),
                     formatCurrency(i.grossSales)
