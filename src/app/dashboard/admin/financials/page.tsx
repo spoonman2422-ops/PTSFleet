@@ -60,10 +60,13 @@ export default function FinancialsPage() {
 
   const upcomingBillings = useMemo(() => {
     if (!invoices || !bookings) return { data: [], totalAmount: 0, totalCount: 0 };
+    const sevenDaysFromNow = addDays(now, 7);
     const data = invoices
       .filter(inv => {
-        const isFuture = inv.dueDate && isAfter(parseISO(inv.dueDate), now);
-        return isFuture && (inv.status === 'Unpaid' || inv.status === 'Overdue');
+        if (!inv.dueDate) return false;
+        const dueDate = parseISO(inv.dueDate);
+        const isUpcoming = isAfter(dueDate, now) && isBefore(dueDate, sevenDaysFromNow);
+        return isUpcoming && (inv.status === 'Unpaid' || inv.status === 'Overdue');
       })
       .map(inv => {
         const booking = bookings.find(b => b.id === inv.bookingId);
@@ -421,7 +424,7 @@ export default function FinancialsPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
                 <CalendarCheck2 className="h-5 w-5 text-blue-500" />
-                <span>Upcoming Billings</span>
+                <span>Upcoming Billings (Next 7 Days)</span>
             </CardTitle>
              <CardDescription>Future payments based on invoice due dates</CardDescription>
           </CardHeader>
