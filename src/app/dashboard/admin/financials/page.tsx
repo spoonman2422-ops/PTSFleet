@@ -440,7 +440,7 @@ export default function FinancialsPage() {
                     <Table>
                     <TableHeader>
                         <TableRow>
-                        <TableHead>Invoice</TableHead>
+                        <TableHead>Details</TableHead>
                         <TableHead className="text-right">Amount</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -448,8 +448,10 @@ export default function FinancialsPage() {
                         {upcomingBillings.data.slice(0,2).map(({ invoice, booking }) => (
                         <TableRow key={invoice.id}>
                             <TableCell>
-                            <div className="font-medium">#{(invoice.id || '').substring(0,7).toUpperCase()}</div>
-                            <div className="text-xs text-muted-foreground">{invoice.clientId}</div>
+                            <div className="font-medium">Inv #{(invoice.id || '').substring(0,7).toUpperCase()}</div>
+                            <div className="text-xs text-muted-foreground">
+                                {booking ? `Booking #${booking.id?.substring(0,7).toUpperCase()}` : invoice.clientId}
+                            </div>
                             </TableCell>
                             <TableCell className="text-right">{formatCurrency(invoice.grossSales)}</TableCell>
                         </TableRow>
@@ -838,6 +840,8 @@ export default function FinancialsPage() {
     </>
   );
 }
+
+    
 
     
 
