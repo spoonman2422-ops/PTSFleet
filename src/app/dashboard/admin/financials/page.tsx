@@ -59,22 +59,23 @@ export default function FinancialsPage() {
 
 
   const upcomingBillings = useMemo(() => {
-    if (!bookings || !invoices) return { data: [], totalAmount: 0, totalCount: 0 };
-    const data = bookings
-      .filter(b => {
-        const invoice = invoices.find(inv => inv.bookingId === b.id);
-        if (invoice && invoice.status === 'Paid') {
-          return false;
-        }
-        return b.billingDate && isAfter(parseISO(b.billingDate), now)
+    if (!invoices || !bookings) return { data: [], totalAmount: 0, totalCount: 0 };
+    const data = invoices
+      .filter(inv => {
+        const isFuture = inv.dueDate && isAfter(parseISO(inv.dueDate), now);
+        return isFuture && (inv.status === 'Unpaid' || inv.status === 'Overdue');
       })
-      .sort((a, b) => parseISO(a.billingDate).getTime() - parseISO(b.billingDate).getTime());
+      .map(inv => {
+        const booking = bookings.find(b => b.id === inv.bookingId);
+        return { invoice: inv, booking };
+      })
+      .sort((a, b) => parseISO(a.invoice.dueDate).getTime() - parseISO(b.invoice.dueDate).getTime());
     
-    const totalAmount = data.reduce((sum, b) => sum + b.bookingRate, 0);
+    const totalAmount = data.reduce((sum, { invoice }) => sum + invoice.grossSales, 0);
     const totalCount = data.length;
 
     return { data, totalAmount, totalCount };
-  }, [bookings, invoices, now]);
+  }, [invoices, bookings, now]);
   
   const completedCollections = useMemo(() => {
     if (!invoices || !bookings) return { data: [], reportData: [], totalAmount: 0, totalCount: 0, chartData: [] };
@@ -302,12 +303,12 @@ export default function FinancialsPage() {
         case 'upcoming':
             data = {
                 title: "Upcoming Billings Report",
-                headers: ["Booking ID", "Client", "Billing Date", "Amount"],
-                rows: upcomingBillings.data.map(b => [
-                    `#${(b.id || '').substring(0,7).toUpperCase()}`,
-                    b.clientId,
-                    format(parseISO(b.billingDate), 'PP'),
-                    formatCurrency(b.bookingRate)
+                headers: ["Invoice ID", "Client", "Due Date", "Amount"],
+                rows: upcomingBillings.data.map(({ invoice: i, booking: b }) => [
+                    `#${(i.id).substring(0,7).toUpperCase()}`,
+                    i.clientId,
+                    format(parseISO(i.dueDate), 'PP'),
+                    formatCurrency(i.grossSales)
                 ]),
                 total: upcomingBillings.totalAmount
             };
@@ -422,32 +423,32 @@ export default function FinancialsPage() {
                 <CalendarCheck2 className="h-5 w-5 text-blue-500" />
                 <span>Upcoming Billings</span>
             </CardTitle>
-             <CardDescription>All future, unpaid billings</CardDescription>
+             <CardDescription>Future payments based on invoice due dates</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
              {isLoading ? <Skeleton className="h-20 w-full" /> : (
                 <>
                 <div>
                     <p className="text-2xl font-bold">{formatCurrency(upcomingBillings.totalAmount)}</p>
-                    <p className="text-xs text-muted-foreground">from {upcomingBillings.totalCount} booking(s)</p>
+                    <p className="text-xs text-muted-foreground">from {upcomingBillings.totalCount} invoice(s)</p>
                 </div>
                 {upcomingBillings.data.length > 0 ? (
                 <>
                     <Table>
                     <TableHeader>
                         <TableRow>
-                        <TableHead>Booking</TableHead>
+                        <TableHead>Invoice</TableHead>
                         <TableHead className="text-right">Amount</TableHead>
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {upcomingBillings.data.slice(0,2).map(booking => (
-                        <TableRow key={booking.id}>
+                        {upcomingBillings.data.slice(0,2).map(({ invoice, booking }) => (
+                        <TableRow key={invoice.id}>
                             <TableCell>
-                            <div className="font-medium">#{(booking.id || '').substring(0,7).toUpperCase()}</div>
-                            <div className="text-xs text-muted-foreground">{booking.clientId}</div>
+                            <div className="font-medium">#{(invoice.id || '').substring(0,7).toUpperCase()}</div>
+                            <div className="text-xs text-muted-foreground">{invoice.clientId}</div>
                             </TableCell>
-                            <TableCell className="text-right">{formatCurrency(booking.bookingRate)}</TableCell>
+                            <TableCell className="text-right">{formatCurrency(invoice.grossSales)}</TableCell>
                         </TableRow>
                         ))}
                     </TableBody>
@@ -834,5 +835,7 @@ export default function FinancialsPage() {
     </>
   );
 }
+
+    
 
     
