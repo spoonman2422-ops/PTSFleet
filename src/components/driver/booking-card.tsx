@@ -51,7 +51,7 @@ export function BookingCard({ booking, onStatusChange, onClick, isSelected }: Bo
         if (user && firestore) {
           const messagesPath = `bookings/${booking.id}/messages`;
           const messageData = {
-            text: `Delivery for booking #${booking.id!.substring(0, 4)} is complete. Awaiting dispatcher verification.`,
+            text: `Delivery for booking #${booking.id} is complete. Awaiting dispatcher verification.`,
             senderId: 'system',
             senderName: 'System Bot',
             bookingId: booking.id,
@@ -73,7 +73,7 @@ export function BookingCard({ booking, onStatusChange, onClick, isSelected }: Bo
       <CardHeader>
         <div className="flex justify-between items-start">
             <div>
-                <CardTitle className="text-lg">Booking #{booking.id.substring(0, 4)}</CardTitle>
+                <CardTitle className="text-lg">Booking #{booking.id.substring(0, 7)}</CardTitle>
                 <CardDescription>{booking.clientId}</CardDescription>
             </div>
           <Badge variant={currentStatusConfig.variant as any} className={cn("whitespace-nowrap capitalize", currentStatusConfig.className)}>

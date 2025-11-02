@@ -242,7 +242,7 @@ export default function DispatcherPage() {
      if (status === 'Delivered' && user && firestore) {
         const messagesPath = `bookings/${bookingId}/messages`;
         const messageData = {
-            text: `Dispatcher ${user.name} has confirmed the delivery for booking #${bookingId.substring(0, 4)}. Great job!`,
+            text: `Dispatcher ${user.name} has confirmed the delivery for booking #${bookingId}. Great job!`,
             senderId: 'system',
             senderName: 'System Bot',
             bookingId: bookingId,
