@@ -7,12 +7,10 @@ import {
   flexRender,
   getCoreRowModel,
   getFilteredRowModel,
-  getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
   type ColumnFiltersState,
   type SortingState,
-  type VisibilityState,
 } from "@tanstack/react-table"
 
 import {
@@ -127,7 +125,6 @@ export function ExpenseTable({ data, users, isLoading, onEdit, onDelete, onDownl
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     onSortingChange: setSorting,
     getSortedRowModel: getSortedRowModel(),
     onColumnFiltersChange: setColumnFilters,
@@ -220,22 +217,6 @@ export function ExpenseTable({ data, users, isLoading, onEdit, onDelete, onDownl
         <div className="flex-1 text-muted-foreground text-sm">
           {table.getFilteredRowModel().rows.length} row(s).
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => table.previousPage()}
-          disabled={!table.getCanPreviousPage()}
-        >
-          Previous
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => table.nextPage()}
-          disabled={!table.getCanNextPage()}
-        >
-          Next
-        </Button>
       </div>
        <Separator className="my-4" />
         <div className="flex justify-end text-right">
@@ -252,5 +233,3 @@ export function ExpenseTable({ data, users, isLoading, onEdit, onDelete, onDownl
     </div>
   )
 }
-
-    
