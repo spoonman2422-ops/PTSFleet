@@ -41,7 +41,6 @@ export default function FinancialsPage() {
 
 
   const now = new Date();
-  const nextSevenDays = addDays(now, 7);
 
   const getStartDate = (filter: FinancialFilter) => {
     const today = new Date();
@@ -67,7 +66,7 @@ export default function FinancialsPage() {
         if (invoice && invoice.status === 'Paid') {
           return false;
         }
-        return b.billingDate && isAfter(parseISO(b.billingDate), now) && isBefore(parseISO(b.billingDate), nextSevenDays)
+        return b.billingDate && isAfter(parseISO(b.billingDate), now)
       })
       .sort((a, b) => parseISO(a.billingDate).getTime() - parseISO(b.billingDate).getTime());
     
@@ -75,7 +74,7 @@ export default function FinancialsPage() {
     const totalCount = data.length;
 
     return { data, totalAmount, totalCount };
-  }, [bookings, invoices, now, nextSevenDays]);
+  }, [bookings, invoices, now]);
   
   const completedCollections = useMemo(() => {
     if (!invoices || !bookings) return { data: [], reportData: [], totalAmount: 0, totalCount: 0, chartData: [] };
@@ -423,7 +422,7 @@ export default function FinancialsPage() {
                 <CalendarCheck2 className="h-5 w-5 text-blue-500" />
                 <span>Upcoming Billings</span>
             </CardTitle>
-             <CardDescription>Next 7 days</CardDescription>
+             <CardDescription>All future, unpaid billings</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4">
              {isLoading ? <Skeleton className="h-20 w-full" /> : (
