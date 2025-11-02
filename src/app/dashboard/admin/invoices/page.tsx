@@ -46,6 +46,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
+import { cn } from '@/lib/utils';
 
 
 const statusConfig: Record<InvoiceStatus, { variant: 'secondary' | 'default' | 'destructive', className: string }> = {
@@ -181,11 +182,6 @@ export default function InvoicesPage() {
         cell: ({ row }) => <div className="font-medium">#{row.original.id.substring(0, 7).toUpperCase()}</div>
       },
       {
-        accessorKey: 'bookingId',
-        header: ({ column }) => <DataTableColumnHeader column={column} title="Booking ID" />,
-        cell: ({ row }) => <div className="font-mono text-xs">{row.original.bookingId}</div>
-      },
-      {
         id: 'clientName',
         accessorFn: (row) => users?.find(u => u.id === row.clientId)?.name || row.clientId,
         header: ({ column }) => <DataTableColumnHeader column={column} title="Client" />,
@@ -198,7 +194,25 @@ export default function InvoicesPage() {
       {
         accessorKey: 'grossSales',
         header: ({ column }) => <DataTableColumnHeader column={column} title="Gross Sales" />,
-        cell: ({ row }) => new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(row.original.grossSales)
+        cell: ({ row }) => <div className="text-right">{new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(row.original.grossSales)}</div>
+      },
+      {
+        id: 'netProfit',
+        header: ({ column }) => <DataTableColumnHeader column={column} title="Net Profit" />,
+        cell: ({ row }) => {
+          const invoice = row.original;
+          const booking = bookings?.find(b => b.id === invoice.bookingId);
+          if (!booking) return <div className="text-right text-muted-foreground">N/A</div>;
+
+          const costs = (booking.driverRate || 0) + (booking.expectedExpenses.tollFee || 0) + (booking.expectedExpenses.fuel || 0) + (booking.expectedExpenses.others || 0);
+          const profit = booking.bookingRate - costs;
+          
+          return (
+            <div className={cn("text-right font-medium", profit >= 0 ? "text-green-600" : "text-destructive")}>
+              {new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(profit)}
+            </div>
+          );
+        },
       },
       {
         accessorKey: 'status',
@@ -254,7 +268,7 @@ export default function InvoicesPage() {
           );
         }
       }
-    ], [users]);
+    ], [users, bookings]);
 
     const table = useReactTable({
       data: filteredInvoices,
