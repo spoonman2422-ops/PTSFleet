@@ -249,7 +249,7 @@ export function BookingDialog({
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-3xl">
         <DialogHeader>
-          <DialogTitle>{booking ? 'Edit Booking' : 'Create New Booking'}</DialogTitle>
+          <DialogTitle>{booking ? `Edit Booking #${booking.id}` : 'Create New Booking'}</DialogTitle>
           <DialogDescription>
             Fill in the details below to {booking ? 'update the' : 'create a new'} booking.
           </DialogDescription>
@@ -592,5 +592,7 @@ export function BookingDialog({
     </Dialog>
   );
 }
+
+    
 
     

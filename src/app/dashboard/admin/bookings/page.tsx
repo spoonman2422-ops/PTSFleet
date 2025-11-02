@@ -131,13 +131,13 @@ export default function AdminBookingsPage() {
       const reimbursementData = {
         bookingId,
         category,
-        description: `Mobilization Expense for Booking #${bookingId.substring(0,7)} (${category})`,
+        description: `Mobilization Expense for Booking #${bookingId} (${category})`,
         amount,
         dateIncurred: bookingData.bookingDate,
         creditedTo: bookingData.expenseCreditedTo,
         status: 'Pending' as const,
         addedBy: user.id,
-        notes: `Automatically generated from booking ${bookingId.substring(0,7)}`,
+        notes: `Automatically generated from booking ${bookingId}`,
       };
       await addDoc(collection(firestore, "reimbursements"), reimbursementData);
 
@@ -145,7 +145,7 @@ export default function AdminBookingsPage() {
       const expenseData = {
         bookingId,
         category,
-        description: `Mobilization Expense for Booking #${bookingId.substring(0,7)} (${category})`,
+        description: `Mobilization Expense for Booking #${bookingId} (${category})`,
         amount,
         vatIncluded: false,
         vatRate: 0,
@@ -153,7 +153,7 @@ export default function AdminBookingsPage() {
         dateIncurred: bookingData.bookingDate,
         paidBy: "PTS" as const,
         addedBy: user.id,
-        notes: `Automatically generated from booking ${bookingId.substring(0,7)}`,
+        notes: `Automatically generated from booking ${bookingId}`,
       };
       await addDoc(collection(firestore, "expenses"), expenseData);
     }
@@ -213,7 +213,7 @@ export default function AdminBookingsPage() {
         status: 'pending',
       };
       await setDoc(bookingRef, newBooking);
-      toast({ title: "Booking Created", description: `A new booking #${id.substring(0,7)} has been created.` });
+      toast({ title: "Booking Created", description: `A new booking #${id} has been created.` });
        if(newBooking.driverId) {
         toast({ title: "Driver Notified", description: `A notification has been sent to the assigned driver.` });
       }
@@ -467,5 +467,7 @@ export default function AdminBookingsPage() {
     </div>
   );
 }
+
+    
 
     
