@@ -26,12 +26,14 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { cn } from '@/lib/utils';
+import { useSidebar } from '@/components/ui/sidebar';
 
 
 export default function AdminBookingsPage() {
   const firestore = useFirestore();
   const { data: bookings, isLoading: isLoadingBookings } = useCollection<Booking>('bookings');
   const { data: users, isLoading: isLoadingUsers } = useCollection<User>('users');
+  const { state: sidebarState } = useSidebar();
   
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingBooking, setEditingBooking] = useState<Booking | null>(null);
@@ -344,11 +346,19 @@ export default function AdminBookingsPage() {
     if (!users) return [];
     return users.filter(u => u.role === 'Driver')
   }, [users]);
+  
+  const gridColsClass = isMessageBoardVisible
+  ? (sidebarState === 'collapsed' ? 'lg:grid-cols-3' : 'md:grid-cols-2 lg:grid-cols-3')
+  : 'grid-cols-1';
+
+  const tableSpanClass = isMessageBoardVisible
+    ? (sidebarState === 'collapsed' ? 'lg:col-span-2' : 'md:col-span-1 lg:col-span-2')
+    : 'col-span-1';
 
 
   return (
-    <div className={cn("grid gap-6 h-full transition-all", isMessageBoardVisible ? "md:grid-cols-3" : "md:grid-cols-1")}>
-      <div className={cn("flex flex-col gap-6", isMessageBoardVisible ? "md:col-span-2" : "md:col-span-1")}>
+    <div className={cn("grid gap-6 h-full transition-all", gridColsClass)}>
+      <div className={cn("flex flex-col gap-6", tableSpanClass)}>
         <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
           <div>
               <h1 className="text-3xl font-bold tracking-tight">Booking Management</h1>
@@ -381,7 +391,7 @@ export default function AdminBookingsPage() {
         />
       </div>
       
-      <div className={cn("md:col-span-1 transition-all", !isMessageBoardVisible && "hidden")}>
+      <div className={cn("transition-all", tableSpanClass.includes('lg:col-span-2') ? 'lg:col-span-1' : 'md:col-span-1', !isMessageBoardVisible && "hidden")}>
         {selectedBookingId ? (
             <MessageBoard bookingId={selectedBookingId} />
         ) : (
@@ -422,5 +432,3 @@ export default function AdminBookingsPage() {
     </div>
   );
 }
-
-    
