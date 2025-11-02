@@ -203,7 +203,7 @@ export default function AdminBookingsPage() {
 
     if (isEditing) {
       await updateDoc(bookingRef, dataToSave);
-      toast({ title: "Booking Updated", description: `Booking #${id.substring(0, 7)} has been successfully updated.` });
+      toast({ title: "Booking Updated", description: `Booking #${id} has been successfully updated.` });
       if(bookingData.driverId) {
         toast({ title: "Driver Notified", description: `A notification has been sent for the updated assignment.` });
       }
@@ -316,7 +316,7 @@ export default function AdminBookingsPage() {
             const invoiceRef = await addDoc(collection(firestore, 'invoices'), invoiceData);
             toast({
                 title: "Invoice Created",
-                description: `Invoice #${invoiceRef.id.substring(0,4)} has been automatically generated with tax computations.`
+                description: `Invoice #${invoiceRef.id.substring(0,7)} has been automatically generated with tax computations.`
             });
         }
      }
@@ -467,7 +467,3 @@ export default function AdminBookingsPage() {
     </div>
   );
 }
-
-    
-
-    
