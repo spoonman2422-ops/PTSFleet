@@ -31,10 +31,11 @@ import type { Booking, BookingStatus, User } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { format, parseISO } from 'date-fns';
 import { BookingTableActions } from './booking-table-actions';
-import { Package, Truck, CheckCircle2, XCircle, Clock } from 'lucide-react';
+import { Package, Truck, CheckCircle2, XCircle, Clock, Download } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
 import { Input } from '../ui/input';
 import { DataTableColumnHeader } from '../ui/data-table-column-header';
+import { Button } from '../ui/button';
 
 type BookingTableProps = {
   bookings: Booking[];
@@ -49,6 +50,7 @@ type BookingTableProps = {
   users: User[];
   searchQuery: string;
   setSearchQuery: (query: string) => void;
+  onDownload: (table: any) => void;
 };
 
 const statusConfig: Record<BookingStatus, { variant: 'secondary' | 'default' | 'destructive' | 'outline', icon: React.ElementType, className: string }> = {
@@ -78,7 +80,7 @@ function Filter({ column }: { column: any }) {
     );
 }
 
-export function BookingTable({ bookings, isLoading, onEdit, onUpdateStatus, onDelete, filterStatus, setFilterStatus, onRowClick, selectedBookingId, users, searchQuery, setSearchQuery }: BookingTableProps) {
+export function BookingTable({ bookings, isLoading, onEdit, onUpdateStatus, onDelete, filterStatus, setFilterStatus, onRowClick, selectedBookingId, users, searchQuery, setSearchQuery, onDownload }: BookingTableProps) {
   
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([]);
@@ -141,7 +143,7 @@ export function BookingTable({ bookings, isLoading, onEdit, onUpdateStatus, onDe
             if (!config) return <Badge variant="outline">{status}</Badge>;
             const StatusIcon = config.icon;
             return (
-                <Badge variant={config.variant} className={cn('whitespace-nowrap capitalize', config.className)}>
+                <Badge variant={config.variant as any} className={cn('whitespace-nowrap capitalize', config.className)}>
                     <StatusIcon className="mr-1 h-3 w-3" />
                     {status}
                 </Badge>
@@ -180,12 +182,18 @@ export function BookingTable({ bookings, isLoading, onEdit, onUpdateStatus, onDe
             ))}
           </TabsList>
         </Tabs>
-        <Input
-          placeholder="Global search..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="max-w-sm h-9"
-        />
+        <div className="flex items-center gap-2">
+            <Input
+            placeholder="Global search..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="max-w-sm h-9"
+            />
+             <Button variant="outline" size="sm" onClick={() => onDownload(table)}>
+                <Download className="mr-2 h-4 w-4" />
+                Download CSV
+            </Button>
+        </div>
       </div>
       <div className="overflow-auto flex-1">
         <Table>
@@ -250,3 +258,5 @@ export function BookingTable({ bookings, isLoading, onEdit, onUpdateStatus, onDe
     </div>
   );
 }
+
+    

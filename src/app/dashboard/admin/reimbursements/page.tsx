@@ -21,6 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import Papa from 'papaparse';
 
 export default function ReimbursementsPage() {
   const { data: reimbursements, isLoading: isLoadingReimbursements } = useCollection<Reimbursement>('reimbursements');
@@ -105,6 +106,9 @@ export default function ReimbursementsPage() {
     if (!deletingReimbursement || !firestore) return;
 
     try {
+      if (deletingReimbursement.status === 'Liquidated') {
+          // Allow deletion regardless of status
+      }
       await deleteDoc(doc(firestore, "reimbursements", deletingReimbursement.id));
       toast({
         title: "Reimbursement Deleted",
@@ -122,19 +126,51 @@ export default function ReimbursementsPage() {
     }
   };
 
+  const handleDownload = (table: any) => {
+      if (!table) return;
+      const dataToExport = table.getFilteredRowModel().rows.map((row: { original: Reimbursement }) => {
+          const reimbursement = row.original;
+          const addedBy = users?.find(u => u.id === reimbursement.addedBy)?.name || reimbursement.addedBy;
+          const liquidatedBy = users?.find(u => u.id === reimbursement.liquidatedBy)?.name || reimbursement.liquidatedBy;
+
+          return {
+              "Date Incurred": reimbursement.dateIncurred,
+              "Category": reimbursement.category,
+              "Description": reimbursement.description,
+              "Amount": reimbursement.amount,
+              "Credit To": reimbursement.creditedTo,
+              "Status": reimbursement.status,
+              "Added By": addedBy,
+              "Liquidated By": liquidatedBy || 'N/A',
+              "Liquidated At": reimbursement.liquidatedAt ? format(new Date(reimbursement.liquidatedAt), 'yyyy-MM-dd') : 'N/A',
+              "Notes": reimbursement.notes,
+          };
+      });
+
+      const csv = Papa.unparse(dataToExport);
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `reimbursements-report-${format(new Date(), 'yyyy-MM-dd')}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+  };
+
 
   const isLoading = isLoadingReimbursements || isLoadingUsers;
 
   return (
     <>
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 w-full">
        <div className="flex items-center justify-between">
           <div>
               <h1 className="text-3xl font-bold tracking-tight">Reimbursements & Liquidation</h1>
               <p className="text-muted-foreground">Manage and liquidate credit-based expense requests.</p>
           </div>
         </div>
-        <Card>
+        <Card className="w-full">
             <CardHeader>
                 <CardTitle>Pending & Liquidated Requests</CardTitle>
                 <CardDescription>Review all reimbursement requests. Liquidate pending items to record them as official expenses.</CardDescription>
@@ -147,6 +183,7 @@ export default function ReimbursementsPage() {
                     onLiquidate={handleLiquidate}
                     onEdit={handleEdit}
                     onDelete={handleOpenDeleteDialog}
+                    onDownload={handleDownload}
                 />
             </CardContent>
         </Card>
@@ -178,3 +215,5 @@ export default function ReimbursementsPage() {
     </>
   );
 }
+
+    

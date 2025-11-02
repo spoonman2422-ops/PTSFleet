@@ -28,7 +28,7 @@ import { format, parseISO } from "date-fns";
 import { DataTableColumnHeader } from "../ui/data-table-column-header";
 import { Skeleton } from "../ui/skeleton";
 import { Badge } from "../ui/badge";
-import { HandCoins, CheckCircle2, MoreHorizontal, Edit, Trash2 } from "lucide-react";
+import { HandCoins, CheckCircle2, MoreHorizontal, Edit, Trash2, Download } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "../ui/tabs";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "../ui/dropdown-menu";
 
@@ -39,6 +39,7 @@ type ReimbursementTableProps = {
   onLiquidate: (reimbursement: Reimbursement) => void;
   onEdit: (reimbursement: Reimbursement) => void;
   onDelete: (reimbursement: Reimbursement) => void;
+  onDownload: (table: any) => void;
 };
 
 const statusConfig: Record<ReimbursementStatus, { variant: "secondary" | "default", icon: React.ElementType, className: string }> = {
@@ -46,7 +47,7 @@ const statusConfig: Record<ReimbursementStatus, { variant: "secondary" | "defaul
   Liquidated: { variant: 'default', icon: CheckCircle2, className: 'bg-green-100 text-green-800' },
 };
 
-export function ReimbursementTable({ data, users, isLoading, onLiquidate, onEdit, onDelete }: ReimbursementTableProps) {
+export function ReimbursementTable({ data, users, isLoading, onLiquidate, onEdit, onDelete, onDownload }: ReimbursementTableProps) {
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: "dateIncurred", desc: true },
   ]);
@@ -190,8 +191,12 @@ export function ReimbursementTable({ data, users, isLoading, onLiquidate, onEdit
                 <TabsTrigger value="Liquidated">Liquidated</TabsTrigger>
             </TabsList>
         </Tabs>
+        <Button variant="outline" onClick={() => onDownload(table)} className="ml-auto">
+            <Download className="mr-2 h-4 w-4" />
+            Download CSV
+        </Button>
       </div>
-      <div className="rounded-md border">
+      <div className="rounded-md border overflow-x-auto">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -244,3 +249,5 @@ export function ReimbursementTable({ data, users, isLoading, onLiquidate, onEdit
     </div>
   );
 }
+
+    

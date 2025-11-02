@@ -12,7 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { addDoc, collection, doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { format } from "date-fns";
 import type { Expense, OwnerName, User } from "@/lib/types";
-import { PlusCircle } from "lucide-react";
+import { PlusCircle, Download } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,6 +23,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import Papa from 'papaparse';
 
 
 export default function ExpensesPage() {
@@ -133,6 +134,34 @@ export default function ExpensesPage() {
     
     setIsDialogOpen(false);
   };
+
+  const handleDownload = (table: any) => {
+      if (!table) return;
+      const dataToExport = table.getFilteredRowModel().rows.map((row: { original: Expense }) => {
+          const expense = row.original;
+          const addedBy = users?.find(u => u.id === expense.addedBy)?.name || expense.addedBy;
+          return {
+              "Date": expense.dateIncurred,
+              "Category": expense.category,
+              "Description": expense.description,
+              "Amount": expense.amount,
+              "Paid By": expense.paidBy,
+              "Added By": addedBy,
+              "VAT Included": expense.vatIncluded,
+              "Notes": expense.notes,
+          };
+      });
+
+      const csv = Papa.unparse(dataToExport);
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `expenses-report-${format(new Date(), 'yyyy-MM-dd')}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+  };
   
   const isLoading = isLoadingExpenses || isLoadingUsers;
 
@@ -162,6 +191,7 @@ export default function ExpensesPage() {
                   isLoading={isLoading} 
                   onEdit={handleEdit}
                   onDelete={handleOpenDeleteDialog}
+                  onDownload={handleDownload}
               />
           </CardContent>
         </Card>
@@ -193,3 +223,5 @@ export default function ExpensesPage() {
     </>
   );
 }
+
+    

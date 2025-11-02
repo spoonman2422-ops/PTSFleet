@@ -5,7 +5,7 @@ import { useState, useMemo, useEffect } from 'react';
 import type { Booking, BookingStatus, User, Expense, OwnerName, ExpenseCategory } from '@/lib/types';
 import { BookingTable } from '@/components/dispatcher/booking-table';
 import { Button } from '@/components/ui/button';
-import { PlusCircle, PanelRight, PanelLeft } from 'lucide-react';
+import { PlusCircle, PanelRight, PanelLeft, Download } from 'lucide-react';
 import { BookingDialog } from '@/components/dispatcher/booking-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { MessageBoard } from '@/components/message-board';
@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { cn } from '@/lib/utils';
 import { useSidebar } from '@/components/ui/sidebar';
+import Papa from 'papaparse';
 
 
 export default function AdminBookingsPage() {
@@ -355,6 +356,39 @@ export default function AdminBookingsPage() {
     ? (sidebarState === 'collapsed' ? 'lg:col-span-2' : 'md:col-span-1 lg:col-span-2')
     : 'col-span-1';
 
+  const handleDownload = (table: any) => {
+    if (!table) return;
+    const dataToExport = table.getFilteredRowModel().rows.map((row: { original: Booking }) => {
+        const booking = row.original;
+        const driver = users?.find(u => u.id === booking.driverId);
+        const totalExpenses = (booking.driverRate || 0) +
+                        (booking.expectedExpenses?.tollFee || 0) +
+                        (booking.expectedExpenses?.fuel || 0) +
+                        (booking.expectedExpenses?.others || 0);
+        return {
+            "Booking ID": booking.id,
+            "Booking Date": booking.bookingDate,
+            "Client": booking.clientId,
+            "Pickup": booking.pickupLocation,
+            "Dropoff": booking.dropoffLocation,
+            "Driver": driver?.name || 'Unassigned',
+            "Booking Rate": booking.bookingRate,
+            "Total Expenses": totalExpenses,
+            "Status": booking.status,
+        };
+    });
+
+    const csv = Papa.unparse(dataToExport);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `bookings-report-${format(new Date(), 'yyyy-MM-dd')}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
 
   return (
     <div className={cn("grid gap-6 h-full transition-all", gridColsClass)}>
@@ -388,6 +422,7 @@ export default function AdminBookingsPage() {
           users={users || []}
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
+          onDownload={handleDownload}
         />
       </div>
       
@@ -432,3 +467,5 @@ export default function AdminBookingsPage() {
     </div>
   );
 }
+
+    

@@ -30,7 +30,7 @@ import { format, parseISO } from "date-fns"
 import { DataTableColumnHeader } from "../ui/data-table-column-header"
 import { Skeleton } from "../ui/skeleton"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "../ui/dropdown-menu"
-import { Edit, MoreHorizontal, Trash2 } from "lucide-react"
+import { Edit, MoreHorizontal, Trash2, Download } from "lucide-react"
 import { Separator } from "../ui/separator"
 
 type ExpenseTableProps = {
@@ -39,9 +39,10 @@ type ExpenseTableProps = {
     isLoading: boolean;
     onEdit: (expense: Expense) => void;
     onDelete: (expense: Expense) => void;
+    onDownload: (table: any) => void;
 }
 
-export function ExpenseTable({ data, users, isLoading, onEdit, onDelete }: ExpenseTableProps) {
+export function ExpenseTable({ data, users, isLoading, onEdit, onDelete, onDownload }: ExpenseTableProps) {
   const [sorting, setSorting] = React.useState<SortingState>([
       { id: "dateIncurred", desc: true }
   ])
@@ -157,7 +158,7 @@ export function ExpenseTable({ data, users, isLoading, onEdit, onDelete }: Expen
 
   return (
     <div>
-      <div className="flex items-center py-4">
+      <div className="flex items-center py-4 gap-2">
         <Input
           placeholder="Search all columns..."
           value={globalFilter ?? ''}
@@ -166,6 +167,10 @@ export function ExpenseTable({ data, users, isLoading, onEdit, onDelete }: Expen
           }
           className="max-w-sm"
         />
+        <Button variant="outline" onClick={() => onDownload(table)}>
+            <Download className="mr-2 h-4 w-4" />
+            Download CSV
+        </Button>
       </div>
       <div className="rounded-md border">
         <Table>
@@ -247,3 +252,5 @@ export function ExpenseTable({ data, users, isLoading, onEdit, onDelete }: Expen
     </div>
   )
 }
+
+    
