@@ -70,11 +70,12 @@ export default function PayrollPage() {
     }
     
     const batch = writeBatch(firestore);
+    const caRef = doc(collection(firestore, 'cashAdvances'));
 
     // 1. Always create the cash advance entry so it appears on the payslip
-    const caRef = doc(collection(firestore, 'cashAdvances'));
     batch.set(caRef, {
         ...data,
+        date: format(new Date(data.date), "yyyy-MM-dd"),
         addedBy: user.id,
     });
     
@@ -86,12 +87,12 @@ export default function PayrollPage() {
         }
 
         const reimbursementData: Omit<Reimbursement, 'id' | 'liquidatedAt' | 'liquidatedBy'> = {
-            cashAdvanceId: caRef.id, // Link to the cash advance document
+            cashAdvanceId: caRef.id,
             driverId: data.driverId,
             category: 'cash advance',
             description: `Cash Advance for driver ID: ${data.driverId}`,
             amount: data.amount,
-            dateIncurred: data.date,
+            dateIncurred: format(new Date(data.date), "yyyy-MM-dd"),
             creditedTo: data.creditedTo,
             status: 'Pending',
             addedBy: user.id,
@@ -104,7 +105,7 @@ export default function PayrollPage() {
     
     await batch.commit();
 
-    toast({ title: "Cash Advance Logged", description: "The cash advance has been recorded." });
+    toast({ title: "Cash Advance Logged", description: "The cash advance has been recorded and will appear on the payslip." });
   };
 
   const handleEditCashAdvance = (ca: CashAdvance) => {

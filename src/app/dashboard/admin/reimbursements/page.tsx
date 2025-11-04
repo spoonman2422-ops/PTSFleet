@@ -41,8 +41,9 @@ export default function ReimbursementsPage() {
         return;
     }
 
-    // 1. Mark the reimbursement as 'Liquidated'
     const reimbursementRef = doc(firestore, 'reimbursements', reimbursement.id);
+
+    // 1. Mark the reimbursement as 'Liquidated'
     await updateDoc(reimbursementRef, {
         status: 'Liquidated',
         liquidatedBy: user.id,
@@ -75,7 +76,7 @@ export default function ReimbursementsPage() {
 
     toast({
         title: "Reimbursement Liquidated",
-        description: `The request has been processed and marked as complete.`
+        description: `The request for ${reimbursement.description} has been processed.`
     });
   };
 
