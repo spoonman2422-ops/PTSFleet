@@ -24,6 +24,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import Papa from 'papaparse';
+import { logActivity } from "@/lib/activity-log-service";
 
 
 export default function ExpensesPage() {
@@ -55,10 +56,18 @@ export default function ExpensesPage() {
   };
 
   const handleDeleteExpense = async () => {
-    if (!deletingExpense || !firestore) return;
+    if (!deletingExpense || !firestore || !user) return;
 
     try {
       await deleteDoc(doc(firestore, "expenses", deletingExpense.id));
+      await logActivity({
+        userId: user.id,
+        userName: user.name,
+        action: 'EXPENSE_DELETED',
+        entityType: 'Expense',
+        entityId: deletingExpense.id,
+        details: `Deleted expense: ${deletingExpense.description}`,
+      });
       toast({
         title: "Expense Deleted",
         description: "The expense has been successfully removed.",
@@ -103,7 +112,15 @@ export default function ExpensesPage() {
             notes: data.notes
         };
 
-        await addDoc(collection(firestore, "reimbursements"), reimbursementData);
+        const docRef = await addDoc(collection(firestore, "reimbursements"), reimbursementData);
+        await logActivity({
+          userId: user.id,
+          userName: user.name,
+          action: 'REIMBURSEMENT_CREATED',
+          entityType: 'Reimbursement',
+          entityId: docRef.id,
+          details: `Created reimbursement request for ${data.description}`,
+        });
         toast({ title: "Reimbursement Request Saved", description: "The request has been sent for liquidation." });
 
     } else {
@@ -121,12 +138,28 @@ export default function ExpensesPage() {
           // Update existing expense
           const expenseRef = doc(firestore, 'expenses', id);
           await updateDoc(expenseRef, dataToSave);
+          await logActivity({
+            userId: user.id,
+            userName: user.name,
+            action: 'EXPENSE_UPDATED',
+            entityType: 'Expense',
+            entityId: id,
+            details: `Updated expense: ${data.description}`,
+          });
           toast({ title: "Expense Updated", description: "The expense has been successfully updated." });
         } else {
           // Create new expense
-          await addDoc(collection(firestore, "expenses"), {
+          const docRef = await addDoc(collection(firestore, "expenses"), {
             ...dataToSave,
             addedBy: user.id,
+          });
+           await logActivity({
+            userId: user.id,
+            userName: user.name,
+            action: 'EXPENSE_CREATED',
+            entityType: 'Expense',
+            entityId: docRef.id,
+            details: `Created expense: ${data.description}`,
           });
           toast({ title: "Expense Saved", description: "The new expense has been logged successfully." });
         }

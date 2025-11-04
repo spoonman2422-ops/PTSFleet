@@ -22,6 +22,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { VehicleTable } from "@/components/admin/vehicle-table";
 import { VehicleDialog } from "@/components/admin/vehicle-dialog";
 import { format } from "date-fns";
+import { useUser } from "@/context/user-context";
+import { logActivity } from "@/lib/activity-log-service";
 
 export default function VehiclesPage() {
   const { data: vehicles, isLoading: isLoadingVehicles } = useCollection<Vehicle>("vehicles");
@@ -31,6 +33,7 @@ export default function VehiclesPage() {
   const [isAlertOpen, setIsAlertOpen] = useState(false);
 
   const firestore = useFirestore();
+  const { user } = useUser();
   const { toast } = useToast();
 
   const handleAddNew = () => {
@@ -49,9 +52,17 @@ export default function VehiclesPage() {
   };
 
   const handleDeleteVehicle = async () => {
-    if (!deletingVehicle || !firestore) return;
+    if (!deletingVehicle || !firestore || !user) return;
     try {
       await deleteDoc(doc(firestore, "vehicles", deletingVehicle.id));
+      await logActivity({
+        userId: user.id,
+        userName: user.name,
+        action: 'VEHICLE_DELETED',
+        entityType: 'Vehicle',
+        entityId: deletingVehicle.id,
+        details: `Deleted vehicle: ${deletingVehicle.plateNumber}`,
+      });
       toast({
         title: "Vehicle Deleted",
         description: `The vehicle with plate number ${deletingVehicle.plateNumber} has been removed.`,
@@ -69,7 +80,7 @@ export default function VehiclesPage() {
   };
 
   const handleSaveVehicle = async (data: Omit<Vehicle, 'id'>, id?: string) => {
-    if (!firestore) return;
+    if (!firestore || !user) return;
     
     const dataToSave = {
         ...data,
@@ -81,9 +92,25 @@ export default function VehiclesPage() {
     if (id) {
       const docRef = doc(firestore, 'vehicles', id);
       await updateDoc(docRef, dataToSave);
+      await logActivity({
+        userId: user.id,
+        userName: user.name,
+        action: 'VEHICLE_UPDATED',
+        entityType: 'Vehicle',
+        entityId: id,
+        details: `Updated vehicle: ${data.plateNumber}`,
+      });
       toast({ title: "Vehicle Updated", description: "The vehicle details have been successfully updated." });
     } else {
-      await addDoc(collection(firestore, "vehicles"), dataToSave);
+      const docRef = await addDoc(collection(firestore, "vehicles"), dataToSave);
+      await logActivity({
+        userId: user.id,
+        userName: user.name,
+        action: 'VEHICLE_CREATED',
+        entityType: 'Vehicle',
+        entityId: docRef.id,
+        details: `Added new vehicle: ${data.plateNumber}`,
+      });
       toast({ title: "Vehicle Added", description: "The new vehicle has been added to the fleet." });
     }
     

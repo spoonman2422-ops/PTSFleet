@@ -28,6 +28,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useSidebar } from '@/components/ui/sidebar';
 import Papa from 'papaparse';
+import { logActivity } from '@/lib/activity-log-service';
 
 
 export default function AdminBookingsPage() {
@@ -64,7 +65,7 @@ export default function AdminBookingsPage() {
   };
 
   const handleDeleteBooking = async () => {
-    if (!deletingBooking || !firestore) return;
+    if (!deletingBooking || !firestore || !user) return;
 
     try {
       const batch = writeBatch(firestore);
@@ -96,6 +97,14 @@ export default function AdminBookingsPage() {
 
       await batch.commit();
 
+      await logActivity({
+        userId: user.id,
+        userName: user.name,
+        action: 'BOOKING_DELETED',
+        entityType: 'Booking',
+        entityId: deletingBooking.id!,
+        details: `Deleted booking #${deletingBooking.id!}`,
+      });
 
       toast({
         title: 'Booking Deleted',
@@ -203,6 +212,14 @@ export default function AdminBookingsPage() {
 
     if (isEditing) {
       await updateDoc(bookingRef, dataToSave);
+      await logActivity({
+        userId: user.id,
+        userName: user.name,
+        action: 'BOOKING_UPDATED',
+        entityType: 'Booking',
+        entityId: id,
+        details: `Updated booking #${id}`,
+      });
       toast({ title: "Booking Updated", description: `Booking #${id} has been successfully updated.` });
       if(bookingData.driverId) {
         toast({ title: "Driver Notified", description: `A notification has been sent for the updated assignment.` });
@@ -213,6 +230,14 @@ export default function AdminBookingsPage() {
         status: 'pending',
       };
       await setDoc(bookingRef, newBooking);
+      await logActivity({
+        userId: user.id,
+        userName: user.name,
+        action: 'BOOKING_CREATED',
+        entityType: 'Booking',
+        entityId: id,
+        details: `Created new booking #${id}`,
+      });
       toast({ title: "Booking Created", description: `A new booking #${id} has been created.` });
        if(newBooking.driverId) {
         toast({ title: "Driver Notified", description: `A notification has been sent to the assigned driver.` });
@@ -229,7 +254,7 @@ export default function AdminBookingsPage() {
   };
 
    const handleUpdateStatus = async (bookingId: string, status: BookingStatus) => {
-    if (!firestore || !bookings) return;
+    if (!firestore || !bookings || !user) return;
 
     const bookingRef = doc(firestore, 'bookings', bookingId);
     
@@ -238,6 +263,15 @@ export default function AdminBookingsPage() {
       updateData.completionDate = format(new Date(), 'yyyy-MM-dd');
     }
     await updateDoc(bookingRef, updateData);
+
+     await logActivity({
+        userId: user.id,
+        userName: user.name,
+        action: 'BOOKING_STATUS_CHANGED',
+        entityType: 'Booking',
+        entityId: bookingId,
+        details: `Set status to ${status} for booking #${bookingId}`,
+      });
 
     toast({ title: "Status Updated", description: `Booking status changed to ${status}.` });
 
@@ -314,6 +348,14 @@ export default function AdminBookingsPage() {
                 status: 'Unpaid',
             };
             const invoiceRef = await addDoc(collection(firestore, 'invoices'), invoiceData);
+             await logActivity({
+                userId: user.id,
+                userName: user.name,
+                action: 'INVOICE_CREATED',
+                entityType: 'Invoice',
+                entityId: invoiceRef.id,
+                details: `Auto-generated invoice for booking #${booking.id}`,
+            });
             toast({
                 title: "Invoice Created",
                 description: `Invoice #${invoiceRef.id.substring(0,7)} has been automatically generated with tax computations.`

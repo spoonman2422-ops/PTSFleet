@@ -22,6 +22,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import Papa from 'papaparse';
+import { logActivity } from '@/lib/activity-log-service';
 
 export default function ReimbursementsPage() {
   const { data: reimbursements, isLoading: isLoadingReimbursements } = useCollection<Reimbursement>('reimbursements');
@@ -73,6 +74,15 @@ export default function ReimbursementsPage() {
         await addDoc(collection(firestore, 'expenses'), expenseData);
     }
     // If it IS a cash advance, we do nothing here. The cash advance was already logged on creation.
+
+    await logActivity({
+        userId: user.id,
+        userName: user.name,
+        action: 'REIMBURSEMENT_LIQUIDATED',
+        entityType: 'Reimbursement',
+        entityId: reimbursement.id,
+        details: `Liquidated reimbursement: ${reimbursement.description}`,
+    });
 
     toast({
         title: "Reimbursement Liquidated",

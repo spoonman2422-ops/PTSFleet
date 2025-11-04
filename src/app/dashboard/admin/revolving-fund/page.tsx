@@ -36,6 +36,7 @@ import { RevolvingFundTable } from '@/components/admin/revolving-fund-table';
 import type { RevolvingFundContribution, User } from '@/lib/types';
 import { Separator } from '@/components/ui/separator';
 import { RevolvingFundDialog } from '@/components/admin/revolving-fund-dialog';
+import { logActivity } from '@/lib/activity-log-service';
 
 
 const contributionSchema = z.object({
@@ -92,12 +93,28 @@ export default function RevolvingFundPage() {
         // Update
         const docRef = doc(firestore, 'revolvingFundContributions', id);
         await updateDoc(docRef, dataToSave);
+        await logActivity({
+          userId: user.id,
+          userName: user.name,
+          action: 'REVOLVING_FUND_UPDATED',
+          entityType: 'RevolvingFund',
+          entityId: id,
+          details: `Updated contribution from ${data.contributorName}`,
+        });
         toast({ title: 'Contribution Updated', description: `Contribution from ${data.contributorName} has been updated.` });
     } else {
         // Create
-        await addDoc(collection(firestore, 'revolvingFundContributions'), {
+        const docRef = await addDoc(collection(firestore, 'revolvingFundContributions'), {
             ...dataToSave,
             addedBy: user.id
+        });
+        await logActivity({
+          userId: user.id,
+          userName: user.name,
+          action: 'REVOLVING_FUND_CREATED',
+          entityType: 'RevolvingFund',
+          entityId: docRef.id,
+          details: `Added contribution from ${data.contributorName}`,
         });
         toast({ title: 'Contribution Added', description: `Contribution from ${data.contributorName} has been logged.` });
     }

@@ -48,6 +48,8 @@ import {
 import { DataTableColumnHeader } from '@/components/ui/data-table-column-header';
 import { cn } from '@/lib/utils';
 import Papa from 'papaparse';
+import { useUser } from '@/context/user-context';
+import { logActivity } from '@/lib/activity-log-service';
 
 
 const statusConfig: Record<InvoiceStatus, { variant: 'secondary' | 'default' | 'destructive', className: string }> = {
@@ -61,6 +63,7 @@ const invoiceStatuses: (InvoiceStatus | 'All')[] = ['All', 'Paid', 'Unpaid', 'Ov
 
 export default function InvoicesPage() {
     const firestore = useFirestore();
+    const { user } = useUser();
     const { data: invoices, isLoading: isLoadingInvoices } = useCollection<Invoice>('invoices');
     const { data: users, isLoading: isLoadingUsers } = useCollection<User>('users');
     const { data: bookings, isLoading: isLoadingBookings } = useCollection<Booking>('bookings');
@@ -106,10 +109,19 @@ export default function InvoicesPage() {
     };
 
     const handleSaveInvoice = async (data: Partial<Invoice>, id: string) => {
-        if (!firestore) return;
+        if (!firestore || !user) return;
         
         const invoiceRef = doc(firestore, 'invoices', id);
         await updateDoc(invoiceRef, data);
+
+        await logActivity({
+            userId: user.id,
+            userName: user.name,
+            action: 'INVOICE_UPDATED',
+            entityType: 'Invoice',
+            entityId: id,
+            details: `Updated invoice #${id.substring(0,7)}`,
+        });
         
         toast({
             title: 'Invoice Updated',
@@ -119,10 +131,18 @@ export default function InvoicesPage() {
     };
 
     const handleUpdateStatus = async (invoiceId: string, status: InvoiceStatus) => {
-        if (!firestore) return;
+        if (!firestore || !user) return;
         const invoiceRef = doc(firestore, 'invoices', invoiceId);
         try {
             await updateDoc(invoiceRef, { status });
+            await logActivity({
+                userId: user.id,
+                userName: user.name,
+                action: 'INVOICE_STATUS_CHANGED',
+                entityType: 'Invoice',
+                entityId: invoiceId,
+                details: `Set status to ${status} for invoice #${invoiceId.substring(0,7)}`,
+            });
             toast({
                 title: 'Invoice Status Updated',
                 description: `Invoice #${invoiceId.substring(0,7)} has been marked as ${status}.`,
@@ -142,11 +162,20 @@ export default function InvoicesPage() {
     };
 
     const handleDeleteInvoice = async () => {
-        if (!deletingInvoice || !firestore) return;
+        if (!deletingInvoice || !firestore || !user) return;
 
         try {
             const invoiceRef = doc(firestore, 'invoices', deletingInvoice.id);
             await deleteDoc(invoiceRef);
+
+            await logActivity({
+                userId: user.id,
+                userName: user.name,
+                action: 'INVOICE_DELETED',
+                entityType: 'Invoice',
+                entityId: deletingInvoice.id,
+                details: `Deleted invoice #${deletingInvoice.id.substring(0, 7)}`,
+            });
 
             toast({
                 title: 'Invoice Deleted',
@@ -274,7 +303,7 @@ export default function InvoicesPage() {
           );
         }
       }
-    ], [users, bookings]);
+    ], [users, bookings, user]);
 
     const table = useReactTable({
       data: filteredInvoices,

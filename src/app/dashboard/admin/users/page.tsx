@@ -39,7 +39,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { useAuth } from "@/firebase";
+import { useAuth, useUser } from "@/firebase";
+import { logActivity } from "@/lib/activity-log-service";
 
 
 const roleBadgeVariant: Record<UserRole, "default" | "secondary" | "outline" | "destructive"> = {
@@ -58,6 +59,7 @@ export default function UserManagementPage() {
   
   const auth = useAuth();
   const firestore = useFirestore();
+  const { user: currentUser } = useUser();
   const { toast } = useToast();
 
   const handleAddUser = () => {
@@ -76,8 +78,8 @@ export default function UserManagementPage() {
   };
 
   const handleSaveUser = async (userData: Omit<User, 'id' | 'avatarUrl'> & { password?: string }, userId?: string) => {
-    if (!firestore || !auth) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Database not available.' });
+    if (!firestore || !auth || !currentUser) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Database not available or not authenticated.' });
         return;
     }
 
@@ -91,6 +93,14 @@ export default function UserManagementPage() {
         }
 
         await updateDoc(userRef, dataToUpdate);
+        await logActivity({
+          userId: currentUser.id,
+          userName: currentUser.name,
+          action: 'USER_UPDATED',
+          entityType: 'User',
+          entityId: userId,
+          details: `Updated profile for ${name}`,
+        });
         toast({ title: 'User Updated', description: `${name} has been updated.` });
 
       } else { // Creating new user
@@ -116,6 +126,14 @@ export default function UserManagementPage() {
         }
 
         await setDoc(doc(firestore, "users", authUser.uid), newUser);
+        await logActivity({
+          userId: currentUser.id,
+          userName: currentUser.name,
+          action: 'USER_CREATED',
+          entityType: 'User',
+          entityId: authUser.uid,
+          details: `Created new user: ${userData.name}`,
+        });
 
         toast({ title: 'User Created', description: `${userData.name} has been added.` });
       }
@@ -132,11 +150,20 @@ export default function UserManagementPage() {
   };
 
   const handleDeleteUser = async () => {
-    if (!deletingUser || !firestore) return;
+    if (!deletingUser || !firestore || !currentUser) return;
 
     try {
       const userRef = doc(firestore, 'users', deletingUser.id);
       await deleteDoc(userRef);
+
+      await logActivity({
+        userId: currentUser.id,
+        userName: currentUser.name,
+        action: 'USER_DELETED',
+        entityType: 'User',
+        entityId: deletingUser.id,
+        details: `Deleted user: ${deletingUser.name}`,
+      });
 
       toast({
         title: 'User Profile Deleted',

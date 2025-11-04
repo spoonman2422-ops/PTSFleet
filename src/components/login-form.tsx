@@ -13,6 +13,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Input } from '@/components/ui/input';
 import { LogIn } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { logActivity } from '@/lib/activity-log-service';
 
 const formSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email address." }),
@@ -22,7 +23,7 @@ const formSchema = z.object({
 type LoginFormValues = z.infer<typeof formSchema>;
 
 export function LoginForm() {
-  const { login, createUser, isLoading } = useUser();
+  const { login, createUser, isLoading, user } = useUser();
   const { toast } = useToast();
 
   const form = useForm<LoginFormValues>({
@@ -36,6 +37,7 @@ export function LoginForm() {
   const handleLogin = async (data: LoginFormValues) => {
     try {
       await login(data.email, data.password);
+      // user object might not be immediately available after login, so we can't log here directly
     } catch (err) {
       const authError = err as AuthError;
 
@@ -63,6 +65,19 @@ export function LoginForm() {
       }
     }
   };
+
+  React.useEffect(() => {
+    if (user) {
+      logActivity({
+        userId: user.id,
+        userName: user.name,
+        action: 'LOGIN_SUCCESS',
+        entityType: 'Auth',
+        entityId: user.id,
+        details: 'User successfully logged in.',
+      });
+    }
+  }, [user]);
 
   return (
     <Form {...form}>
