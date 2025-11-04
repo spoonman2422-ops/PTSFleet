@@ -27,8 +27,8 @@ import { DataTableColumnHeader } from '../ui/data-table-column-header';
 import type { CashAdvance, User } from '@/lib/types';
 import { Input } from '../ui/input';
 import { Button } from '../ui/button';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../ui/dropdown-menu';
-import { Edit, MoreHorizontal } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '../ui/dropdown-menu';
+import { Edit, MoreHorizontal, Trash2 } from 'lucide-react';
 
 
 type CashAdvanceTableProps = {
@@ -36,9 +36,10 @@ type CashAdvanceTableProps = {
   users: User[];
   isLoading: boolean;
   onEdit: (cashAdvance: CashAdvance) => void;
+  onDelete: (cashAdvance: CashAdvance) => void;
 };
 
-export function CashAdvanceTable({ data, users, isLoading, onEdit }: CashAdvanceTableProps) {
+export function CashAdvanceTable({ data, users, isLoading, onEdit, onDelete }: CashAdvanceTableProps) {
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: 'date', desc: true }
   ]);
@@ -93,6 +94,14 @@ export function CashAdvanceTable({ data, users, isLoading, onEdit }: CashAdvance
                     <Edit className="mr-2 h-4 w-4" />
                     Edit
                     </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem 
+                        onClick={() => onDelete(cashAdvance)}
+                        className="text-destructive focus:text-destructive"
+                    >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete
+                    </DropdownMenuItem>
                 </DropdownMenuContent>
                 </DropdownMenu>
             </div>
@@ -100,7 +109,7 @@ export function CashAdvanceTable({ data, users, isLoading, onEdit }: CashAdvance
         },
       },
     ],
-    [users, isLoading, onEdit]
+    [users, isLoading, onEdit, onDelete]
   );
 
   const table = useReactTable({

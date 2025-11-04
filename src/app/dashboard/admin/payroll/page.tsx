@@ -24,10 +24,20 @@ import { DriverPayrollCard } from '@/components/admin/driver-payroll-card';
 import { AddCashAdvanceForm } from '@/components/admin/add-cash-advance-form';
 import { CashAdvanceTable } from '@/components/admin/cash-advance-table';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { doc, updateDoc, addDoc, collection } from 'firebase/firestore';
+import { doc, updateDoc, addDoc, collection, deleteDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/context/user-context';
 import { CashAdvanceDialog } from '@/components/admin/cash-advance-dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 
 export default function PayrollPage() {
@@ -38,6 +48,9 @@ export default function PayrollPage() {
   
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingCashAdvance, setEditingCashAdvance] = useState<CashAdvance | null>(null);
+  const [deletingCashAdvance, setDeletingCashAdvance] = useState<CashAdvance | null>(null);
+  const [isAlertOpen, setIsAlertOpen] = useState(false);
+
 
   const firestore = useFirestore();
   const { toast } = useToast();
@@ -108,6 +121,32 @@ export default function PayrollPage() {
     }
     
     setIsDialogOpen(false);
+  };
+
+  const handleOpenDeleteDialog = (ca: CashAdvance) => {
+    setDeletingCashAdvance(ca);
+    setIsAlertOpen(true);
+  };
+
+  const handleDeleteCashAdvance = async () => {
+    if (!deletingCashAdvance || !firestore) return;
+
+    try {
+      await deleteDoc(doc(firestore, "cashAdvances", deletingCashAdvance.id));
+      toast({
+        title: "Cash Advance Deleted",
+        description: "The cash advance has been successfully removed.",
+      });
+    } catch (error: any) {
+      toast({
+        variant: "destructive",
+        title: "Error Deleting Cash Advance",
+        description: error.message || "An unexpected error occurred.",
+      });
+    } finally {
+      setIsAlertOpen(false);
+      setDeletingCashAdvance(null);
+    }
   };
 
 
@@ -215,6 +254,7 @@ export default function PayrollPage() {
                     users={users || []} 
                     isLoading={isLoadingCashAdvances || isLoadingUsers}
                     onEdit={handleEditCashAdvance}
+                    onDelete={handleOpenDeleteDialog}
                 />
             </CardContent>
           </Card>
@@ -261,6 +301,22 @@ export default function PayrollPage() {
         cashAdvance={editingCashAdvance}
         drivers={drivers}
     />
+     <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
+        <AlertDialogContent>
+        <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+            This action cannot be undone. This will permanently delete the cash advance for <span className="font-bold">{users.find(u => u.id === deletingCashAdvance?.driverId)?.name}</span> amounting to <span className="font-bold">{deletingCashAdvance?.amount}</span>.
+            </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteCashAdvance} className="bg-destructive hover:bg-destructive/90">
+            Delete
+            </AlertDialogAction>
+        </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
