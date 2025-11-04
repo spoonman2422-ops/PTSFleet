@@ -2,7 +2,7 @@
 "use client";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ShieldQuestion, ClipboardList, Truck, PackageCheck, Pencil, FileText, Banknote, ArrowRight, GitPullRequest, HandCoins as ReimbursementIcon, Download, FileSpreadsheet, List } from 'lucide-react';
+import { ShieldQuestion, ClipboardList, Truck, PackageCheck, Pencil, FileText, Banknote, ArrowRight, GitPullRequest, HandCoins as ReimbursementIcon, Download, FileSpreadsheet, List, Activity } from 'lucide-react';
 
 export default function UserGuidePage() {
   return (
@@ -21,7 +21,33 @@ export default function UserGuidePage() {
         </GuideSection>
 
         <GuideSection title="2. What's New">
-            <h2 className="text-xl font-bold mb-4">Version 3.1</h2>
+            <h2 className="text-xl font-bold mb-4">Version 3.1.1</h2>
+            <ul className="list-disc pl-6 mt-2 space-y-3">
+                <li>
+                  <strong className="flex items-center gap-2"><Banknote className="h-4 w-4" /> Enhanced Cash Advance Workflow</strong>
+                  <p className="mt-1">The Payroll page now has an improved system for logging cash advances. You can now specify if an advance was paid by 'PTS' or by 'Credit' from an owner. Advances are now reflected on the driver's payslip immediately, while credit-based advances simultaneously generate a reimbursement request for the owner.</p>
+                </li>
+                 <li>
+                  <strong className="flex items-center gap-2"><Pencil className="h-4 w-4" /> Delete Cash Advances</strong>
+                  <p className="mt-1">Admins can now delete cash advance entries directly from the history table on the Payroll page.</p>
+                </li>
+                <li>
+                  <strong className="flex items-center gap-2"><Activity className="h-4 w-4" /> Admin Activity Log Activated</strong>
+                  <p className="mt-1">The "Recent Activity" card on the Admin Dashboard is now fully functional. It logs all major actions within the system, such as creating bookings, updating users, and liquidating reimbursements, providing a clear audit trail.</p>
+                </li>
+                 <li>
+                  <strong className="flex items-center gap-2"><FileSpreadsheet className="h-4 w-4" /> Report & UI Enhancements</strong>
+                   <ul className="list-disc pl-6 mt-2 space-y-2">
+                        <li>The "Upcoming Billings" card on the Financials page now correctly shows unpaid invoices due within the next 7 days and includes the Booking ID.</li>
+                        <li>The Booking ID column has been added to the main Invoice Management table.</li>
+                        <li>Fixed a bug that caused reports to print incorrectly (repeating pages).</li>
+                        <li>Corrected an issue where automatically generated descriptions and notifications were not showing the full Booking ID.</li>
+                        <li>Improved the Booking ID generation logic to correctly handle sequences (e.g., 'Flash10').</li>
+                   </ul>
+                </li>
+            </ul>
+
+            <h2 className="text-xl font-bold mt-8 mb-4">Version 3.1</h2>
             <ul className="list-disc pl-6 mt-2 space-y-3">
                 <li>
                   <strong className="flex items-center gap-2"><Download className="h-4 w-4" /> CSV Downloads</strong>
@@ -30,16 +56,6 @@ export default function UserGuidePage() {
                 <li>
                   <strong className="flex items-center gap-2"><List className="h-4 w-4" /> Full Data View</strong>
                   <p className="mt-1">Pagination has been removed from the Expense and Reimbursement pages. All entries are now displayed at once, making it easier to view your data in conjunction with the powerful filter and sort features.</p>
-                </li>
-                 <li>
-                  <strong className="flex items-center gap-2"><FileSpreadsheet className="h-4 w-4" /> Report & UI Enhancements</strong>
-                   <ul className="list-disc pl-6 mt-2 space-y-2">
-                        <li>The "Upcoming Billings" card on the Financials page now correctly shows unpaid invoices due within the next 7 days.</li>
-                        <li>Booking IDs have been added to the Upcoming Billings card and its full report for easier cross-referencing.</li>
-                        <li>The Booking ID column has been added to the main Invoice Management table.</li>
-                        <li>Fixed a bug that caused reports to print incorrectly (repeating pages).</li>
-                        <li>Corrected an issue where automatically generated descriptions and notifications were showing shortened Booking IDs.</li>
-                   </ul>
                 </li>
             </ul>
 
