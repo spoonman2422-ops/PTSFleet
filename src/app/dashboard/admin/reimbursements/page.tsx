@@ -41,32 +41,25 @@ export default function ReimbursementsPage() {
         return;
     }
 
-    if (reimbursement.category === 'cash advance') {
-        // Special handling for cash advance liquidation
-        if (!reimbursement.driverId) {
-            toast({ variant: "destructive", title: "Missing Driver", description: "Cannot liquidate cash advance without a driver."});
-            return;
-        }
-        await addDoc(collection(firestore, 'cashAdvances'), {
-            driverId: reimbursement.driverId,
-            amount: reimbursement.amount,
-            date: reimbursement.dateIncurred,
-            paidBy: 'Credit',
-            creditedTo: reimbursement.creditedTo,
-            addedBy: user.id
-        });
-        
-    } else {
-        // Standard expense liquidation
+    // 1. Mark the reimbursement as 'Liquidated'
+    const reimbursementRef = doc(firestore, 'reimbursements', reimbursement.id);
+    await updateDoc(reimbursementRef, {
+        status: 'Liquidated',
+        liquidatedBy: user.id,
+        liquidatedAt: new Date().toISOString()
+    });
+
+    // 2. If it's a standard expense (not a cash advance), create an entry in the expenses log
+    if (reimbursement.category !== 'cash advance') {
         const expenseData: any = {
             category: reimbursement.category,
             description: reimbursement.description,
             amount: reimbursement.amount,
-            vatIncluded: false,
+            vatIncluded: false, // Defaulting as original logic, might need adjustment
             vatRate: 0,
             inputVat: 0,
             dateIncurred: reimbursement.dateIncurred,
-            paidBy: "PTS" as const,
+            paidBy: "PTS" as const, // The company is now "paying" for it
             creditedTo: reimbursement.creditedTo,
             addedBy: user.id,
             notes: `Liquidated from reimbursement request #${reimbursement.id.substring(0, 7)}. Original request by user ID: ${reimbursement.addedBy}`
@@ -78,14 +71,7 @@ export default function ReimbursementsPage() {
 
         await addDoc(collection(firestore, 'expenses'), expenseData);
     }
-
-    // 2. Update the reimbursement status
-    const reimbursementRef = doc(firestore, 'reimbursements', reimbursement.id);
-    await updateDoc(reimbursementRef, {
-        status: 'Liquidated',
-        liquidatedBy: user.id,
-        liquidatedAt: new Date().toISOString()
-    });
+    // If it IS a cash advance, we do nothing here. The cash advance was already logged on creation.
 
     toast({
         title: "Reimbursement Liquidated",

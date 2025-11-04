@@ -24,7 +24,7 @@ import { DriverPayrollCard } from '@/components/admin/driver-payroll-card';
 import { AddCashAdvanceForm } from '@/components/admin/add-cash-advance-form';
 import { CashAdvanceTable } from '@/components/admin/cash-advance-table';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { doc, updateDoc, addDoc, collection, deleteDoc } from 'firebase/firestore';
+import { doc, updateDoc, addDoc, collection, deleteDoc, writeBatch } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/context/user-context';
 import { CashAdvanceDialog } from '@/components/admin/cash-advance-dialog';
@@ -69,6 +69,16 @@ export default function PayrollPage() {
         return;
     }
     
+    const batch = writeBatch(firestore);
+
+    // 1. Always create the cash advance entry so it appears on the payslip
+    const caRef = doc(collection(firestore, 'cashAdvances'));
+    batch.set(caRef, {
+        ...data,
+        addedBy: user.id,
+    });
+    
+    // 2. If paid by credit, also create a reimbursement request for the owner
     if (data.paidBy === 'Credit') {
         if (!data.creditedTo) {
             toast({ variant: "destructive", title: "Missing Information", description: "Please select the owner to be credited." });
@@ -76,26 +86,25 @@ export default function PayrollPage() {
         }
 
         const reimbursementData: Omit<Reimbursement, 'id' | 'liquidatedAt' | 'liquidatedBy'> = {
+            cashAdvanceId: caRef.id, // Link to the cash advance document
             driverId: data.driverId,
             category: 'cash advance',
-            description: `Cash Advance for driver`,
+            description: `Cash Advance for driver ID: ${data.driverId}`,
             amount: data.amount,
             dateIncurred: data.date,
             creditedTo: data.creditedTo,
             status: 'Pending',
             addedBy: user.id,
-            notes: `Cash Advance via Credit for Driver ID: ${data.driverId}`,
+            notes: `Auto-generated from cash advance entry.`,
         };
         
-        await addDoc(collection(firestore, "reimbursements"), reimbursementData);
-        toast({ title: "Reimbursement Request Created", description: "The cash advance has been sent for liquidation." });
-    } else { // PTS
-        await addDoc(collection(firestore, 'cashAdvances'), {
-            ...data,
-            addedBy: user.id,
-        });
-        toast({ title: "Cash Advance Added", description: "The cash advance has been logged." });
+        const reimbursementRef = doc(collection(firestore, "reimbursements"));
+        batch.set(reimbursementRef, reimbursementData);
     }
+    
+    await batch.commit();
+
+    toast({ title: "Cash Advance Logged", description: "The cash advance has been recorded." });
   };
 
   const handleEditCashAdvance = (ca: CashAdvance) => {
