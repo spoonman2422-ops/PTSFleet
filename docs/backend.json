@@ -54,7 +54,7 @@
         "driverRate": { "type": "number" },
         "vehicleType": { "type": "string", "enum": ["6-Wheel", "AUV"] },
         "expensePaymentMethod": { "type": "string", "enum": ["PTS", "Credit"] },
-        "expenseCreditedTo": { "type": ["string", "null"], "enum": ["Manel", "Meann", "Egay", "Nalyn", "Mae", null] },
+        "expenseCreditedTo": { "type": ["string", "null"], "enum": ["Manel", "Meann", "Egay", "Nalyn", "Mae", "Florly", null] },
         "expectedExpenses": {
           "type": "object",
           "properties": {
@@ -118,7 +118,7 @@
         "category": {
           "type": "string",
           "description": "The category of the expense.",
-          "enum": ["Bank Transfer fee", "change oil", "client representation", "driver payroll", "driver rate", "fuel", "maintenance", "miscellaneous", "office", "permits", "pms", "staff", "toll", "Vehicle Related Expense", "vehicle parts"]
+          "enum": ["Bank Transfer fee", "cash advance", "change oil", "client representation", "driver payroll", "driver rate", "fuel", "maintenance", "miscellaneous", "office", "permits", "pms", "staff", "toll", "Vehicle Related Expense", "vehicle parts"]
         },
         "description": {
           "type": "string",
@@ -162,11 +162,13 @@
       "type": "object",
       "properties": {
         "bookingId": { "type": ["string", "null"] },
-        "category": { "type": "string", "enum": ["Bank Transfer fee", "change oil", "client representation", "driver payroll", "driver rate", "fuel", "maintenance", "miscellaneous", "office", "permits", "pms", "staff", "toll", "Vehicle Related Expense", "vehicle parts"] },
+        "cashAdvanceId": { "type": ["string", "null"] },
+        "driverId": { "type": ["string", "null"] },
+        "category": { "type": "string", "enum": ["Bank Transfer fee", "cash advance", "change oil", "client representation", "driver payroll", "driver rate", "fuel", "maintenance", "miscellaneous", "office", "permits", "pms", "staff", "toll", "Vehicle Related Expense", "vehicle parts"] },
         "description": { "type": "string" },
         "amount": { "type": "number" },
         "dateIncurred": { "type": "string", "format": "date" },
-        "creditedTo": { "type": "string", "enum": ["Manel", "Meann", "Egay", "Nalyn", "Mae"] },
+        "creditedTo": { "type": "string", "enum": ["Manel", "Meann", "Egay", "Nalyn", "Mae", "Florly"] },
         "status": { "type": "string", "enum": ["Pending", "Liquidated"] },
         "addedBy": { "type": "string" },
         "liquidatedAt": { "type": ["string", "null"], "format": "date-time" },
@@ -218,12 +220,14 @@
           "format": "date",
           "description": "The date the advance was given."
         },
+        "paidBy": { "type": "string", "enum": ["PTS", "Credit"], "description": "How the cash advance was funded." },
+        "creditedTo": { "type": ["string", "null"], "enum": ["Manel", "Meann", "Egay", "Nalyn", "Mae", "Florly", null], "description": "Who to reimburse if paid by credit." },
         "addedBy": {
           "type": "string",
           "description": "The ID of the admin who logged this advance."
         }
       },
-      "required": ["driverId", "amount", "date", "addedBy"]
+      "required": ["driverId", "amount", "date", "addedBy", "paidBy"]
     },
     "Vehicle": {
       "title": "Vehicle",

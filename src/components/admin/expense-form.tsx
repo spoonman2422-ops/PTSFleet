@@ -31,9 +31,9 @@ import { cn } from "@/lib/utils";
 import { Textarea } from "../ui/textarea";
 import type { OwnerName } from "@/lib/types";
 
-const expenseCategories = ["Bank Transfer fee", "change oil", "client representation", "driver payroll", "driver rate", "fuel", "maintenance", "miscellaneous", "office", "permits", "pms", "staff", "toll", "Vehicle Related Expense", "vehicle parts"] as const;
+const expenseCategories = ["Bank Transfer fee", "cash advance", "change oil", "client representation", "driver payroll", "driver rate", "fuel", "maintenance", "miscellaneous", "office", "permits", "pms", "staff", "toll", "Vehicle Related Expense", "vehicle parts"] as const;
 const paymentMethods = ["cash", "bank", "credit", "PTS"] as const;
-const owners: OwnerName[] = ["Manel", "Meann", "Egay", "Nalyn", "Mae"];
+const owners: OwnerName[] = ["Manel", "Meann", "Egay", "Nalyn", "Mae", "Florly"];
 
 const expenseSchema = z.object({
   category: z.enum(expenseCategories, { required_error: "Category is required." }),

@@ -36,7 +36,7 @@ import type { Booking, User, Vehicle, VehicleType, OwnerName } from '@/lib/types
 import { format, parseISO, addDays, nextSunday, startOfMonth, addMonths, nextSaturday } from 'date-fns';
 import { Separator } from '../ui/separator';
 
-const owners: OwnerName[] = ["Manel", "Meann", "Egay", "Nalyn", "Mae"];
+const owners: OwnerName[] = ["Manel", "Meann", "Egay", "Nalyn", "Mae", "Florly"];
 
 const bookingSchema = z.object({
   id: z.string().min(1, 'Booking ID is required.'),
@@ -155,8 +155,8 @@ export function BookingDialog({
 
       const lastNumber = clientBookings.length > 0 ? Math.max(...clientBookings) : 0;
       const newNumber = lastNumber + 1;
-      
-      const newId = `${clientPrefix}${newNumber}`;
+
+      const newId = `${clientPrefix}${newNumber < 10 ? '0' : ''}${newNumber}`;
 
       form.setValue('id', newId, { shouldValidate: true });
     }
@@ -597,5 +597,3 @@ export function BookingDialog({
     </Dialog>
   );
 }
-
-    

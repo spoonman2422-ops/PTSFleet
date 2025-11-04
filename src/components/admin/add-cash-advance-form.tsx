@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useToast } from '@/hooks/use-toast';
@@ -34,7 +34,9 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Calendar } from '@/components/ui/calendar';
 import { CalendarIcon, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { User, CashAdvance } from '@/lib/types';
+import type { User, CashAdvance, OwnerName } from '@/lib/types';
+
+const owners: OwnerName[] = ["Manel", "Meann", "Egay", "Nalyn", "Mae", "Florly"];
 
 const cashAdvanceSchema = z.object({
   driverId: z.string().min(1, 'Driver is required.'),
@@ -42,7 +44,18 @@ const cashAdvanceSchema = z.object({
   date: z.date({
     required_error: 'A date is required.',
   }),
+  paidBy: z.enum(['PTS', 'Credit'], { required_error: "Payment method is required." }),
+  creditedTo: z.enum(owners).nullable(),
+}).refine(data => {
+    if (data.paidBy === 'Credit') {
+        return !!data.creditedTo;
+    }
+    return true;
+}, {
+    message: "Please select who to credit when payment method is 'Credit'.",
+    path: ["creditedTo"],
 });
+
 
 type CashAdvanceFormValues = z.infer<typeof cashAdvanceSchema>;
 
@@ -60,18 +73,29 @@ export function AddCashAdvanceForm({ drivers, onSave }: AddCashAdvanceFormProps)
       driverId: undefined,
       amount: 0,
       date: new Date(),
+      paidBy: 'PTS',
+      creditedTo: null,
     },
   });
 
+  const watchedPaidBy = useWatch({
+    control: form.control,
+    name: 'paidBy',
+  });
+
   const onSubmit = async (data: CashAdvanceFormValues) => {
-    await onSave({
-      ...data,
-      date: format(data.date, 'yyyy-MM-dd'),
-    });
+    const dataToSave = {
+        ...data,
+        date: format(data.date, 'yyyy-MM-dd'),
+        creditedTo: data.paidBy === 'Credit' ? data.creditedTo : null
+    };
+    await onSave(dataToSave);
     form.reset({
         driverId: undefined,
         amount: 0,
-        date: new Date()
+        date: new Date(),
+        paidBy: 'PTS',
+        creditedTo: null,
     });
   };
 
@@ -119,6 +143,51 @@ export function AddCashAdvanceForm({ drivers, onSave }: AddCashAdvanceFormProps)
                 </FormItem>
               )}
             />
+            <FormField
+              control={form.control}
+              name="paidBy"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Payment Method</FormLabel>
+                   <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                      <SelectTrigger>
+                      <SelectValue placeholder="Select a payment method" />
+                      </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                      <SelectItem value="PTS">Paid by PTS</SelectItem>
+                      <SelectItem value="Credit">Paid by Credit (for Reimbursement)</SelectItem>
+                  </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+             {watchedPaidBy === 'Credit' && (
+              <FormField
+                  control={form.control}
+                  name="creditedTo"
+                  render={({ field }) => (
+                  <FormItem>
+                      <FormLabel>Credit To (Owner)</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value ?? undefined}>
+                      <FormControl>
+                          <SelectTrigger>
+                              <SelectValue placeholder="Select an owner" />
+                          </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                          {owners.map(owner => (
+                              <SelectItem key={owner} value={owner}>{owner}</SelectItem>
+                          ))}
+                      </SelectContent>
+                      </Select>
+                      <FormMessage />
+                  </FormItem>
+                  )}
+              />
+            )}
             <FormField
               control={form.control}
               name="date"

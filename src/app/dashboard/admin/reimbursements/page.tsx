@@ -40,27 +40,44 @@ export default function ReimbursementsPage() {
         toast({ variant: "destructive", title: "Error", description: "Authentication error." });
         return;
     }
-    
-    // 1. Create a new expense
-    const expenseData: any = {
-        category: reimbursement.category,
-        description: reimbursement.description,
-        amount: reimbursement.amount,
-        vatIncluded: false, // Defaulting as not tracked in reimbursement
-        vatRate: 0,
-        inputVat: 0,
-        dateIncurred: reimbursement.dateIncurred,
-        paidBy: "PTS" as const, // The company is now paying it out.
-        creditedTo: reimbursement.creditedTo, // Keep track of who was reimbursed
-        addedBy: user.id, // The admin liquidating it
-        notes: `Liquidated from reimbursement request #${reimbursement.id.substring(0, 7)}. Original request by user ID: ${reimbursement.addedBy}`
-    };
 
-    if (reimbursement.bookingId) {
-        expenseData.bookingId = reimbursement.bookingId;
+    if (reimbursement.category === 'cash advance') {
+        // Special handling for cash advance liquidation
+        if (!reimbursement.driverId) {
+            toast({ variant: "destructive", title: "Missing Driver", description: "Cannot liquidate cash advance without a driver."});
+            return;
+        }
+        await addDoc(collection(firestore, 'cashAdvances'), {
+            driverId: reimbursement.driverId,
+            amount: reimbursement.amount,
+            date: reimbursement.dateIncurred,
+            paidBy: 'Credit',
+            creditedTo: reimbursement.creditedTo,
+            addedBy: user.id
+        });
+        
+    } else {
+        // Standard expense liquidation
+        const expenseData: any = {
+            category: reimbursement.category,
+            description: reimbursement.description,
+            amount: reimbursement.amount,
+            vatIncluded: false,
+            vatRate: 0,
+            inputVat: 0,
+            dateIncurred: reimbursement.dateIncurred,
+            paidBy: "PTS" as const,
+            creditedTo: reimbursement.creditedTo,
+            addedBy: user.id,
+            notes: `Liquidated from reimbursement request #${reimbursement.id.substring(0, 7)}. Original request by user ID: ${reimbursement.addedBy}`
+        };
+
+        if (reimbursement.bookingId) {
+            expenseData.bookingId = reimbursement.bookingId;
+        }
+
+        await addDoc(collection(firestore, 'expenses'), expenseData);
     }
-
-    await addDoc(collection(firestore, 'expenses'), expenseData);
 
     // 2. Update the reimbursement status
     const reimbursementRef = doc(firestore, 'reimbursements', reimbursement.id);
@@ -72,7 +89,7 @@ export default function ReimbursementsPage() {
 
     toast({
         title: "Reimbursement Liquidated",
-        description: `An expense has been created and the request is marked as complete.`
+        description: `The request has been processed and marked as complete.`
     });
   };
 
@@ -215,5 +232,3 @@ export default function ReimbursementsPage() {
     </>
   );
 }
-
-    

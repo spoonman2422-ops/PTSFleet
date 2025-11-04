@@ -3,7 +3,7 @@
 
 import { useState, useMemo } from 'react';
 import { useCollection, useFirestore } from '@/firebase';
-import type { Booking, User, CashAdvance } from '@/lib/types';
+import type { Booking, User, CashAdvance, OwnerName, Reimbursement } from '@/lib/types';
 import {
   startOfWeek,
   endOfWeek,
@@ -55,11 +55,34 @@ export default function PayrollPage() {
         toast({ variant: "destructive", title: "Error", description: "Not authenticated." });
         return;
     }
-    await addDoc(collection(firestore, 'cashAdvances'), {
-        ...data,
-        addedBy: user.id,
-    });
-    toast({ title: "Cash Advance Added", description: "The cash advance has been logged." });
+    
+    if (data.paidBy === 'Credit') {
+        if (!data.creditedTo) {
+            toast({ variant: "destructive", title: "Missing Information", description: "Please select the owner to be credited." });
+            return;
+        }
+
+        const reimbursementData: Omit<Reimbursement, 'id' | 'liquidatedAt' | 'liquidatedBy'> = {
+            driverId: data.driverId,
+            category: 'cash advance',
+            description: `Cash Advance for driver`,
+            amount: data.amount,
+            dateIncurred: data.date,
+            creditedTo: data.creditedTo,
+            status: 'Pending',
+            addedBy: user.id,
+            notes: `Cash Advance via Credit for Driver ID: ${data.driverId}`,
+        };
+        
+        await addDoc(collection(firestore, "reimbursements"), reimbursementData);
+        toast({ title: "Reimbursement Request Created", description: "The cash advance has been sent for liquidation." });
+    } else { // PTS
+        await addDoc(collection(firestore, 'cashAdvances'), {
+            ...data,
+            addedBy: user.id,
+        });
+        toast({ title: "Cash Advance Added", description: "The cash advance has been logged." });
+    }
   };
 
   const handleEditCashAdvance = (ca: CashAdvance) => {

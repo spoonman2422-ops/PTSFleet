@@ -7,7 +7,7 @@ export type BookingStatus = 'pending' | 'En Route' | 'Pending Verification' | 'D
 export type InvoiceStatus = 'Paid' | 'Unpaid' | 'Overdue';
 export type VehicleType = '6-Wheel' | 'AUV';
 export type VehicleStatus = 'Active' | 'Under Maintenance' | 'Decommissioned';
-export type OwnerName = "Manel" | "Meann" | "Egay" | "Nalyn" | "Mae";
+export type OwnerName = "Manel" | "Meann" | "Egay" | "Nalyn" | "Mae" | "Florly";
 
 
 export interface User {
@@ -92,7 +92,7 @@ export interface Message {
   imageUrl?: string;
 }
 
-export type ExpenseCategory = "Bank Transfer fee" | "change oil" | "client representation" | "driver payroll" | "driver rate" | "fuel" | "maintenance" | "miscellaneous" | "office" | "permits" | "pms" | "staff" | "toll" | "Vehicle Related Expense" | "vehicle parts";
+export type ExpenseCategory = "Bank Transfer fee" | "cash advance" | "change oil" | "client representation" | "driver payroll" | "driver rate" | "fuel" | "maintenance" | "miscellaneous" | "office" | "permits" | "pms" | "staff" | "toll" | "Vehicle Related Expense" | "vehicle parts";
 
 export interface Expense {
   id: string;
@@ -115,6 +115,8 @@ export type ReimbursementStatus = 'Pending' | 'Liquidated';
 export interface Reimbursement {
   id: string;
   bookingId?: string | null;
+  cashAdvanceId?: string | null;
+  driverId?: string | null;
   category: ExpenseCategory;
   description: string;
   amount: number;
@@ -140,6 +142,8 @@ export interface CashAdvance {
   driverId: string;
   amount: number;
   date: string;
+  paidBy: 'PTS' | 'Credit';
+  creditedTo?: OwnerName | null;
   addedBy: string;
 }
 
